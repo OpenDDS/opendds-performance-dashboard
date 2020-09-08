@@ -69,30 +69,33 @@ async function getCommits() {
 
 // The name parameter can be one of the strings in DATA_SET_NAME_PREFIXES.
 async function getData(name, statType) {
+  console.log('scrape.js getData: name =', name);
+  console.log('scrape.js getData: statType =', name);
   const data = {};
 
   try {
     const commits = await getCommits();
     for (const commit of commits) {
-      const commitObj = (data[commit] = {});
+      console.log('scrape.js x: commit =', commit);
 
-      const dataSetNames = await getDataSetNames(commit);
-      for (const dataSetName of dataSetNames) {
-        if (dataSetName.startsWith(name + '_')) {
+      const allDataSetNames = await getDataSetNames(commit);
+      const matchingDataSetNames = allDataSetNames.filter(dataSetName =>
+        dataSetName.startsWith(name + '_')
+      );
+      if (matchingDataSetNames.length) {
+        const commitObj = (data[commit] = {});
+        for (const dataSetName of matchingDataSetNames) {
           const suffix = dataSetName.substring(name.length + 1);
 
           let dataSetObj = commitObj[name];
           if (!dataSetObj) dataSetObj = commitObj[name] = {};
-          dataSetObj[suffix] = await getDataSetStats(
-            commit,
-            dataSetName,
-            statType
-          );
+          const stats = await getDataSetStats(commit, dataSetName, statType);
+          if (stats) dataSetObj[suffix] = stats;
         }
       }
     }
 
-    console.log('index.js getData: data =', JSON.stringify(data, null, 2));
+    //console.log('index.js getData: data =', JSON.stringify(data, null, 2));
     return data;
   } catch (e) {
     console.error(e);
@@ -182,6 +185,6 @@ function getStats(lines, type) {
   return stats;
 }
 
-getAllData();
+if (!module.parent) getAllData();
 
 module.exports = {getData};
