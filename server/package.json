@@ -4,6 +4,8 @@
   "description": "OpenDSS Scoreboard server",
   "main": "index.js",
   "scripts": {
+    "format": "prettier --write '**/*.js'",
+    "lint": "eslint --fix --quiet . --ext .js,.svelte",
     "scrape": "node scrape.js",
     "start": "nodemon server.js"
   },
@@ -16,6 +18,9 @@
     "node-fetch": "^2.6.0"
   },
   "devDependencies": {
-    "nodemon": "^2.0.4"
+    "eslint": "^7.8.1",
+    "eslint-plugin-import": "^2.22.0",
+    "nodemon": "^2.0.4",
+    "prettier": "^2.1.1"
   }
 }

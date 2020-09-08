@@ -4,7 +4,8 @@
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
-.c3 path, .c3 line {
+.c3 path,
+.c3 line {
   fill: none;
   stroke: #000;
 }
@@ -47,7 +48,8 @@
   fill: #aaa;
 }
 
-.c3-xgrid, .c3-ygrid {
+.c3-xgrid,
+.c3-ygrid {
   stroke-dasharray: 3 3;
 }
 
@@ -92,7 +94,8 @@
   opacity: 1;
 }
 
-.c3-target.c3-focused path.c3-line, .c3-target.c3-focused path.c3-step {
+.c3-target.c3-focused path.c3-line,
+.c3-target.c3-focused path.c3-step {
   stroke-width: 2px;
 }
 
@@ -153,7 +156,7 @@
 }
 
 .c3-tooltip tr {
-  border: 1px solid #CCC;
+  border: 1px solid #ccc;
 }
 
 .c3-tooltip th {
@@ -161,7 +164,7 @@
   font-size: 14px;
   padding: 2px 5px;
   text-align: left;
-  color: #FFF;
+  color: #fff;
 }
 
 .c3-tooltip td {
@@ -196,7 +199,7 @@
 
 .c3-chart-arcs .c3-chart-arcs-background {
   fill: #e0e0e0;
-  stroke: #FFF;
+  stroke: #fff;
 }
 
 .c3-chart-arcs .c3-chart-arcs-gauge-unit {
