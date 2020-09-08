@@ -11,7 +11,8 @@
     x: {
       type: 'timeseries',
       tick: {
-        format: '%Y-%m-%d %H:%M:%S' // display format
+        format: '%Y-%m-%d %H:%M:%S', // display format
+        rotate: 45
       }
     }
   };
@@ -26,12 +27,9 @@
 
   async function getChartData(name, statType) {
     const url = BASE_URL + name + '/' + statType;
-    console.log('App.svelte getChartData: url =', url);
     try {
       const res = await fetch(url);
       const rawData = await res.json();
-      console.log('App.svelte getChartData: rawData =', rawData);
-      //TODO: NOT PROCESSING EMPTY VALUES CORRECTLY!
       const timestamps = Object.keys(rawData);
       const xValues = timestamps.map(timestamp => timestamp.split('+')[0]);
       const [firstKey] = timestamps;
@@ -50,7 +48,6 @@
       }
 
       data.columns = columns;
-      console.log('App.svelte x: data =', data);
     } catch (e) {
       console.error(e);
       alert(e.message);
