@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "OpenDSS Scoreboard server",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "node scrape.js",
+    "start": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "R. Mark Volkmann",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  }
+}
