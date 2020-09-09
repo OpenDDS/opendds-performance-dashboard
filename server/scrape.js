@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const fs = require('fs');
 
 const BASE_URL = 'http://scoreboard.ociweb.com/bench2/';
 const DATA_SET_NAME_PREFIXES = [
@@ -41,7 +42,7 @@ async function getAllData() {
       }
     }
 
-    console.log('index.js getData: data =', JSON.stringify(data, null, 2));
+    fs.writeFileSync('open-dds-statistics.json', JSON.stringify(data, null, 2));
   } catch (e) {
     console.error(e);
   }
@@ -69,21 +70,15 @@ async function getCommits() {
 
 // The name parameter can be one of the strings in DATA_SET_NAME_PREFIXES.
 async function getData(dsName, statType) {
-  console.log('scrape.js getData: dsName =', dsName);
-  console.log('scrape.js getData: statType =', statType);
   const data = {};
 
   try {
     const commits = await getCommits();
     for (const commit of commits) {
-      console.log('scrape.js x: commit =', commit);
-
       const allDataSetNames = await getDataSetNames(commit);
-      console.log('scrape.js x: allDataSetNames =', allDataSetNames);
       const matchingDataSetNames = allDataSetNames.filter(dataSetName =>
         dataSetName.startsWith(dsName + '_')
       );
-      console.log('scrape.js x: matchingDataSetNames =', matchingDataSetNames);
       if (matchingDataSetNames.length) {
         const commitObj = (data[commit] = {});
         for (const dataSetName of matchingDataSetNames) {
@@ -96,8 +91,6 @@ async function getData(dsName, statType) {
         }
       }
     }
-
-    //console.log('index.js getData: data =', JSON.stringify(data, null, 2));
     return data;
   } catch (e) {
     console.error(e);
