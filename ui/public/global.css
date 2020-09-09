@@ -1,7 +1,7 @@
 body {
-  --oci-aqua: #88cad5;
-  --oci-blue: #355aa3;
-  --oci-orange: #efb87d;
+  --oci-aqua: #72c7d5;
+  --oci-blue: #255aa8;
+  --oci-orange: #feb672;
 
   /* background-color: linen; */
   background-color: var(--oci-orange);
