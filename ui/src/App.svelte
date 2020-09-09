@@ -41,7 +41,7 @@
       tick: {
         culling: false,
         format: '%Y-%m-%d %H:%M:%S', // display format
-        rotate: 45
+        rotate: -90
       }
     },
     y: {
@@ -53,9 +53,14 @@
   };
 
   let data = {
+    columns: [],
     x: 'x',
-    xFormat: '%Y-%m-%dT%H:%M:%S', // data format
-    columns: []
+    xFormat: '%Y-%m-%dT%H:%M:%S' // data format
+    /*
+    size: {
+      height: 480
+    }
+    */
   };
 
   let dataSet = 'echo_rtps';
