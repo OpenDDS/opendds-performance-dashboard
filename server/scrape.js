@@ -68,9 +68,9 @@ async function getCommits() {
 }
 
 // The name parameter can be one of the strings in DATA_SET_NAME_PREFIXES.
-async function getData(name, statType) {
-  console.log('scrape.js getData: name =', name);
-  console.log('scrape.js getData: statType =', name);
+async function getData(dsName, statType) {
+  console.log('scrape.js getData: dsName =', dsName);
+  console.log('scrape.js getData: statType =', statType);
   const data = {};
 
   try {
@@ -79,16 +79,18 @@ async function getData(name, statType) {
       console.log('scrape.js x: commit =', commit);
 
       const allDataSetNames = await getDataSetNames(commit);
+      console.log('scrape.js x: allDataSetNames =', allDataSetNames);
       const matchingDataSetNames = allDataSetNames.filter(dataSetName =>
-        dataSetName.startsWith(name + '_')
+        dataSetName.startsWith(dsName + '_')
       );
+      console.log('scrape.js x: matchingDataSetNames =', matchingDataSetNames);
       if (matchingDataSetNames.length) {
         const commitObj = (data[commit] = {});
         for (const dataSetName of matchingDataSetNames) {
-          const suffix = dataSetName.substring(name.length + 1);
+          const suffix = dataSetName.substring(dsName.length + 1);
 
-          let dataSetObj = commitObj[name];
-          if (!dataSetObj) dataSetObj = commitObj[name] = {};
+          let dataSetObj = commitObj[dsName];
+          if (!dataSetObj) dataSetObj = commitObj[dsName] = {};
           const stats = await getDataSetStats(commit, dataSetName, statType);
           if (stats) dataSetObj[suffix] = stats;
         }

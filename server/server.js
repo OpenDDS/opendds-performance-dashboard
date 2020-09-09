@@ -11,9 +11,9 @@ app.get('/', (req, res) => {
 
 // An example value for name is 'echo_rtps'.
 // An example value for statType is 'Latency'.
-app.get('/:name/:statType', async (req, res) => {
-  const {name, statType} = req.params;
-  const data = await getData(name, statType);
+app.get('/:dsName/:statType', async (req, res) => {
+  const {dsName, statType} = req.params;
+  const data = await getData(dsName, statType);
   res.send(JSON.stringify(data));
 });
 
