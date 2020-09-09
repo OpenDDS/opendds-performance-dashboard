@@ -39,9 +39,9 @@
       },
       type: 'timeseries',
       tick: {
+        culling: false,
         format: '%Y-%m-%d %H:%M:%S', // display format
-        //format: '%d %H %M', // display format
-        rotate: -90
+        rotate: 45
       }
     },
     y: {
