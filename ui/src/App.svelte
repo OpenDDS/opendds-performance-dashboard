@@ -33,10 +33,21 @@
 
   const axis = {
     x: {
+      label: {
+        position: 'outer-left',
+        text: 'Timestamp'
+      },
       type: 'timeseries',
       tick: {
         format: '%Y-%m-%d %H:%M:%S', // display format
-        rotate: 45
+        //format: '%d %H %M', // display format
+        rotate: -90
+      }
+    },
+    y: {
+      label: {
+        position: 'outer-middle',
+        text: ''
       }
     }
   };
@@ -87,6 +98,8 @@
       }
 
       data = {...data, columns};
+      console.log('App.svelte getChartData: data =', data);
+      axis.y.label.text = statName;
     } catch (e) {
       console.error(e);
       alert(e.message);
