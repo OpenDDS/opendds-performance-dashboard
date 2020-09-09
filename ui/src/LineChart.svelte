@@ -15,7 +15,6 @@
   }
 
   function handleResize() {
-    console.log('LineChart.svelte handleResize: entered');
     setTimeout(() => {
       container.style.maxHeight = 'none';
     }, 500);
