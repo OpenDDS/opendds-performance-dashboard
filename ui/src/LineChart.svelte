@@ -3,7 +3,7 @@
 
   export let axis;
   export let data;
-  export let title;
+  //export let title;
 
   //$: console.log('LineChart.svelte: axis =', axis);
   //$: console.log('LineChart.svelte: data =', data);
@@ -15,7 +15,12 @@
     // without blocking to update the chart.
     setTimeout(() => {
       console.log('LineChart.svelte: generating chart');
-      c3.generate({axis, bindto: '#open-dds-chart', data});
+      c3.generate({
+        axis,
+        bindto: '#open-dds-chart',
+        data,
+        size: {height: 500}
+      });
     });
   }
 </script>
@@ -48,7 +53,6 @@
 
   #open-dds-chart :global(svg) {
     box-sizing: border-box;
-    height: 800px;
     width: 100%;
   }
 

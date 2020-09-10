@@ -59,8 +59,7 @@
         position: 'outer-left',
         text: 'Timestamp'
       },
-      //type: 'timeseries', // can't get even spacing with this
-      type: 'category',
+      //type: 'category',
       tick: {
         culling: false,
         fit: false,
@@ -76,19 +75,25 @@
     }
   };
 
+  $: axisByTimestamp.x.type = useTimeSeries ? 'timeseries' : 'category';
+  $: axisByTimestamp.x.tick.fit = useTimeSeries;
+
   let data = {columns: [], x: 'x'};
   $: console.log('App.svelte: data =', data);
 
-  let chartType = 'by size';
+  let chartType = 'by timestamp';
   let dataSetDisplayName = 'Fan RTPS';
   let recentCount = 5;
   let serverCount = 16;
   let statDisplayName = MEAN_PLUS;
   let statType = 'Latency';
+  let useTimeSeries = false;
 
   $: axis = chartType === 'by timestamp' ? axisByTimestamp : axisBySize;
   $: axis.x.label.text =
-    dataSet === 'disco' || dataSet.startsWith('showtime_')
+    chartType === 'by timestamp'
+      ? 'timestamp'
+      : dataSet === 'disco' || dataSet.startsWith('showtime_')
       ? 'nodes'
       : 'payload size';
   $: dataSet = DATA_SETS[dataSetDisplayName];
@@ -280,6 +285,10 @@
   <form>
     <div>
       <Select label="Chart Type" options={CHART_TYPES} bind:value={chartType} />
+      {#if chartType === 'by timestamp'}
+        <label>Space X values by time <input type="checkbox" bind:checked={useTimeSeries} />
+        </label>
+      {/if}
 
       <Select
         label="Data Set"
