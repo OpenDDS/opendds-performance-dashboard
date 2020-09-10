@@ -17,6 +17,7 @@
     'Showtime Mixed': 'showtime_mixed'
   };
 
+  const MAX_RECENT_TIMESTAMPS = 10;
   const MDTD = 'max discovery time delta';
   const MEAN_PLUS = 'Mean + Standard Deviation';
   const MEDIAN_PLUS = 'Median + Median Deviation';
@@ -58,9 +59,11 @@
         position: 'outer-left',
         text: 'Timestamp'
       },
-      type: 'timeseries',
+      //type: 'timeseries', // can't get even spacing with this
+      type: 'category',
       tick: {
         culling: false,
+        fit: false,
         format: '%Y-%m-%d %H:%M:%S', // display format
         rotate: -90
       }
@@ -74,10 +77,11 @@
   };
 
   let data = {columns: [], x: 'x'};
-  //$: console.log('App.svelte: data =', data);
+  $: console.log('App.svelte: data =', data);
 
   let chartType = 'by size';
   let dataSetDisplayName = 'Fan RTPS';
+  let recentCount = 5;
   let serverCount = 16;
   let statDisplayName = MEAN_PLUS;
   let statType = 'Latency';
@@ -99,9 +103,15 @@
     data.columns = [];
 
     if (chartType === 'by timestamp') {
-      getChartDataByTimestamp(dataSet, serverCount, statType, statName);
+      getChartDataByTimestamp(
+        dataSet,
+        serverCount,
+        statType,
+        statName,
+        recentCount
+      );
     } else {
-      getChartDataBySize(dataSet, serverCount, statType, statName);
+      getChartDataBySize(dataSet, serverCount, statType, statName, recentCount);
     }
 
     if (axis) axis.y.label.text = statDisplayName;
@@ -122,8 +132,7 @@
     if (!dataSet || !statName || !statType) return;
 
     const isDiscovery = dataSet === 'disco';
-
-    const timestamps = Object.keys(statistics);
+    const timestamps = getTimestamps();
     const sizes = getSizes();
     const arr = ['x', ...sizes];
     const columns = [arr];
@@ -154,6 +163,7 @@
       columns.push(column);
     }
 
+    delete data.xFormat;
     data = {...data, columns};
   }
 
@@ -168,7 +178,7 @@
     const isDiscovery = dataSet === 'disco';
     const isFan = dataSet.startsWith('fan_');
 
-    const timestamps = Object.keys(statistics);
+    const timestamps = getTimestamps();
     const xValues = timestamps.map(timestamp => timestamp.split('+')[0]);
     const arr = ['x', ...xValues];
     const columns = [arr];
@@ -253,33 +263,61 @@
 
     return [...sizes].sort((s1, s2) => Number(s1) - Number(s2));
   }
+
+  function getTimestamps() {
+    const timestamps = Object.keys(statistics);
+    const startIndex = Math.max(
+      0,
+      timestamps.length - Math.min(MAX_RECENT_TIMESTAMPS, recentCount)
+    );
+    return timestamps.slice(startIndex);
+  }
 </script>
 
 <main>
-  <Select label="Chart Type" options={CHART_TYPES} bind:value={chartType} />
+  <h1>OpenDDS Bench Scoreboard</h1>
 
-  <Select
-    label="Data Set"
-    on:blur={dataSetChanged}
-    on:change={dataSetChanged}
-    options={Object.keys(DATA_SETS)}
-    bind:value={dataSetDisplayName} />
+  <form>
+    <div>
+      <Select label="Chart Type" options={CHART_TYPES} bind:value={chartType} />
 
-  {#if dataSet !== 'disco'}
-    {#if dataSet.startsWith('fan_')}
       <Select
-        label="# of Servers"
-        options={SERVER_COUNTS}
-        bind:value={serverCount} />
-    {/if}
+        label="Data Set"
+        on:blur={dataSetChanged}
+        on:change={dataSetChanged}
+        options={Object.keys(DATA_SETS)}
+        bind:value={dataSetDisplayName} />
+      {#if dataSet.startsWith('fan_')}
+        <Select
+          label="# of Servers"
+          options={SERVER_COUNTS}
+          bind:value={serverCount} />
+      {/if}
+    </div>
+    <div>
+      {#if dataSet !== 'disco'}
+        <Select label="Type" options={statTypes} bind:value={statType} />
 
-    <Select label="Type" options={statTypes} bind:value={statType} />
-
-    <Select
-      label="Statistics"
-      options={Object.keys(STAT_NAMES)}
-      bind:value={statDisplayName} />
-  {/if}
+        <Select
+          label="Statistics"
+          options={Object.keys(STAT_NAMES)}
+          bind:value={statDisplayName} />
+      {/if}
+      <label>
+        # of Recent Tests <input type="number" min="2" max={MAX_RECENT_TIMESTAMPS} bind:value={recentCount} />
+      </label>
+    </div>
+  </form>
 
   <LineChart {axis} bind:data {title} />
 </main>
+
+<style>
+  form {
+    display: flex;
+  }
+
+  form > div {
+    margin-right: 2rem;
+  }
+</style>

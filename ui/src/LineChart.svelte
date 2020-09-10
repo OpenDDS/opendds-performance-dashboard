@@ -20,9 +20,9 @@
   }
 </script>
 
-<h1>{title}</h1>
+<!--h2>{title}</h2-->
 {#if !data.columns.length}
-  <h2>...loading chart data...</h2>
+  <h3>...loading chart data...</h3>
 {/if}
 <div class={`container ${hideChart ? 'hide' : ''}`}>
   <div id="open-dds-chart" />
@@ -40,9 +40,19 @@
     display: none;
   }
 
+  #open-dds-chart :global(.c3-axis-x-label),
+  #open-dds-chart :global(.c3-axis-y-label) {
+    fill: var(--oci-blue);
+    font-size: 0.8rem;
+  }
+
   #open-dds-chart :global(svg) {
     box-sizing: border-box;
-    height: 600px;
+    height: 800px;
     width: 100%;
+  }
+
+  #open-dds-chart :global(.tick > line) {
+    display: none;
   }
 </style>
