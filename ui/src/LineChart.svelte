@@ -3,10 +3,12 @@
 
   export let axis;
   export let data;
-  //export let title;
+  export let title;
 
   //$: console.log('LineChart.svelte: axis =', axis);
   //$: console.log('LineChart.svelte: data =', data);
+  let chart;
+  let titleUsed;
 
   $: hideChart = data.columns.length === 0;
 
@@ -14,21 +16,28 @@
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     setTimeout(() => {
+      //if (chart) chart = chart.destroy();
       console.log('LineChart.svelte: generating chart');
-      c3.generate({
+      chart = c3.generate({
         axis,
         bindto: '#open-dds-chart',
         data,
         size: {height: 500}
+        //zoom: {enabled: true}
       });
+      titleUsed = title;
     });
   }
 </script>
 
-<!--h2>{title}</h2-->
+{#if titleUsed}
+  <h2>{titleUsed}</h2>
+{/if}
+
 {#if !data.columns.length}
   <h3>...loading chart data...</h3>
 {/if}
+
 <div class={`container ${hideChart ? 'hide' : ''}`}>
   <div id="open-dds-chart" />
 </div>
@@ -39,6 +48,10 @@
     border: solid var(--oci-aqua) 5px;
     border-radius: 20px;
     padding: 20px 0;
+  }
+
+  h2 {
+    text-align: center;
   }
 
   .hide {
