@@ -5,9 +5,11 @@
   export let data;
   export let title;
 
+  const CHART_HEIGHT = 500;
+
   //$: console.log('LineChart.svelte: axis =', axis);
   //$: console.log('LineChart.svelte: data =', data);
-  let chart;
+  //let chart;
   let titleUsed;
 
   $: hideChart = data.columns.length === 0;
@@ -17,14 +19,17 @@
     // without blocking to update the chart.
     setTimeout(() => {
       //if (chart) chart = chart.destroy();
-      console.log('LineChart.svelte: generating chart');
-      chart = c3.generate({
+      //console.log('LineChart.svelte: generating chart');
+      console.log('LineChart.svelte x: axis =', axis);
+      console.log('LineChart.svelte x: data =', data);
+      const chart = c3.generate({
         axis,
         bindto: '#open-dds-chart',
         data,
-        size: {height: 500}
+        size: {height: CHART_HEIGHT}
         //zoom: {enabled: true}
       });
+      //document.body.click();
       titleUsed = title;
     });
   }
