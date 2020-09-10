@@ -6,7 +6,7 @@
 
 <label>
   {label}
-  <select bind:value>
+  <select bind:value on:blur on:change>
     {#each options as option}
       <option>{option}</option>
     {/each}

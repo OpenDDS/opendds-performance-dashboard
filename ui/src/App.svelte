@@ -17,13 +17,17 @@
     'Showtime Mixed': 'showtime_mixed'
   };
 
+  const MDTD = 'max discovery time delta';
+  const MEAN_PLUS = 'Mean + Standard Deviation';
+  const MEDIAN_PLUS = 'Median + Median Deviation';
+
   const SERVER_COUNTS = [4, 16];
 
   const STAT_NAMES = {
     Minimum: 'min',
     Maximum: 'max',
-    'Mean + Standard Deviation': 'mean',
-    'Median + Median Deviation': 'median'
+    [MEAN_PLUS]: 'mean',
+    [MEDIAN_PLUS]: 'median'
   };
 
   const STAT_TYPES = [
@@ -75,12 +79,12 @@
   let chartType = 'by size';
   let dataSetDisplayName = 'Fan RTPS';
   let serverCount = 16;
-  let statDisplayName = 'Mean + Standard Deviation';
+  let statDisplayName = MEAN_PLUS;
   let statType = 'Latency';
 
   $: axis = chartType === 'by timestamp' ? axisByTimestamp : axisBySize;
   $: axis.x.label.text =
-    dataSet.startsWith('disco_') || dataSet.startsWith('showtime_')
+    dataSet === 'disco' || dataSet.startsWith('showtime_')
       ? 'nodes'
       : 'payload size';
   $: dataSet = DATA_SETS[dataSetDisplayName];
@@ -101,6 +105,17 @@
     }
 
     if (axis) axis.y.label.text = statName;
+  }
+
+  function dataSetChanged(event) {
+    const {value} = event.target;
+    if (value === 'Discovery') {
+      statDisplayName = MDTD;
+      statName = 'maxDiscoveryTimeDelta';
+    } else if (statDisplayName === MDTD) {
+      statDisplayName = MEAN_PLUS;
+      statName = 'mean';
+    }
   }
 
   async function getChartDataBySize(dataSet, serverCount, statType, statName) {
@@ -242,10 +257,14 @@
 
 <main>
   <Select label="Chart Type" options={CHART_TYPES} bind:value={chartType} />
+
   <Select
     label="Data Set"
+    on:blur={dataSetChanged}
+    on:change={dataSetChanged}
     options={Object.keys(DATA_SETS)}
     bind:value={dataSetDisplayName} />
+
   {#if dataSet !== 'disco'}
     {#if dataSet.startsWith('fan_')}
       <Select
@@ -253,7 +272,9 @@
         options={SERVER_COUNTS}
         bind:value={serverCount} />
     {/if}
+
     <Select label="Type" options={statTypes} bind:value={statType} />
+
     <Select
       label="Statistics"
       options={Object.keys(STAT_NAMES)}
