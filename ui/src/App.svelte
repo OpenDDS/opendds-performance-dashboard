@@ -1,28 +1,28 @@
 <script>
   import {onMount} from 'svelte';
   import LineChart from './LineChart.svelte';
+  import Select from './Select.svelte';
   import TimeSeries from './TimeSeries.svelte';
 
   const BASE_URL = 'http://localhost:1919/';
 
-  const DATA_SETS = [
-    'disco',
-    'echo_rtps',
-    'echo_tcp',
-    'fan_rtps',
-    'fan_tcp',
-    'showtime_mixed'
-  ];
+  const CHART_TYPES = ['by timestamp', 'by size'];
 
-  const STAT_NAMES = [
-    'count',
-    'min',
-    'max',
-    'mean',
-    'stdev',
-    'median',
-    'madev'
-  ];
+  const DATA_SETS = {
+    Discovery: 'disco',
+    'Echo RTPS': 'echo_rtps',
+    'Echo TCP': 'echo_tcp',
+    'Fan RTPS': 'fan_rtps',
+    'Fan TCP': 'fan_tcp',
+    'Showtime Mixed': 'showtime_mixed'
+  };
+
+  const STAT_NAMES = {
+    Minimum: 'min',
+    Maximum: 'max',
+    'Mean + Standard Deviation': 'mean',
+    'Median + Median Deviation': 'median'
+  };
 
   const STAT_TYPES = [
     'Latency',
@@ -56,17 +56,17 @@
     columns: [],
     x: 'x',
     xFormat: '%Y-%m-%dT%H:%M:%S' // data format
-    /*
-    size: {
-      height: 480
-    }
-    */
   };
 
-  let dataSet = 'echo_rtps';
-  let statName = 'mean';
+  let chartType = 'by timestamp';
+  let dataSetDisplayName = 'Echo RTPS';
+  let statDisplayName = 'Mean + Standard Deviation';
   let statType = 'Latency';
 
+  $: dataSet = DATA_SETS[dataSetDisplayName];
+  $: console.log('App.svelte: dataSet =', dataSet);
+  $: statName = STAT_NAMES[statDisplayName];
+  $: console.log('App.svelte: statName =', statName);
   $: title = `${dataSet} ${statType} ${statName}`;
 
   $: {
@@ -113,27 +113,16 @@
 </script>
 
 <main>
-  <label>
-    Data Set <select bind:value={dataSet}>
-      {#each DATA_SETS as dataSet}
-        <option>{dataSet}</option>
-      {/each}
-    </select>
-  </label>
-  <label>
-    Type <select bind:value={statType}>
-      {#each STAT_TYPES as statType}
-        <option>{statType}</option>
-      {/each}
-    </select>
-  </label>
-  <label>
-    Statistic <select bind:value={statName}>
-      {#each STAT_NAMES as name}
-        <option>{name}</option>
-      {/each}
-    </select>
-  </label>
+  <Select label="Chart Type" options={CHART_TYPES} bind:value={chartType} />
+  <Select
+    label="Data Set"
+    options={Object.keys(DATA_SETS)}
+    bind:value={dataSetDisplayName} />
+  <Select label="Type" options={STAT_TYPES} bind:value={statType} />
+  <Select
+    label="Statistics"
+    options={Object.keys(STAT_NAMES)}
+    bind:value={statDisplayName} />
 
   <!-- <TimeSeries /> -->
   <LineChart {axis} bind:data {title} />
