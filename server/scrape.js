@@ -104,8 +104,12 @@ async function getDataSetData(commit, dataSetName) {
     const res = await fetch(BASE_URL + commit + '/' + dataSetName);
     const html = await res.text();
     const lines = html.split('\n');
-    for (const statType of STAT_TYPES) {
-      data[statType] = getStats(lines, statType);
+    if (dataSetName.startsWith('disco_')) {
+      data.maxDiscoveryTimeDelta = getMaxDiscoveryTimeDelta(lines);
+    } else {
+      for (const statType of STAT_TYPES) {
+        data[statType] = getStats(lines, statType);
+      }
     }
     return data;
   } catch (e) {
@@ -144,6 +148,23 @@ async function getDataSetStats(commit, dataSetName, statType) {
   } catch (e) {
     console.error(e);
   }
+}
+
+function getMaxDiscoveryTimeDelta(lines) {
+  // Find line that begins with "Discovery".
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[++i];
+    if (line.startsWith('Discovery')) break;
+  }
+
+  if (i === lines.length) return 0;
+
+  // Get value from line that is two lines after that one.
+  const line = lines[i + 2];
+  const startIndex = line.indexOf(':') + 2;
+  const endIndex = line.indexOf(' ', startIndex);
+  return Number(line.substring(startIndex, endIndex));
 }
 
 function getStat(statName, lines, startIndex) {

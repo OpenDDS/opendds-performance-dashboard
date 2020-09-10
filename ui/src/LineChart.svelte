@@ -5,6 +5,9 @@
   export let data;
   export let title;
 
+  //$: console.log('LineChart.svelte: axis =', axis);
+  //$: console.log('LineChart.svelte: data =', data);
+
   $: hideChart = data.columns.length === 0;
 
   $: if (data.columns.length) {
