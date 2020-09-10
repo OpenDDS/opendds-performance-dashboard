@@ -14,6 +14,7 @@
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     setTimeout(() => {
+      console.log('LineChart.svelte: generating chart');
       c3.generate({axis, bindto: '#open-dds-chart', data});
     });
   }

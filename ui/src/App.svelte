@@ -93,7 +93,7 @@
     dataSet === 'showtime_mixed'
       ? STAT_TYPES.filter(st => !st.startsWith('Round Trip'))
       : STAT_TYPES;
-  $: title = `${dataSetDisplayName} - ${statType} - ${statName}`;
+  $: title = `${dataSetDisplayName} - ${statType} - ${statDisplayName}`;
 
   $: {
     data.columns = [];
@@ -104,7 +104,7 @@
       getChartDataBySize(dataSet, serverCount, statType, statName);
     }
 
-    if (axis) axis.y.label.text = statName;
+    if (axis) axis.y.label.text = statDisplayName;
   }
 
   function dataSetChanged(event) {
