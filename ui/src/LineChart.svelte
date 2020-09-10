@@ -11,7 +11,11 @@
   $: hideChart = data.columns.length === 0;
 
   $: if (data.columns.length) {
-    c3.generate({axis, bindto: '#open-dds-chart', data});
+    // Allow the rest of the UI to update
+    // without blocking to update the chart.
+    setTimeout(() => {
+      c3.generate({axis, bindto: '#open-dds-chart', data});
+    });
   }
 </script>
 
