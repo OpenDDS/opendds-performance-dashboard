@@ -89,7 +89,7 @@
     dataSet === 'showtime_mixed'
       ? STAT_TYPES.filter(st => !st.startsWith('Round Trip'))
       : STAT_TYPES;
-  $: title = `${dataSet} ${statType} ${statName}`;
+  $: title = `${dataSetDisplayName} - ${statType} - ${statName}`;
 
   $: {
     data.columns = [];
