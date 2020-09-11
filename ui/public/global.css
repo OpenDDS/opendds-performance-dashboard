@@ -18,6 +18,14 @@ textarea {
   padding: 4px;
 }
 
+button {
+  background-color: var(--oci-aqua);
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 0.5rem;
+}
+
 h1,
 h2 {
   color: var(--oci-blue);

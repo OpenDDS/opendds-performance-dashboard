@@ -2,6 +2,7 @@
   import {onMount} from 'svelte';
   import LineChart from './LineChart.svelte';
   import Select from './Select.svelte';
+  import TimestampSelection from './TimestampSelection.svelte';
 
   const BASE_URL = 'http://localhost:1919/';
 
@@ -86,6 +87,7 @@
   let chartType = 'by size';
   let dataSetDisplayName = 'Echo RTPS';
   let recentCount = 5;
+  let selectingTimestamps = false;
   let serverCount = 16;
   let statDisplayName = MEAN_PLUS;
   let statistics;
@@ -109,6 +111,7 @@
     dataSet === 'showtime_mixed'
       ? STAT_TYPES.filter(st => !st.startsWith('Round Trip'))
       : STAT_TYPES;
+  $: timestamps = getTimestamps(recentCount);
   $: title = `${dataSetDisplayName} - ${statType} - ${statDisplayName}`;
 
   $: if (statistics) {
@@ -144,7 +147,6 @@
     if (!dataSet || !statName || !statType) return;
 
     const isDiscovery = dataSet === 'disco';
-    const timestamps = getTimestamps();
     const sizes = getSizes();
     const arr = ['x', ...sizes];
     const columns = [arr];
@@ -152,12 +154,14 @@
     data = {...data, columns};
 
     for (const timestamp of timestamps) {
-      const column = [timestamp.split('+')[0]];
+      if (!timestamp.selected) continue;
+
+      const column = [timestamp.dateTime];
       for (const size of sizes) {
         let value = 0;
 
         const key = dataSet.startsWith('fan') ? size + '_' + serverCount : size;
-        let obj = statistics[timestamp][dataSet];
+        let obj = statistics[timestamp.full][dataSet];
         if (obj) {
           obj = obj[key];
           if (obj) {
@@ -190,8 +194,7 @@
     const isDiscovery = dataSet === 'disco';
     const isFan = dataSet.startsWith('fan_');
 
-    const timestamps = getTimestamps();
-    const xValues = timestamps.map(timestamp => timestamp.split('+')[0]);
+    const xValues = timestamps.map(timestamp => timestamp.dateTime);
     const arr = ['x', ...xValues];
     const columns = [arr];
 
@@ -199,10 +202,13 @@
 
     for (const dataName of dataNames) {
       const column = [dataName];
+
       for (const timestamp of timestamps) {
+        if (!timestamp.selected) continue;
+
         let value = 0;
 
-        const dataForName = statistics[timestamp][dataSet];
+        const dataForName = statistics[timestamp.full][dataSet];
         if (dataForName) {
           const obj =
             dataForName[isFan ? dataName + '_' + serverCount : dataName];
@@ -218,10 +224,11 @@
 
         column.push(value);
       }
+
       columns.push(column);
     }
 
-    const xFormat = '%Y-%m-%dT%H:%M:%S'; // data format
+    const xFormat = '%Y-%m-%d %H:%M:%S'; // data format
     data = {...data, columns, xFormat};
   }
 
@@ -264,7 +271,23 @@
   }
 
   function getTimestamps() {
-    const timestamps = Object.keys(statistics);
+    console.log('App.svelte getTimestamps: entered');
+    if (!statistics) return [];
+
+    const timestamps = Object.keys(statistics).map(full => {
+      const [dateTime, hash] = full.split('_');
+      const [date, timePlus] = dateTime.split('T');
+      const [time] = timePlus.split('+');
+      return {
+        date,
+        dateTime: date + ' ' + time,
+        full,
+        hash,
+        selected: true,
+        time
+      };
+    });
+
     const startIndex = Math.max(
       0,
       timestamps.length - Math.min(MAX_RECENT_TIMESTAMPS, recentCount)
@@ -273,10 +296,12 @@
   }
 
   async function loadData() {
+    console.log('App.svelte loadData: entered');
     try {
       const res = await fetch(BASE_URL + 'data');
       if (res.ok) {
         statistics = await res.json();
+        timestamps = getTimestamps();
         console.log('App.svelte loadData: statistics =', statistics);
       } else {
         throw new Error(await res.text());
@@ -323,13 +348,24 @@
           options={Object.keys(STAT_NAMES)}
           bind:value={statDisplayName} />
       {/if}
+    </div>
+    <div>
       <label>
         # of Recent Tests <input type="number" min="2" max={MAX_RECENT_TIMESTAMPS} bind:value={recentCount} />
       </label>
+      <button type="button" on:click={() => (selectingTimestamps = true)}>
+        Select Timestamps
+      </button>
     </div>
   </form>
 
-  <LineChart {axis} bind:data {title} />
+  {#if selectingTimestamps}
+    <TimestampSelection
+      bind:timestamps
+      on:close={() => (selectingTimestamps = false)} />
+  {:else}
+    <LineChart {axis} bind:data {title} />
+  {/if}
 </main>
 
 <style>
