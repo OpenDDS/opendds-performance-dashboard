@@ -245,6 +245,21 @@
     return [...dataNames].sort((n1, n2) => Number(n1) - Number(n2));
   }
 
+  function getErrorCount(timestamp) {
+    let errorCount = 0;
+
+    const timestampData = statistics[timestamp];
+    for (const scenario of Object.keys(timestampData)) {
+      const scenarioData = timestampData[scenario];
+      for (const size of Object.keys(scenarioData)) {
+        const sizeData = scenarioData[size];
+        errorCount += sizeData.Errors || 0;
+      }
+    }
+
+    return errorCount;
+  }
+
   function getSizes() {
     const isFan = scenario.startsWith('fan_');
 
@@ -278,6 +293,7 @@
       return {
         date,
         dateTime: date + ' ' + time,
+        errorCount: getErrorCount(full),
         full,
         hash,
         selected: index >= firstSelectedIndex,

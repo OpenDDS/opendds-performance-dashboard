@@ -20,7 +20,7 @@ textarea {
 
 button {
   background-color: var(--oci-aqua);
-  color: white;
+  color: var(--oci-blue);
   font-size: 1rem;
   font-weight: bold;
   padding: 0.5rem;

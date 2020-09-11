@@ -43,9 +43,12 @@
       type="checkbox"
       checked={timestamp.selected}
       on:input={e => handleCheck(e, index)} />
-    <span class="date">{timestamp.date}</span>&nbsp; <span
-      class="time">{timestamp.time}</span>&nbsp; <span
-      class="hash">{timestamp.hash}</span>
+    <span class="date">{timestamp.date}</span>
+    <span class="time">{timestamp.time}</span>
+    <span class="hash">{timestamp.hash}</span>
+    {#if timestamp.errorCount}
+      <span class="error-count">Errors: {timestamp.errorCount}</span>
+    {/if}
   </div>
 {/each}
 
@@ -58,6 +61,10 @@
 
   .date {
     color: var(--oci-blue);
+  }
+
+  .error-count {
+    color: red;
   }
 
   .hash {
@@ -74,6 +81,10 @@
     display: flex;
     align-items: center;
     margin-bottom: 0.5rem;
+  }
+
+  .row > span {
+    margin-right: 1rem;
   }
 
   .time {

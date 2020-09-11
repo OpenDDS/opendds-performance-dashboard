@@ -2,7 +2,8 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 
 const BASE_URL = 'http://scoreboard.ociweb.com/bench2/';
-const DATA_SET_NAME_PREFIXES = [
+const MDTD = 'Max Discovery Time Delta';
+const SCENARIO_NAME_PREFIXES = [
   'disco',
   'echo_rtps',
   'echo_tcp',
@@ -10,7 +11,6 @@ const DATA_SET_NAME_PREFIXES = [
   'fan_tcp',
   'showtime_mixed'
 ];
-const MDTD = 'Max Discovery Time Delta';
 const STAT_NAMES = ['count', 'min', 'max', 'mean', 'stdev', 'median', 'madev'];
 const STAT_TYPES = [
   'Latency',
@@ -27,18 +27,18 @@ async function getAllData() {
     for (const commit of commits) {
       const commitObj = (data[commit] = {});
 
-      const dataSetNames = await getDataSetNames(commit);
-      for (const dataSetName of dataSetNames) {
-        const name = DATA_SET_NAME_PREFIXES.find(prefix =>
-          dataSetName.startsWith(prefix + '_')
+      const scenarioNames = await getScenarioNames(commit);
+      for (const scenarioName of scenarioNames) {
+        const name = SCENARIO_NAME_PREFIXES.find(prefix =>
+          scenarioName.startsWith(prefix + '_')
         );
 
         if (name) {
-          const suffix = dataSetName.substring(name.length + 1);
+          const suffix = scenarioName.substring(name.length + 1);
 
-          let dataSetObj = commitObj[name];
-          if (!dataSetObj) dataSetObj = commitObj[name] = {};
-          dataSetObj[suffix] = await getDataSetData(commit, dataSetName);
+          let scenarioObj = commitObj[name];
+          if (!scenarioObj) scenarioObj = commitObj[name] = {};
+          scenarioObj[suffix] = await getScenarioData(commit, scenarioName);
         }
       }
     }
@@ -72,83 +72,30 @@ async function getCommits() {
   }
 }
 
-// The name parameter can be one of the strings in DATA_SET_NAME_PREFIXES.
+// The name parameter can be one of the strings in SCENARIO_NAME_PREFIXES.
 async function getData(dsName, statType) {
   const data = {};
 
   try {
     const commits = await getCommits();
     for (const commit of commits) {
-      const allDataSetNames = await getDataSetNames(commit);
-      const matchingDataSetNames = allDataSetNames.filter(dataSetName =>
-        dataSetName.startsWith(dsName + '_')
+      const allScenarioNames = await getScenarioNames(commit);
+      const matchingScenarioNames = allScenarioNames.filter(scenarioName =>
+        scenarioName.startsWith(dsName + '_')
       );
-      if (matchingDataSetNames.length) {
+      if (matchingScenarioNames.length) {
         const commitObj = (data[commit] = {});
-        for (const dataSetName of matchingDataSetNames) {
-          const suffix = dataSetName.substring(dsName.length + 1);
+        for (const scenarioName of matchingScenarioNames) {
+          const suffix = scenarioName.substring(dsName.length + 1);
 
-          let dataSetObj = commitObj[dsName];
-          if (!dataSetObj) dataSetObj = commitObj[dsName] = {};
-          const stats = await getDataSetStats(commit, dataSetName, statType);
-          if (stats) dataSetObj[suffix] = stats;
+          let scenarioObj = commitObj[dsName];
+          if (!scenarioObj) scenarioObj = commitObj[dsName] = {};
+          const stats = await getScenarioStats(commit, scenarioName, statType);
+          if (stats) scenarioObj[suffix] = stats;
         }
       }
     }
     return data;
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-async function getDataSetData(commit, dataSetName) {
-  const data = {};
-
-  try {
-    const res = await fetch(BASE_URL + commit + '/' + dataSetName);
-    const html = await res.text();
-    const lines = html.split('\n');
-    if (dataSetName.startsWith('disco_')) {
-      data[MDTD] = getMaxDiscoveryTimeDelta(lines);
-    } else {
-      for (const statType of STAT_TYPES) {
-        data[statType] = getStats(lines, statType);
-      }
-    }
-    return data;
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-async function getDataSetNames(commit) {
-  const A_START = '<A HREF="';
-  const A_END = '">';
-
-  try {
-    const res = await fetch(BASE_URL + commit);
-    const html = await res.text();
-    const lines = html.split('\n');
-    const anchorLines = lines.filter(line =>
-      line.includes('/icons/unknown.gif')
-    );
-    const dataSetNames = anchorLines.map(line => {
-      const start = line.indexOf(A_START);
-      const end = line.indexOf(A_END, start);
-      return line.substring(start + A_START.length, end);
-    });
-    return dataSetNames;
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-async function getDataSetStats(commit, dataSetName, statType) {
-  try {
-    const res = await fetch(BASE_URL + commit + '/' + dataSetName);
-    const html = await res.text();
-    const lines = html.split('\n');
-    return getStats(lines, statType);
   } catch (e) {
     console.error(e);
   }
@@ -169,6 +116,59 @@ function getMaxDiscoveryTimeDelta(lines) {
   const startIndex = line.indexOf(':') + 2;
   const endIndex = line.indexOf(' ', startIndex);
   return Number(line.substring(startIndex, endIndex));
+}
+
+async function getScenarioData(commit, scenarioName) {
+  const data = {};
+
+  try {
+    const res = await fetch(BASE_URL + commit + '/' + scenarioName);
+    const html = await res.text();
+    const lines = html.split('\n');
+    if (scenarioName.startsWith('disco_')) {
+      data[MDTD] = getMaxDiscoveryTimeDelta(lines);
+    } else {
+      for (const statType of STAT_TYPES) {
+        data[statType] = getStats(lines, statType);
+      }
+    }
+    return data;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function getScenarioNames(commit) {
+  const A_START = '<A HREF="';
+  const A_END = '">';
+
+  try {
+    const res = await fetch(BASE_URL + commit);
+    const html = await res.text();
+    const lines = html.split('\n');
+    const anchorLines = lines.filter(line =>
+      line.includes('/icons/unknown.gif')
+    );
+    const scenarioNames = anchorLines.map(line => {
+      const start = line.indexOf(A_START);
+      const end = line.indexOf(A_END, start);
+      return line.substring(start + A_START.length, end);
+    });
+    return scenarioNames;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function getScenarioStats(commit, scenarioName, statType) {
+  try {
+    const res = await fetch(BASE_URL + commit + '/' + scenarioName);
+    const html = await res.text();
+    const lines = html.split('\n');
+    return getStats(lines, statType);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 function getStat(statName, lines, startIndex) {
