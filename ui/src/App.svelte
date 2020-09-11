@@ -1,10 +1,9 @@
 <script>
+  import {onMount} from 'svelte';
   import LineChart from './LineChart.svelte';
   import Select from './Select.svelte';
-  import statistics from './open-dds-statistics.json';
-  console.log('App.svelte: statistics =', statistics);
 
-  //const BASE_URL = 'http://localhost:1919/';
+  const BASE_URL = 'http://localhost:1919/';
 
   const CHART_TYPES = ['by timestamp', 'by size'];
 
@@ -18,9 +17,9 @@
   };
 
   const MAX_RECENT_TIMESTAMPS = 10;
-  const MDTD = 'max discovery time delta';
   const MEAN_PLUS = 'Mean + Standard Deviation';
   const MEDIAN_PLUS = 'Median + Median Deviation';
+  const MDTD = 'Max Discovery Time Delta';
 
   const SERVER_COUNTS = [4, 16];
 
@@ -79,15 +78,17 @@
   $: axisByTimestamp.x.tick.fit = useTimeSeries;
 
   let data = {columns: [], x: 'x'};
-  $: console.log('App.svelte: data =', data);
 
-  let chartType = 'by timestamp';
-  let dataSetDisplayName = 'Fan RTPS';
+  let chartType = 'by size';
+  let dataSetDisplayName = 'Echo RTPS';
   let recentCount = 5;
   let serverCount = 16;
   let statDisplayName = MEAN_PLUS;
+  let statistics;
   let statType = 'Latency';
   let useTimeSeries = false;
+
+  onMount(loadData);
 
   $: axis = chartType === 'by timestamp' ? axisByTimestamp : axisBySize;
   $: axis.x.label.text =
@@ -104,7 +105,7 @@
       : STAT_TYPES;
   $: title = `${dataSetDisplayName} - ${statType} - ${statDisplayName}`;
 
-  $: {
+  $: if (statistics) {
     data.columns = [];
 
     if (chartType === 'by timestamp') {
@@ -155,7 +156,7 @@
           obj = obj[key];
           if (obj) {
             if (isDiscovery) {
-              value = obj.maxDiscoveryTimeDelta;
+              value = obj[MDTD];
             } else {
               const stats = obj[statType];
               if (stats) value = stats[statName];
@@ -201,7 +202,7 @@
             dataForName[isFan ? dataName + '_' + serverCount : dataName];
           if (obj) {
             if (isDiscovery) {
-              value = obj.maxDiscoveryTimeDelta;
+              value = obj[MDTD];
             } else {
               const stats = obj[statType];
               if (stats) value = stats[statName];
@@ -236,19 +237,6 @@
     return [...dataNames].sort((n1, n2) => Number(n1) - Number(n2));
   }
 
-  /*
-  function getDataSets() {
-    const dataSets = new Set();
-    const timestamps = Object.values(statistics);
-    for (const timestamp of timestamps) {
-      for (const dataSet of Object.keys(timestamp)) {
-        dataSets.add(dataSet);
-      }
-    }
-    return [...dataSets].sort();
-  }
-  */
-
   function getSizes() {
     const isFan = dataSet.startsWith('fan_');
 
@@ -276,6 +264,21 @@
       timestamps.length - Math.min(MAX_RECENT_TIMESTAMPS, recentCount)
     );
     return timestamps.slice(startIndex);
+  }
+
+  async function loadData() {
+    try {
+      const res = await fetch(BASE_URL + 'data');
+      if (res.ok) {
+        statistics = await res.json();
+        console.log('App.svelte loadData: statistics =', statistics);
+      } else {
+        throw new Error(await res.text());
+      }
+    } catch (e) {
+      alert(e.message);
+      console.error(e);
+    }
   }
 </script>
 

@@ -18,10 +18,9 @@
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     setTimeout(() => {
+      //console.log('LineChart.svelte x: axis =', axis);
+      //console.log('LineChart.svelte x: data =', data);
       //if (chart) chart = chart.destroy();
-      //console.log('LineChart.svelte: generating chart');
-      console.log('LineChart.svelte x: axis =', axis);
-      console.log('LineChart.svelte x: data =', data);
       const chart = c3.generate({
         axis,
         bindto: '#open-dds-chart',

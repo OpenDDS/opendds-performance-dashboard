@@ -10,6 +10,7 @@ const DATA_SET_NAME_PREFIXES = [
   'fan_tcp',
   'showtime_mixed'
 ];
+const MDTD = 'Max Discovery Time Delta';
 const STAT_NAMES = ['count', 'min', 'max', 'mean', 'stdev', 'median', 'madev'];
 const STAT_TYPES = [
   'Latency',
@@ -42,7 +43,10 @@ async function getAllData() {
       }
     }
 
-    fs.writeFileSync('open-dds-statistics.json', JSON.stringify(data, null, 2));
+    fs.writeFileSync(
+      'public/open-dds-statistics.json',
+      JSON.stringify(data, null, 2)
+    );
   } catch (e) {
     console.error(e);
   }
@@ -105,7 +109,7 @@ async function getDataSetData(commit, dataSetName) {
     const html = await res.text();
     const lines = html.split('\n');
     if (dataSetName.startsWith('disco_')) {
-      data.maxDiscoveryTimeDelta = getMaxDiscoveryTimeDelta(lines);
+      data[MDTD] = getMaxDiscoveryTimeDelta(lines);
     } else {
       for (const statType of STAT_TYPES) {
         data[statType] = getStats(lines, statType);
