@@ -45,4 +45,4 @@ app.get('/data', async (req, res) => {
 });
 
 const PORT = 1919;
-app.listen(PORT, () => console.log('browse http://localhost:' + PORT));
+app.listen(PORT, () => console.info('browse http://localhost:' + PORT));

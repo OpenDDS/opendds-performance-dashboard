@@ -5,8 +5,13 @@
   import TimestampSelection from './TimestampSelection.svelte';
 
   const BASE_URL = 'http://localhost:1919/';
+  const BY_SIZE = 'by size';
+  const BY_TIMESTAMP = 'by timestamp';
 
-  const CHART_TYPES = ['by timestamp', 'by size'];
+  const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
+
+  const GITHUB_COMMIT_URL =
+    'https://github.com/objectcomputing/OpenDDS/commit/';
 
   const SCENARIOS = {
     Discovery: 'disco',
@@ -84,7 +89,7 @@
 
   let data = {columns: [], x: 'x'};
 
-  let chartType = 'by size';
+  let chartType = BY_SIZE;
   let scenarioDisplayName = 'Echo RTPS';
   let selectingTimestamps = false;
   let serverCount = 16;
@@ -97,26 +102,27 @@
 
   onMount(loadData);
 
-  $: axis = chartType === 'by timestamp' ? axisByTimestamp : axisBySize;
+  $: axis = chartType === BY_TIMESTAMP ? axisByTimestamp : axisBySize;
   $: axis.x.label.text =
-    chartType === 'by timestamp'
+    chartType === BY_TIMESTAMP
       ? 'timestamp'
-      : scenario === 'disco' || scenario.startsWith('showtime_')
+      : hasNodes
       ? 'nodes'
       : 'payload size';
   $: axis.y.type = useLogScale ? 'log' : 'linear';
+  $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
+  $: legendTitle = getLegendTitle(scenario, chartType);
   $: scenario = SCENARIOS[scenarioDisplayName];
   $: statName = STAT_NAMES[statDisplayName];
-  $: plotTypes =
-    scenario === 'showtime_mixed'
-      ? PLOT_TYPES.filter(st => !st.startsWith('Round Trip'))
-      : PLOT_TYPES;
+  $: plotTypes = scenario.startsWith('showtime_')
+    ? PLOT_TYPES.filter(st => !st.startsWith('Round Trip'))
+    : PLOT_TYPES;
   $: title = `${scenarioDisplayName} - ${plotType} - ${statDisplayName}`;
 
   $: if (statistics) {
     data.columns = [];
 
-    if (chartType === 'by timestamp') {
+    if (chartType === BY_TIMESTAMP) {
       getChartDataByTimestamp(scenario, serverCount, plotType, statName);
     } else {
       getChartDataBySize(scenario, serverCount, plotType, statName);
@@ -260,6 +266,9 @@
     return errorCount;
   }
 
+  const getLegendTitle = (scenario, chartType) =>
+    chartType === BY_SIZE ? 'Timestamp' : hasNodes ? 'Nodes' : 'Payload';
+
   function getSizes() {
     const isFan = scenario.startsWith('fan_');
 
@@ -297,7 +306,8 @@
         full,
         hash,
         selected: index >= firstSelectedIndex,
-        time
+        time,
+        url: GITHUB_COMMIT_URL + hash
       };
     });
 
@@ -340,7 +350,7 @@
       {/if}
 
       <Select label="Chart Type" options={CHART_TYPES} bind:value={chartType} />
-      {#if chartType === 'by timestamp'}
+      {#if chartType === BY_TIMESTAMP}
         <label>Space X values by time <input type="checkbox" bind:checked={useTimeSeries} />
         </label>
       {/if}
@@ -369,7 +379,7 @@
       bind:timestamps
       on:close={() => (selectingTimestamps = false)} />
   {:else}
-    <LineChart {axis} bind:data {title} />
+    <LineChart {axis} bind:data {legendTitle} {title} />
   {/if}
 </main>
 

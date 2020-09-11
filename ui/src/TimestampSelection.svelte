@@ -33,7 +33,13 @@
 <h2>Select the timestamps to plot.</h2>
 
 <label>
-  # of Recent Tests <input type="number" min="2" max={MAX_RECENT_COUNT} value={recentCount} on:change={handleChange} />
+  <span># of Recent Tests</span>
+  <input
+    type="number"
+    min="2"
+    max={MAX_RECENT_COUNT}
+    value={recentCount}
+    on:change={handleChange} />
 </label>
 
 {#each timestamps as timestamp, index}
@@ -45,7 +51,7 @@
       on:input={e => handleCheck(e, index)} />
     <span class="date">{timestamp.date}</span>
     <span class="time">{timestamp.time}</span>
-    <span class="hash">{timestamp.hash}</span>
+    <a href={timestamp.url} rel="noopener" target="_blank">{timestamp.hash}</a>
     {#if timestamp.errorCount}
       <span class="error-count">Errors: {timestamp.errorCount}</span>
     {/if}
@@ -55,6 +61,10 @@
 <button on:click={() => dispatch('close')}>Close</button>
 
 <style>
+  a {
+    margin-right: 1rem;
+  }
+
   button {
     margin-top: 1rem;
   }
@@ -65,10 +75,6 @@
 
   .error-count {
     color: red;
-  }
-
-  .hash {
-    color: green;
   }
 
   input[type='checkbox'] {
