@@ -48,7 +48,9 @@
       label: {
         position: 'outer-middle',
         text: ''
-      }
+      },
+      min: 0, // helps with log scale
+      padding: 0 // helps with log scale
     }
   };
 
@@ -70,7 +72,9 @@
       label: {
         position: 'outer-middle',
         text: ''
-      }
+      },
+      min: 0, // helps with log scale
+      padding: 0 // helps with log scale
     }
   };
 
@@ -86,6 +90,7 @@
   let statDisplayName = MEAN_PLUS;
   let statistics;
   let statType = 'Latency';
+  let useLogScale = false;
   let useTimeSeries = false;
 
   onMount(loadData);
@@ -97,6 +102,7 @@
       : dataSet === 'disco' || dataSet.startsWith('showtime_')
       ? 'nodes'
       : 'payload size';
+  $: axis.y.type = useLogScale ? 'log' : 'linear';
   $: dataSet = DATA_SETS[dataSetDisplayName];
   $: statName = STAT_NAMES[statDisplayName];
   $: statTypes =
@@ -292,6 +298,8 @@
         <label>Space X values by time <input type="checkbox" bind:checked={useTimeSeries} />
         </label>
       {/if}
+      <label>Log Scale for Y Axis <input type="checkbox" bind:checked={useLogScale} />
+      </label>
 
       <Select
         label="Data Set"
