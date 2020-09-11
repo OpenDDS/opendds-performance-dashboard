@@ -22,6 +22,13 @@
   const MEDIAN_PLUS = 'Median + Median Deviation';
   const MDTD = 'Max Discovery Time Delta';
 
+  const PLOT_TYPES = [
+    'Latency',
+    'Jitter',
+    'Round Trip Latency',
+    'Round Trip Jitter'
+  ];
+
   const SERVER_COUNTS = [4, 16];
 
   const STAT_NAMES = {
@@ -30,13 +37,6 @@
     [MEAN_PLUS]: 'mean',
     [MEDIAN_PLUS]: 'median'
   };
-
-  const STAT_TYPES = [
-    'Latency',
-    'Jitter',
-    'Round Trip Latency',
-    'Round Trip Jitter'
-  ];
 
   const axisBySize = {
     x: {
@@ -90,7 +90,7 @@
   let serverCount = 16;
   let statDisplayName = MEAN_PLUS;
   let statistics;
-  let statType = 'Latency';
+  let plotType = 'Latency';
   let timestamps = [];
   let useLogScale = false;
   let useTimeSeries = false;
@@ -107,19 +107,19 @@
   $: axis.y.type = useLogScale ? 'log' : 'linear';
   $: scenario = SCENARIOS[scenarioDisplayName];
   $: statName = STAT_NAMES[statDisplayName];
-  $: statTypes =
+  $: plotTypes =
     scenario === 'showtime_mixed'
-      ? STAT_TYPES.filter(st => !st.startsWith('Round Trip'))
-      : STAT_TYPES;
-  $: title = `${scenarioDisplayName} - ${statType} - ${statDisplayName}`;
+      ? PLOT_TYPES.filter(st => !st.startsWith('Round Trip'))
+      : PLOT_TYPES;
+  $: title = `${scenarioDisplayName} - ${plotType} - ${statDisplayName}`;
 
   $: if (statistics) {
     data.columns = [];
 
     if (chartType === 'by timestamp') {
-      getChartDataByTimestamp(scenario, serverCount, statType, statName);
+      getChartDataByTimestamp(scenario, serverCount, plotType, statName);
     } else {
-      getChartDataBySize(scenario, serverCount, statType, statName);
+      getChartDataBySize(scenario, serverCount, plotType, statName);
     }
 
     if (axis) axis.y.label.text = statDisplayName;
@@ -136,8 +136,8 @@
     }
   }
 
-  async function getChartDataBySize(scenario, serverCount, statType, statName) {
-    if (!scenario || !statName || !statType) return;
+  async function getChartDataBySize(scenario, serverCount, plotType, statName) {
+    if (!scenario || !statName || !plotType) return;
 
     const isDiscovery = scenario === 'disco';
     const sizes = getSizes();
@@ -163,7 +163,7 @@
             if (isDiscovery) {
               value = obj[MDTD];
             } else {
-              const stats = obj[statType];
+              const stats = obj[plotType];
               if (stats) value = stats[statName];
             }
           }
@@ -181,10 +181,10 @@
   async function getChartDataByTimestamp(
     scenario,
     serverCount,
-    statType,
+    plotType,
     statName
   ) {
-    if (!scenario || !statName || !statType) return;
+    if (!scenario || !statName || !plotType) return;
 
     const isDiscovery = scenario === 'disco';
     const isFan = scenario.startsWith('fan_');
@@ -211,7 +211,7 @@
             if (isDiscovery) {
               value = obj[MDTD];
             } else {
-              const stats = obj[statType];
+              const stats = obj[plotType];
               if (stats) value = stats[statName];
             }
           }
@@ -326,14 +326,6 @@
 
   <form>
     <div>
-      <Select label="Chart Type" options={CHART_TYPES} bind:value={chartType} />
-      {#if chartType === 'by timestamp'}
-        <label>Space X values by time <input type="checkbox" bind:checked={useTimeSeries} />
-        </label>
-      {/if}
-      <label>Log Scale for Y Axis <input type="checkbox" bind:checked={useLogScale} />
-      </label>
-
       <Select
         label="Scenario"
         on:blur={scenarioChanged}
@@ -346,13 +338,21 @@
           options={SERVER_COUNTS}
           bind:value={serverCount} />
       {/if}
+
+      <Select label="Chart Type" options={CHART_TYPES} bind:value={chartType} />
+      {#if chartType === 'by timestamp'}
+        <label>Space X values by time <input type="checkbox" bind:checked={useTimeSeries} />
+        </label>
+      {/if}
+      <label>Log Scale for Y Axis <input type="checkbox" bind:checked={useLogScale} />
+      </label>
     </div>
     <div>
       {#if scenario !== 'disco'}
-        <Select label="Type" options={statTypes} bind:value={statType} />
+        <Select label="Plot" options={plotTypes} bind:value={plotType} />
 
         <Select
-          label="Statistics"
+          label="Statistic"
           options={Object.keys(STAT_NAMES)}
           bind:value={statDisplayName} />
       {/if}

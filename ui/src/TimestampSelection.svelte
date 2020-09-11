@@ -68,7 +68,7 @@
   }
 
   .hash {
-    color: gray;
+    color: green;
   }
 
   input[type='checkbox'] {
@@ -88,6 +88,6 @@
   }
 
   .time {
-    color: black;
+    color: gray;
   }
 </style>
