@@ -17,7 +17,7 @@
     'Showtime Mixed': 'showtime_mixed'
   };
 
-  const MAX_RECENT_TIMESTAMPS = 10;
+  const DEFAULT_RECENT_COUNT = 5;
   const MEAN_PLUS = 'Mean + Standard Deviation';
   const MEDIAN_PLUS = 'Median + Median Deviation';
   const MDTD = 'Max Discovery Time Delta';
@@ -86,12 +86,12 @@
 
   let chartType = 'by size';
   let dataSetDisplayName = 'Echo RTPS';
-  let recentCount = 5;
   let selectingTimestamps = false;
   let serverCount = 16;
   let statDisplayName = MEAN_PLUS;
   let statistics;
   let statType = 'Latency';
+  let timestamps = [];
   let useLogScale = false;
   let useTimeSeries = false;
 
@@ -111,22 +111,15 @@
     dataSet === 'showtime_mixed'
       ? STAT_TYPES.filter(st => !st.startsWith('Round Trip'))
       : STAT_TYPES;
-  $: timestamps = getTimestamps(recentCount);
   $: title = `${dataSetDisplayName} - ${statType} - ${statDisplayName}`;
 
   $: if (statistics) {
     data.columns = [];
 
     if (chartType === 'by timestamp') {
-      getChartDataByTimestamp(
-        dataSet,
-        serverCount,
-        statType,
-        statName,
-        recentCount
-      );
+      getChartDataByTimestamp(dataSet, serverCount, statType, statName);
     } else {
-      getChartDataBySize(dataSet, serverCount, statType, statName, recentCount);
+      getChartDataBySize(dataSet, serverCount, statType, statName);
     }
 
     if (axis) axis.y.label.text = statDisplayName;
@@ -271,10 +264,12 @@
   }
 
   function getTimestamps() {
-    console.log('App.svelte getTimestamps: entered');
     if (!statistics) return [];
 
-    const timestamps = Object.keys(statistics).map(full => {
+    const keys = Object.keys(statistics);
+    const firstSelectedIndex = keys.length - DEFAULT_RECENT_COUNT;
+
+    const timestamps = keys.map((full, index) => {
       const [dateTime, hash] = full.split('_');
       const [date, timePlus] = dateTime.split('T');
       const [time] = timePlus.split('+');
@@ -283,20 +278,15 @@
         dateTime: date + ' ' + time,
         full,
         hash,
-        selected: true,
+        selected: index >= firstSelectedIndex,
         time
       };
     });
 
-    const startIndex = Math.max(
-      0,
-      timestamps.length - Math.min(MAX_RECENT_TIMESTAMPS, recentCount)
-    );
-    return timestamps.slice(startIndex);
+    return timestamps;
   }
 
   async function loadData() {
-    console.log('App.svelte loadData: entered');
     try {
       const res = await fetch(BASE_URL + 'data');
       if (res.ok) {
@@ -350,9 +340,6 @@
       {/if}
     </div>
     <div>
-      <label>
-        # of Recent Tests <input type="number" min="2" max={MAX_RECENT_TIMESTAMPS} bind:value={recentCount} />
-      </label>
       <button type="button" on:click={() => (selectingTimestamps = true)}>
         Select Timestamps
       </button>
