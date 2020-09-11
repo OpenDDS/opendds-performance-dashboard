@@ -21,7 +21,8 @@
       //console.log('LineChart.svelte x: axis =', axis);
       //console.log('LineChart.svelte x: data =', data);
       //if (chart) chart = chart.destroy();
-      const chart = c3.generate({
+      /*const chart =*/
+      c3.generate({
         axis,
         bindto: '#open-dds-chart',
         data,
