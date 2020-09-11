@@ -8,7 +8,7 @@
 
   const CHART_TYPES = ['by timestamp', 'by size'];
 
-  const DATA_SETS = {
+  const SCENARIOS = {
     Discovery: 'disco',
     'Echo RTPS': 'echo_rtps',
     'Echo TCP': 'echo_tcp',
@@ -85,7 +85,7 @@
   let data = {columns: [], x: 'x'};
 
   let chartType = 'by size';
-  let dataSetDisplayName = 'Echo RTPS';
+  let scenarioDisplayName = 'Echo RTPS';
   let selectingTimestamps = false;
   let serverCount = 16;
   let statDisplayName = MEAN_PLUS;
@@ -101,31 +101,31 @@
   $: axis.x.label.text =
     chartType === 'by timestamp'
       ? 'timestamp'
-      : dataSet === 'disco' || dataSet.startsWith('showtime_')
+      : scenario === 'disco' || scenario.startsWith('showtime_')
       ? 'nodes'
       : 'payload size';
   $: axis.y.type = useLogScale ? 'log' : 'linear';
-  $: dataSet = DATA_SETS[dataSetDisplayName];
+  $: scenario = SCENARIOS[scenarioDisplayName];
   $: statName = STAT_NAMES[statDisplayName];
   $: statTypes =
-    dataSet === 'showtime_mixed'
+    scenario === 'showtime_mixed'
       ? STAT_TYPES.filter(st => !st.startsWith('Round Trip'))
       : STAT_TYPES;
-  $: title = `${dataSetDisplayName} - ${statType} - ${statDisplayName}`;
+  $: title = `${scenarioDisplayName} - ${statType} - ${statDisplayName}`;
 
   $: if (statistics) {
     data.columns = [];
 
     if (chartType === 'by timestamp') {
-      getChartDataByTimestamp(dataSet, serverCount, statType, statName);
+      getChartDataByTimestamp(scenario, serverCount, statType, statName);
     } else {
-      getChartDataBySize(dataSet, serverCount, statType, statName);
+      getChartDataBySize(scenario, serverCount, statType, statName);
     }
 
     if (axis) axis.y.label.text = statDisplayName;
   }
 
-  function dataSetChanged(event) {
+  function scenarioChanged(event) {
     const {value} = event.target;
     if (value === 'Discovery') {
       statDisplayName = MDTD;
@@ -136,10 +136,10 @@
     }
   }
 
-  async function getChartDataBySize(dataSet, serverCount, statType, statName) {
-    if (!dataSet || !statName || !statType) return;
+  async function getChartDataBySize(scenario, serverCount, statType, statName) {
+    if (!scenario || !statName || !statType) return;
 
-    const isDiscovery = dataSet === 'disco';
+    const isDiscovery = scenario === 'disco';
     const sizes = getSizes();
     const arr = ['x', ...sizes];
     const columns = [arr];
@@ -153,8 +153,10 @@
       for (const size of sizes) {
         let value = 0;
 
-        const key = dataSet.startsWith('fan') ? size + '_' + serverCount : size;
-        let obj = statistics[timestamp.full][dataSet];
+        const key = scenario.startsWith('fan')
+          ? size + '_' + serverCount
+          : size;
+        let obj = statistics[timestamp.full][scenario];
         if (obj) {
           obj = obj[key];
           if (obj) {
@@ -177,15 +179,15 @@
   }
 
   async function getChartDataByTimestamp(
-    dataSet,
+    scenario,
     serverCount,
     statType,
     statName
   ) {
-    if (!dataSet || !statName || !statType) return;
+    if (!scenario || !statName || !statType) return;
 
-    const isDiscovery = dataSet === 'disco';
-    const isFan = dataSet.startsWith('fan_');
+    const isDiscovery = scenario === 'disco';
+    const isFan = scenario.startsWith('fan_');
 
     const xValues = timestamps.map(timestamp => timestamp.dateTime);
     const arr = ['x', ...xValues];
@@ -201,7 +203,7 @@
 
         let value = 0;
 
-        const dataForName = statistics[timestamp.full][dataSet];
+        const dataForName = statistics[timestamp.full][scenario];
         if (dataForName) {
           const obj =
             dataForName[isFan ? dataName + '_' + serverCount : dataName];
@@ -226,12 +228,12 @@
   }
 
   function getDataNames() {
-    const isFan = dataSet.startsWith('fan_');
+    const isFan = scenario.startsWith('fan_');
 
     const dataNames = new Set();
     const timestamps = Object.keys(statistics);
     for (const timestamp of timestamps) {
-      const obj = statistics[timestamp][dataSet];
+      const obj = statistics[timestamp][scenario];
       if (obj) {
         for (const dataName of Object.keys(obj)) {
           if (!isFan || dataName.endsWith('_' + serverCount)) {
@@ -244,17 +246,17 @@
   }
 
   function getSizes() {
-    const isFan = dataSet.startsWith('fan_');
+    const isFan = scenario.startsWith('fan_');
 
     const sizes = new Set();
     const timestamps = Object.keys(statistics);
     for (const timestamp of timestamps) {
-      const dataSetObj = statistics[timestamp][dataSet];
-      if (dataSetObj) {
-        const dsSizes = Object.keys(dataSetObj);
-        for (const dsSize of dsSizes) {
-          if (!isFan || dsSize.endsWith('_' + serverCount)) {
-            sizes.add(isFan ? dsSize.split('_')[0] : dsSize);
+      const scenarioObj = statistics[timestamp][scenario];
+      if (scenarioObj) {
+        const scenarioSizes = Object.keys(scenarioObj);
+        for (const scenarioSize of scenarioSizes) {
+          if (!isFan || scenarioSize.endsWith('_' + serverCount)) {
+            sizes.add(isFan ? scenarioSize.split('_')[0] : scenarioSize);
           }
         }
       }
@@ -317,12 +319,12 @@
       </label>
 
       <Select
-        label="Data Set"
-        on:blur={dataSetChanged}
-        on:change={dataSetChanged}
-        options={Object.keys(DATA_SETS)}
-        bind:value={dataSetDisplayName} />
-      {#if dataSet.startsWith('fan_')}
+        label="Scenario"
+        on:blur={scenarioChanged}
+        on:change={scenarioChanged}
+        options={Object.keys(SCENARIOS)}
+        bind:value={scenarioDisplayName} />
+      {#if scenario.startsWith('fan_')}
         <Select
           label="# of Servers"
           options={SERVER_COUNTS}
@@ -330,7 +332,7 @@
       {/if}
     </div>
     <div>
-      {#if dataSet !== 'disco'}
+      {#if scenario !== 'disco'}
         <Select label="Type" options={statTypes} bind:value={statType} />
 
         <Select
