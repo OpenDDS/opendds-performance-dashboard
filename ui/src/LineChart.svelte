@@ -13,7 +13,7 @@
   //$: console.log('LineChart.svelte: data =', data);
 
   let container;
-  let titleUsed;
+  let titleUsed = '';
 
   $: hideChart = data.columns.length === 0;
 
@@ -36,7 +36,6 @@
         data,
         legend: {position: 'right'},
         onrendered: addLegendTitle,
-        onresize: removeLegendTitle,
         size: {height: CHART_HEIGHT}
         //zoom: {enabled: true}
       });
@@ -47,6 +46,9 @@
     const chart = document.querySelector(CHART_SELECTOR);
     if (!chart) return;
 
+    let lt = chart.querySelector('.legend-title');
+    if (lt) lt.parentElement.removeChild(lt);
+
     const firstLegendItem = chart.querySelector('.c3-legend-item');
     if (!firstLegendItem) return;
 
@@ -54,7 +56,7 @@
     const x = itemText.getAttribute('x');
     const y = itemText.getAttribute('y');
 
-    const lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     lt.setAttribute('class', 'legend-title');
     lt.setAttribute('x', Number(x) - 17);
     lt.setAttribute('y', Number(y) - 20);
@@ -68,12 +70,6 @@
     const svg = chart.firstChild;
     svg.setAttribute('visibility', 'visible');
     */
-  }
-
-  function removeLegendTitle() {
-    const chart = document.querySelector(CHART_SELECTOR);
-    const lt = chart.querySelector('.legend-title');
-    if (lt) lt.parentElement.removeChild(lt);
   }
 </script>
 
