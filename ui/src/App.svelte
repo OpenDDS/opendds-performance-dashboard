@@ -20,8 +20,6 @@
   const DEFAULT_STAT_NAME = 'mean';
   const MDTD = 'Max Discovery Time Delta';
 
-  const SERVER_COUNTS = [4, 16];
-
   const axisBySize = {
     x: {
       label: {
@@ -74,7 +72,8 @@
   let scenarios = [];
   let scenario = DEFAULT_SCENARIO;
   let selectingTimestamps = false;
-  let serverCount = 16;
+  let serverCount = 0;
+  let serverCounts = [];
   let statName = DEFAULT_STAT_NAME;
   let statNames = [];
   let plotType = DEFAULT_PLOT_TYPE;
@@ -119,6 +118,8 @@
     } else if (statName === MDTD) {
       statName = DEFAULT_STAT_NAME;
     }
+
+    if (value.startsWith('fan_')) getServerCounts();
   }
 
   async function getChartDataBySize(scenario, serverCount, plotType, statName) {
@@ -138,9 +139,8 @@
       for (const size of sizes) {
         let value = 0;
 
-        const key = scenario.startsWith('fan')
-          ? size + '_' + serverCount
-          : size;
+        const isFan = scenario.startsWith('fan_');
+        const key = isFan ? size + '_' + serverCount : size;
         let obj = collectedData[timestamp.full][scenario];
         if (obj) {
           obj = obj[key];
@@ -232,16 +232,34 @@
   const getLegendTitle = (scenario, chartType) =>
     chartType === BY_SIZE ? 'Timestamp' : hasNodes ? 'Nodes' : 'Payload';
 
+  function getServerCounts() {
+    const isFan = scenario.startsWith('fan_');
+    if (!isFan) return [];
+
+    const uniqueServerCounts = new Set();
+    for (const timestampObj of Object.values(collectedData)) {
+      const scenarioObj = timestampObj[scenario];
+      if (scenarioObj) {
+        for (const scenarioSize of Object.keys(scenarioObj)) {
+          uniqueServerCounts.add(scenarioSize.split('_')[1]);
+        }
+      }
+    }
+
+    serverCounts = [...uniqueServerCounts].sort(
+      (n1, n2) => Number(n1) - Number(n2)
+    );
+    serverCount = serverCounts[0];
+  }
+
   function getSizes() {
     const isFan = scenario.startsWith('fan_');
 
     const sizes = new Set();
-    const timestamps = Object.keys(collectedData);
-    for (const timestamp of timestamps) {
-      const scenarioObj = collectedData[timestamp][scenario];
+    for (const timestampObj of Object.values(collectedData)) {
+      const scenarioObj = timestampObj[scenario];
       if (scenarioObj) {
-        const scenarioSizes = Object.keys(scenarioObj);
-        for (const scenarioSize of scenarioSizes) {
+        for (const scenarioSize of Object.keys(scenarioObj)) {
           if (!isFan || scenarioSize.endsWith('_' + serverCount)) {
             sizes.add(isFan ? scenarioSize.split('_')[0] : scenarioSize);
           }
@@ -249,7 +267,7 @@
       }
     }
 
-    return [...sizes].sort((s1, s2) => Number(s1) - Number(s2));
+    return [...sizes].sort((n1, n2) => Number(n1) - Number(n2));
   }
 
   function getTimestampData(timestamp) {
@@ -337,7 +355,7 @@
       {#if scenario.startsWith('fan_')}
         <Select
           label="# of Servers"
-          options={SERVER_COUNTS}
+          options={serverCounts}
           bind:value={serverCount} />
       {/if}
 

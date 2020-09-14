@@ -36,6 +36,8 @@
 
   function addLegendTitle() {
     const chart = document.querySelector(CHART_SELECTOR);
+    if (!chart) return;
+
     const firstLegendItem = chart.querySelector('.c3-legend-item');
     if (!firstLegendItem) return;
 
