@@ -9,16 +9,18 @@
   const CHART_HEIGHT = 500;
   const CHART_SELECTOR = '#open-dds-chart';
 
-  let container;
-
   //$: console.log('LineChart.svelte: axis =', axis);
   //$: console.log('LineChart.svelte: data =', data);
+
+  let container;
   let titleUsed;
 
   $: hideChart = data.columns.length === 0;
 
   $: if (data.columns.length) {
     container.style.visibility = 'hidden';
+    titleUsed = '';
+
     /*
     const svg = chart.firstChild;
     console.log('LineChart.svelte x: svg =', svg);
@@ -38,8 +40,6 @@
         size: {height: CHART_HEIGHT}
         //zoom: {enabled: true}
       });
-
-      titleUsed = title;
     });
   }
 
@@ -63,6 +63,7 @@
     firstLegendItem.parentElement.insertBefore(lt, firstLegendItem);
 
     container.style.visibility = 'visible';
+    titleUsed = title;
     /*
     const svg = chart.firstChild;
     svg.setAttribute('visibility', 'visible');
@@ -76,9 +77,7 @@
   }
 </script>
 
-{#if titleUsed}
-  <h2>{titleUsed}</h2>
-{/if}
+<h2>{titleUsed}</h2>
 
 {#if !data.columns.length}
   <h3>...loading chart data...</h3>
