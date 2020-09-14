@@ -29,8 +29,8 @@ app.get('/:scenario/:statType', async (req, res) => {
 // It is needed to work around CORS issues
 // because the client cannot directly fetch this URL.
 app.get('/data', async (req, res) => {
-  //const url = 'http://scoreboard.ociweb.com/bench2/scrape_output.json';
-  const url = 'http://localhost:1919/open-dds-statistics.json';
+  const url = 'http://scoreboard.ociweb.com/bench2/scrape_output.json';
+  //const url = 'http://localhost:1919/open-dds-statistics.json';
   try {
     const response = await fetch(url);
     if (response.ok) {

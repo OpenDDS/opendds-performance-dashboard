@@ -13,35 +13,14 @@
   const GITHUB_COMMIT_URL =
     'https://github.com/objectcomputing/OpenDDS/commit/';
 
-  const SCENARIOS = {
-    Discovery: 'disco',
-    'Echo RTPS': 'echo_rtps',
-    'Echo TCP': 'echo_tcp',
-    'Fan RTPS': 'fan_rtps',
-    'Fan TCP': 'fan_tcp',
-    'Showtime Mixed': 'showtime_mixed'
-  };
-
+  const DEFAULT_CHART_TYPE = BY_SIZE;
+  const DEFAULT_PLOT_TYPE = 'Latency';
   const DEFAULT_RECENT_COUNT = 5;
-  const MEAN_PLUS = 'Mean + Standard Deviation';
-  const MEDIAN_PLUS = 'Median + Median Deviation';
+  const DEFAULT_SCENARIO = 'echo_rtps';
+  const DEFAULT_STAT_NAME = 'mean';
   const MDTD = 'Max Discovery Time Delta';
 
-  const PLOT_TYPES = [
-    'Latency',
-    'Jitter',
-    'Round Trip Latency',
-    'Round Trip Jitter'
-  ];
-
   const SERVER_COUNTS = [4, 16];
-
-  const STAT_NAMES = {
-    Minimum: 'min',
-    Maximum: 'max',
-    [MEAN_PLUS]: 'mean',
-    [MEDIAN_PLUS]: 'median'
-  };
 
   const axisBySize = {
     x: {
@@ -89,13 +68,17 @@
 
   let data = {columns: [], x: 'x'};
 
-  let chartType = BY_SIZE;
-  let scenarioDisplayName = 'Echo RTPS';
+  let allPlotTypes = [];
+  let chartType = DEFAULT_CHART_TYPE;
+  let collectedData;
+  let scenarios = [];
+  let scenario = DEFAULT_SCENARIO;
   let selectingTimestamps = false;
   let serverCount = 16;
-  let statDisplayName = MEAN_PLUS;
-  let statistics;
-  let plotType = 'Latency';
+  let statName = DEFAULT_STAT_NAME;
+  let statNames = [];
+  let plotType = DEFAULT_PLOT_TYPE;
+  let plotTypes = [];
   let timestamps = [];
   let useLogScale = false;
   let useTimeSeries = false;
@@ -112,14 +95,12 @@
   $: axis.y.type = useLogScale ? 'log' : 'linear';
   $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(scenario, chartType);
-  $: scenario = SCENARIOS[scenarioDisplayName];
-  $: statName = STAT_NAMES[statDisplayName];
   $: plotTypes = scenario.startsWith('showtime_')
-    ? PLOT_TYPES.filter(st => !st.startsWith('Round Trip'))
-    : PLOT_TYPES;
-  $: title = `${scenarioDisplayName} - ${plotType} - ${statDisplayName}`;
+    ? allPlotTypes.filter(st => !st.startsWith('Round Trip'))
+    : allPlotTypes;
+  $: title = `${scenario} - ${plotType} - ${statName}`;
 
-  $: if (statistics) {
+  $: if (collectedData) {
     data.columns = [];
 
     if (chartType === BY_TIMESTAMP) {
@@ -128,17 +109,15 @@
       getChartDataBySize(scenario, serverCount, plotType, statName);
     }
 
-    if (axis) axis.y.label.text = statDisplayName;
+    if (axis) axis.y.label.text = statName;
   }
 
   function scenarioChanged(event) {
     const {value} = event.target;
-    if (value === 'Discovery') {
-      statDisplayName = MDTD;
-      statName = 'maxDiscoveryTimeDelta';
-    } else if (statDisplayName === MDTD) {
-      statDisplayName = MEAN_PLUS;
-      statName = 'mean';
+    if (value === 'disco') {
+      statName = MDTD;
+    } else if (statName === MDTD) {
+      statName = DEFAULT_STAT_NAME;
     }
   }
 
@@ -162,7 +141,7 @@
         const key = scenario.startsWith('fan')
           ? size + '_' + serverCount
           : size;
-        let obj = statistics[timestamp.full][scenario];
+        let obj = collectedData[timestamp.full][scenario];
         if (obj) {
           obj = obj[key];
           if (obj) {
@@ -209,7 +188,7 @@
 
         let value = 0;
 
-        const dataForName = statistics[timestamp.full][scenario];
+        const dataForName = collectedData[timestamp.full][scenario];
         if (dataForName) {
           const obj =
             dataForName[isFan ? dataName + '_' + serverCount : dataName];
@@ -237,11 +216,10 @@
     const isFan = scenario.startsWith('fan_');
 
     const dataNames = new Set();
-    const timestamps = Object.keys(statistics);
-    for (const timestamp of timestamps) {
-      const obj = statistics[timestamp][scenario];
-      if (obj) {
-        for (const dataName of Object.keys(obj)) {
+    for (const timestampObj of Object.values(collectedData)) {
+      const scenarioObj = timestampObj[scenario];
+      if (scenarioObj) {
+        for (const dataName of Object.keys(scenarioObj)) {
           if (!isFan || dataName.endsWith('_' + serverCount)) {
             dataNames.add(isFan ? dataName.split('_')[0] : dataName);
           }
@@ -251,21 +229,6 @@
     return [...dataNames].sort((n1, n2) => Number(n1) - Number(n2));
   }
 
-  function getErrorCount(timestamp) {
-    let errorCount = 0;
-
-    const timestampData = statistics[timestamp];
-    for (const scenario of Object.keys(timestampData)) {
-      const scenarioData = timestampData[scenario];
-      for (const size of Object.keys(scenarioData)) {
-        const sizeData = scenarioData[size];
-        errorCount += sizeData.Errors || 0;
-      }
-    }
-
-    return errorCount;
-  }
-
   const getLegendTitle = (scenario, chartType) =>
     chartType === BY_SIZE ? 'Timestamp' : hasNodes ? 'Nodes' : 'Payload';
 
@@ -273,9 +236,9 @@
     const isFan = scenario.startsWith('fan_');
 
     const sizes = new Set();
-    const timestamps = Object.keys(statistics);
+    const timestamps = Object.keys(collectedData);
     for (const timestamp of timestamps) {
-      const scenarioObj = statistics[timestamp][scenario];
+      const scenarioObj = collectedData[timestamp][scenario];
       if (scenarioObj) {
         const scenarioSizes = Object.keys(scenarioObj);
         for (const scenarioSize of scenarioSizes) {
@@ -289,38 +252,67 @@
     return [...sizes].sort((s1, s2) => Number(s1) - Number(s2));
   }
 
-  function getTimestamps() {
-    if (!statistics) return [];
+  function getTimestampData(timestamp) {
+    const [dateTime, hash] = timestamp.split('_');
+    const [date, timePlus] = dateTime.split('T');
+    const [time] = timePlus.split('+');
+    return {
+      date,
+      dateTime: date + ' ' + time,
+      errorCount: 0,
+      full: timestamp,
+      hash,
+      time,
+      url: GITHUB_COMMIT_URL + hash
+    };
+  }
 
-    const keys = Object.keys(statistics);
-    const firstSelectedIndex = keys.length - DEFAULT_RECENT_COUNT;
+  function getUniqueValues() {
+    const uniqueScenarios = new Set();
+    const uniquePlotTypes = new Set();
+    const uniqueStatNames = new Set();
 
-    const timestamps = keys.map((full, index) => {
-      const [dateTime, hash] = full.split('_');
-      const [date, timePlus] = dateTime.split('T');
-      const [time] = timePlus.split('+');
-      return {
-        date,
-        dateTime: date + ' ' + time,
-        errorCount: getErrorCount(full),
-        full,
-        hash,
-        selected: index >= firstSelectedIndex,
-        time,
-        url: GITHUB_COMMIT_URL + hash
-      };
+    const timestampEntries = Object.entries(collectedData);
+    const firstSelectedIndex = timestampEntries.length - DEFAULT_RECENT_COUNT;
+
+    timestampEntries.forEach((timestampEntry, index) => {
+      const [timestamp, timestampObj] = timestampEntry;
+      const timestampData = getTimestampData(timestamp);
+      timestampData.selected = index >= firstSelectedIndex;
+      timestamps.push(timestampData);
+
+      for (const [scenario, scenarioObj] of Object.entries(timestampObj)) {
+        uniqueScenarios.add(scenario);
+
+        for (const sizeObj of Object.values(scenarioObj)) {
+          timestampData.errorCount += sizeObj.Errors;
+
+          for (const [plotType, plotTypeObj] of Object.entries(sizeObj)) {
+            uniquePlotTypes.add(plotType);
+
+            for (const statName of Object.keys(plotTypeObj)) {
+              uniqueStatNames.add(statName);
+            }
+          }
+        }
+      }
     });
 
-    return timestamps;
+    scenarios = [...uniqueScenarios].sort();
+
+    uniquePlotTypes.delete('Errors');
+    uniquePlotTypes.delete(MDTD);
+    allPlotTypes = [...uniquePlotTypes].sort();
+    statNames = [...uniqueStatNames].sort();
   }
 
   async function loadData() {
     try {
       const res = await fetch(BASE_URL + 'data');
       if (res.ok) {
-        statistics = await res.json();
-        timestamps = getTimestamps();
-        console.log('App.svelte loadData: statistics =', statistics);
+        collectedData = await res.json();
+        console.log('App.svelte loadData: collectedData =', collectedData);
+        getUniqueValues(collectedData);
       } else {
         throw new Error(await res.text());
       }
@@ -340,8 +332,8 @@
         label="Scenario"
         on:blur={scenarioChanged}
         on:change={scenarioChanged}
-        options={Object.keys(SCENARIOS)}
-        bind:value={scenarioDisplayName} />
+        options={scenarios}
+        bind:value={scenario} />
       {#if scenario.startsWith('fan_')}
         <Select
           label="# of Servers"
@@ -361,10 +353,7 @@
       {#if scenario !== 'disco'}
         <Select label="Plot" options={plotTypes} bind:value={plotType} />
 
-        <Select
-          label="Statistic"
-          options={Object.keys(STAT_NAMES)}
-          bind:value={statDisplayName} />
+        <Select label="Statistic" options={statNames} bind:value={statName} />
       {/if}
     </div>
     <div>

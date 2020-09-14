@@ -6,8 +6,6 @@
   export let legendTitle;
   export let title;
 
-  $: console.log('LineChart.svelte x: legendTitle =', legendTitle);
-
   const CHART_HEIGHT = 500;
   const CHART_SELECTOR = '#open-dds-chart';
 
@@ -31,8 +29,6 @@
         size: {height: CHART_HEIGHT}
         //zoom: {enabled: true}
       });
-
-      //addLegendTitle();
 
       titleUsed = title;
     });
