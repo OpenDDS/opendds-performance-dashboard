@@ -112,14 +112,14 @@
   }
 
   function scenarioChanged(event) {
-    const {value} = event.target;
-    if (value === 'disco') {
+    scenario = event.target.value;
+    if (scenario === 'disco') {
       statName = MDTD;
     } else if (statName === MDTD) {
       statName = DEFAULT_STAT_NAME;
     }
 
-    if (value.startsWith('fan_')) getServerCounts();
+    if (scenario.startsWith('fan_')) getServerCounts();
   }
 
   async function getChartDataBySize(scenario, serverCount, plotType, statName) {
@@ -351,7 +351,7 @@
         on:blur={scenarioChanged}
         on:change={scenarioChanged}
         options={scenarios}
-        bind:value={scenario} />
+        value={scenario} />
       {#if scenario.startsWith('fan_')}
         <Select
           label="# of Servers"

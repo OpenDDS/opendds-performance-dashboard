@@ -9,6 +9,8 @@
   const CHART_HEIGHT = 500;
   const CHART_SELECTOR = '#open-dds-chart';
 
+  let container;
+
   //$: console.log('LineChart.svelte: axis =', axis);
   //$: console.log('LineChart.svelte: data =', data);
   let titleUsed;
@@ -16,6 +18,13 @@
   $: hideChart = data.columns.length === 0;
 
   $: if (data.columns.length) {
+    container.style.visibility = 'hidden';
+    /*
+    const svg = chart.firstChild;
+    console.log('LineChart.svelte x: svg =', svg);
+    if (svg) svg.setAttribute('visibility', 'hidden');
+    */
+
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     setTimeout(() => {
@@ -52,6 +61,12 @@
     lt.textContent = legendTitle;
 
     firstLegendItem.parentElement.insertBefore(lt, firstLegendItem);
+
+    container.style.visibility = 'visible';
+    /*
+    const svg = chart.firstChild;
+    svg.setAttribute('visibility', 'visible');
+    */
   }
 
   function removeLegendTitle() {
@@ -69,7 +84,7 @@
   <h3>...loading chart data...</h3>
 {/if}
 
-<div class={`container ${hideChart ? 'hide' : ''}`}>
+<div bind:this={container} class={`container ${hideChart ? 'hide' : ''}`}>
   <div id="open-dds-chart" />
 </div>
 
