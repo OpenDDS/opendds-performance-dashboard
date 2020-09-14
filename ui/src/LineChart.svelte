@@ -18,14 +18,7 @@
   $: hideChart = data.columns.length === 0;
 
   $: if (data.columns.length) {
-    container.style.visibility = 'hidden';
     titleUsed = '';
-
-    /*
-    const svg = chart.firstChild;
-    console.log('LineChart.svelte x: svg =', svg);
-    if (svg) svg.setAttribute('visibility', 'hidden');
-    */
 
     // Allow the rest of the UI to update
     // without blocking to update the chart.
@@ -64,12 +57,7 @@
 
     firstLegendItem.parentElement.insertBefore(lt, firstLegendItem);
 
-    container.style.visibility = 'visible';
     titleUsed = title;
-    /*
-    const svg = chart.firstChild;
-    svg.setAttribute('visibility', 'visible');
-    */
   }
 </script>
 

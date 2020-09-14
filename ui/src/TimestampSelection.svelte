@@ -36,10 +36,10 @@
   <span># of Recent Tests</span>
   <input
     type="number"
-    min="2"
-    max={MAX_RECENT_COUNT}
-    value={recentCount}
-    on:change={handleChange} />
+    min={MIN_TIMESTAMPS}
+    max={MAX_TIMESTAMPS}
+    on:change={handleChange}
+    value={recentCount} />
 </label>
 
 {#each timestamps as timestamp, index}
