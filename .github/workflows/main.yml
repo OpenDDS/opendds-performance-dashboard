@@ -21,10 +21,10 @@ jobs:
         run: |
           cd ui
           npm run build
-      - name: zipj
+      - name: zip
         run: zip --junk-paths $NAME ui/public/build/*
       - name: upload
         uses: actions/upload-artifact@v2
         with:
           name: $NAME
-          path: $NAME.zip
+          path: ${NAME}.zip
