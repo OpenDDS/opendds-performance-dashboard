@@ -178,7 +178,9 @@
     const isDiscovery = scenario === 'disco';
     const isFan = scenario.startsWith('fan_');
 
-    const xValues = timestamps.map(timestamp => timestamp.dateTime);
+    const xValues = timestamps
+      .filter(ts => ts.selected)
+      .map(timestamp => timestamp.dateTime);
     const arr = ['x', ...xValues];
     const columns = [arr];
 
