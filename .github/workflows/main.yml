@@ -5,9 +5,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NAME: opendds-bench-scoreboard
     steps:
-      - env:
-          NAME: opendds-bench-scoreboard
       - uses: actions/checkout@v2
       - name: setup Node.js
         uses: actions/setup-node@v1
