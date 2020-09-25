@@ -18,6 +18,6 @@ jobs:
       - name: build
         run: |
           cd ui
-          npm build
+          npm run build
       - name: zip
-        run: zip -r opendds-bench-scoreboard public/build
+        run: zip -r opendds-bench-scoreboard . -i public/build
