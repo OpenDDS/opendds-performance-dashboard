@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Use Node.js
+      - name: setup Node.js
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
@@ -20,9 +20,9 @@ jobs:
           cd ui
           npm run build
       - name: zip
-        run: zip -r opendds-bench-scoreboard ui/public/build
+        run: zip -r opendds-bench-scoreboard ui/public/build/*
       - name: upload
         uses: actions/upload-artifact@v2
         with:
-          name: scoreboard-zip
+          name: scoreboard-web-app
           path: opendds-bench-scoreboard.zip
