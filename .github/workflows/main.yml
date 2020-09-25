@@ -22,9 +22,11 @@ jobs:
           cd ui
           npm run build
       - name: zip
-        run: zip --junk-paths ${{env.NAME}} ui/public/*
+        run: |
+          cd ui/public
+          zip ${{env.NAME}} *
       - name: upload
         uses: actions/upload-artifact@v2
         with:
           name: ${{env.NAME}}
-          path: ${{env.NAME}}.zip
+          path: ui/public/${{env.NAME}}.zip
