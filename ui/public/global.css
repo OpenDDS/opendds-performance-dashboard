@@ -37,3 +37,20 @@ label {
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
+
+table {
+  border-collapse: collapse;
+}
+
+td,
+th {
+  border: solid var(--oci-blue) 1px;
+  padding: 0.3rem;
+  text-align: center;
+}
+
+th {
+  background-color: var(--oci-blue);
+  border-color: var(--oci-blue);
+  color: var(--oci-aqua);
+}

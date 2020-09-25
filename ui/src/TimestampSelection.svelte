@@ -42,21 +42,42 @@
     value={recentCount} />
 </label>
 
-{#each timestamps as timestamp, index}
-  <div class="row">
-    <!-- <input type="checkbox" bind:checked={timestamps[index].selected} /> -->
-    <input
-      type="checkbox"
-      checked={timestamp.selected}
-      on:input={e => handleCheck(e, index)} />
-    <span class="date">{timestamp.date}</span>
-    <span class="time">{timestamp.time}</span>
-    <a href={timestamp.url} rel="noopener" target="_blank">{timestamp.hash}</a>
-    {#if timestamp.errorCount}
-      <span class="error-count">Errors: {timestamp.errorCount}</span>
-    {/if}
-  </div>
-{/each}
+<table>
+  <thead>
+    <tr>
+      <th>Select</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Git Commit Hash</th>
+      <th>Build Hash</th>
+      <th>Error Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    {#each timestamps as timestamp, index}
+      <tr>
+        <td>
+          <input
+            type="checkbox"
+            checked={timestamp.selected}
+            on:input={e => handleCheck(e, index)} />
+        </td>
+        <td class="date">{timestamp.date}</td>
+        <td class="time">{timestamp.time}</td>
+        <td>
+          <a
+            href={timestamp.url}
+            rel="noopener"
+            target="_blank">{timestamp.gitCommit}</a>
+        </td>
+        <td class="hash">{timestamp.hash ? timestamp.hash : ''}</td>
+        <td class="error-count">
+          {timestamp.errorCount ? timestamp.errorCount : ''}
+        </td>
+      </tr>
+    {/each}
+  </tbody>
+</table>
 
 <button on:click={() => dispatch('close')}>Close</button>
 
@@ -69,7 +90,8 @@
     margin-top: 1rem;
   }
 
-  .date {
+  .date,
+  .time {
     color: var(--oci-blue);
   }
 
@@ -81,19 +103,5 @@
     --size: 1rem;
     height: var(--size);
     width: var(--size);
-  }
-
-  .row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.5rem;
-  }
-
-  .row > span {
-    margin-right: 1rem;
-  }
-
-  .time {
-    color: gray;
   }
 </style>

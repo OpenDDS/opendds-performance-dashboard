@@ -4,11 +4,15 @@
   import Select from './Select.svelte';
   import TimestampSelection from './TimestampSelection.svelte';
 
-  const BASE_URL = 'http://localhost:1919/';
   const BY_SIZE = 'by size';
   const BY_TIMESTAMP = 'by timestamp';
 
   const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
+
+  const DATA_URL =
+    location.hostname === 'localhost'
+      ? 'http://localhost:1919/data'
+      : 'http://scoreboard.ociweb.com/bench2/scrape_output.json';
 
   const GITHUB_COMMIT_URL =
     'https://github.com/objectcomputing/OpenDDS/commit/';
@@ -271,7 +275,7 @@
   }
 
   function getTimestampData(timestamp) {
-    const [dateTime, hash] = timestamp.split('_');
+    const [dateTime, gitCommit, hash] = timestamp.split('_');
     const [date, timePlus] = dateTime.split('T');
     const [time] = timePlus.split('+');
     return {
@@ -279,9 +283,10 @@
       dateTime: date + ' ' + time,
       errorCount: 0,
       full: timestamp,
+      gitCommit,
       hash,
       time,
-      url: GITHUB_COMMIT_URL + hash
+      url: GITHUB_COMMIT_URL + gitCommit
     };
   }
 
@@ -326,7 +331,7 @@
 
   async function loadData() {
     try {
-      const res = await fetch(BASE_URL + 'data');
+      const res = await fetch(DATA_URL);
       if (res.ok) {
         collectedData = await res.json();
         console.log('App.svelte loadData: collectedData =', collectedData);
