@@ -27,4 +27,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: $NAME
-          path: ${NAME}.zip
+          path: ${{env.NAME}}.zip
