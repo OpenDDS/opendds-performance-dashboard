@@ -24,7 +24,7 @@ jobs:
       - name: zip
         run: |
           cd ui/public
-          zip ${{env.NAME}} *
+          zip -r ${{env.NAME}} *
       - name: upload
         uses: actions/upload-artifact@v2
         with:
