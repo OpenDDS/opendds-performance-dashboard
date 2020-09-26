@@ -18,9 +18,9 @@
     'https://github.com/objectcomputing/OpenDDS/commit/';
 
   const DEFAULT_CHART_TYPE = BY_SIZE;
-  const DEFAULT_PLOT_TYPE = 'Latency';
+  const DEFAULT_PLOT_TYPE = 'Round Trip Latency';
   const DEFAULT_RECENT_COUNT = 5;
-  const DEFAULT_SCENARIO = 'echo_rtps';
+  const DEFAULT_SCENARIO = 'fan_rtps';
   const DEFAULT_STAT_NAME = 'mean';
   const MDTD = 'Max Discovery Time Delta';
 
@@ -65,9 +65,6 @@
     }
   };
 
-  $: axisByTimestamp.x.type = useTimeSeries ? 'timeseries' : 'category';
-  $: axisByTimestamp.x.tick.fit = useTimeSeries;
-
   let data = {columns: [], x: 'x'};
 
   let allPlotTypes = [];
@@ -76,7 +73,7 @@
   let scenarios = [];
   let scenario = DEFAULT_SCENARIO;
   let selectingTimestamps = false;
-  let serverCount = 0;
+  let serverCount = 16;
   let serverCounts = [];
   let statName = DEFAULT_STAT_NAME;
   let statNames = [];
@@ -96,11 +93,14 @@
       ? 'nodes'
       : 'payload size';
   $: axis.y.type = useLogScale ? 'log' : 'linear';
+  $: axisByTimestamp.x.type = useTimeSeries ? 'timeseries' : 'category';
+  $: axisByTimestamp.x.tick.fit = useTimeSeries;
   $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(scenario, chartType);
   $: plotTypes = scenario.startsWith('showtime_')
     ? allPlotTypes.filter(st => !st.startsWith('Round Trip'))
     : allPlotTypes;
+  $: isFan = scenario.startsWith('fan_');
   $: title = `${scenario} - ${plotType} - ${statName}`;
 
   $: if (collectedData) {
@@ -113,6 +113,8 @@
     }
 
     if (axis) axis.y.label.text = statName;
+
+    if (isFan && !serverCounts.length) getServerCounts();
   }
 
   function scenarioChanged(event) {
@@ -122,8 +124,6 @@
     } else if (statName === MDTD) {
       statName = DEFAULT_STAT_NAME;
     }
-
-    if (scenario.startsWith('fan_')) getServerCounts();
   }
 
   async function getChartDataBySize(scenario, serverCount, plotType, statName) {
@@ -143,7 +143,6 @@
       for (const size of sizes) {
         let value = 0;
 
-        const isFan = scenario.startsWith('fan_');
         const key = isFan ? size + '_' + serverCount : size;
         let obj = collectedData[timestamp.full][scenario];
         if (obj) {
@@ -176,7 +175,6 @@
     if (!scenario || !statName || !plotType) return;
 
     const isDiscovery = scenario === 'disco';
-    const isFan = scenario.startsWith('fan_');
 
     const xValues = timestamps
       .filter(ts => ts.selected)
@@ -219,8 +217,6 @@
   }
 
   function getDataNames() {
-    const isFan = scenario.startsWith('fan_');
-
     const dataNames = new Set();
     for (const timestampObj of Object.values(collectedData)) {
       const scenarioObj = timestampObj[scenario];
@@ -239,7 +235,6 @@
     chartType === BY_SIZE ? 'Timestamp' : hasNodes ? 'Nodes' : 'Payload';
 
   function getServerCounts() {
-    const isFan = scenario.startsWith('fan_');
     if (!isFan) return [];
 
     const uniqueServerCounts = new Set();
@@ -255,12 +250,11 @@
     serverCounts = [...uniqueServerCounts].sort(
       (n1, n2) => Number(n1) - Number(n2)
     );
-    serverCount = serverCounts[0];
+    // Choose last one by default.
+    serverCount = serverCounts[serverCounts.length - 1];
   }
 
   function getSizes() {
-    const isFan = scenario.startsWith('fan_');
-
     const sizes = new Set();
     for (const timestampObj of Object.values(collectedData)) {
       const scenarioObj = timestampObj[scenario];
@@ -336,7 +330,7 @@
       const res = await fetch(DATA_URL);
       if (res.ok) {
         collectedData = await res.json();
-        console.log('App.svelte loadData: collectedData =', collectedData);
+        //console.log('App.svelte loadData: collectedData =', collectedData);
         getUniqueValues(collectedData);
       } else {
         throw new Error(await res.text());
@@ -359,7 +353,7 @@
         on:change={scenarioChanged}
         options={scenarios}
         value={scenario} />
-      {#if scenario.startsWith('fan_')}
+      {#if isFan}
         <Select
           label="# of Servers"
           options={serverCounts}
@@ -377,7 +371,6 @@
     <div>
       {#if scenario !== 'disco'}
         <Select label="Plot" options={plotTypes} bind:value={plotType} />
-
         <Select label="Statistic" options={statNames} bind:value={statName} />
       {/if}
     </div>
