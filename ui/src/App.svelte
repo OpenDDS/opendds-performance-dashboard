@@ -95,6 +95,7 @@
   $: axis.y.type = useLogScale ? 'log' : 'linear';
   $: axisByTimestamp.x.type = useTimeSeries ? 'timeseries' : 'category';
   $: axisByTimestamp.x.tick.fit = useTimeSeries;
+  $: axis.y.min = getMinY(data);
   $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(scenario, chartType);
   $: plotTypes = scenario.startsWith('showtime_')
@@ -252,6 +253,22 @@
     );
     // Choose last one by default.
     serverCount = serverCounts[serverCounts.length - 1];
+  }
+
+  function getMinY() {
+    const {columns} = data;
+    if (!useLogScale || columns.length === 0) return 0;
+
+    let minY = Number.MAX_VALUE;
+    for (const column of columns) {
+      const [label] = column;
+      if (label !== 'x') {
+        // Ignore zero values.
+        const values = column.slice(1).filter(v => v !== 0);
+        minY = Math.min(minY, ...values);
+      }
+    }
+    return minY;
   }
 
   function getSizes() {
