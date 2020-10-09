@@ -25,12 +25,13 @@
   const MDTD = 'Max Discovery Time Delta';
 
   const statToUnit = {
-    madev: '?',
+    madev: 'seconds',
     max: 'seconds',
     mean: 'seconds',
     median: 'seconds',
     min: 'seconds',
-    stdev: '?'
+    overflow: 'count',
+    stdev: 'seconds'
   };
 
   const yAxis = {
