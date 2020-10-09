@@ -24,6 +24,29 @@
   const DEFAULT_STAT_NAME = 'mean';
   const MDTD = 'Max Discovery Time Delta';
 
+  const statToUnit = {
+    madev: '?',
+    max: 'seconds',
+    mean: 'seconds',
+    median: 'seconds',
+    min: 'seconds',
+    stdev: '?'
+  };
+
+  const yAxis = {
+    label: {
+      position: 'outer-middle',
+      text: ''
+    },
+    min: 0, // helps with log scale
+    padding: 0, // helps with log scale
+    tick: {
+      format(value) {
+        return Number.isInteger(value) ? value : value.toFixed(4);
+      }
+    }
+  };
+
   const axisBySize = {
     x: {
       label: {
@@ -31,14 +54,7 @@
       },
       type: 'category'
     },
-    y: {
-      label: {
-        position: 'outer-middle',
-        text: ''
-      },
-      min: 0, // helps with log scale
-      padding: 0 // helps with log scale
-    }
+    y: yAxis
   };
 
   const axisByTimestamp = {
@@ -55,14 +71,7 @@
         rotate: -90
       }
     },
-    y: {
-      label: {
-        position: 'outer-middle',
-        text: ''
-      },
-      min: 0, // helps with log scale
-      padding: 0 // helps with log scale
-    }
+    y: yAxis
   };
 
   let data = {columns: [], x: 'x'};
@@ -91,7 +100,7 @@
       ? 'timestamp'
       : hasNodes
       ? 'nodes'
-      : 'payload size';
+      : 'payload size in bytes';
   $: axis.y.type = useLogScale ? 'log' : 'linear';
   $: axisByTimestamp.x.type = useTimeSeries ? 'timeseries' : 'category';
   $: axisByTimestamp.x.tick.fit = useTimeSeries;
@@ -102,7 +111,10 @@
     ? allPlotTypes.filter(st => !st.startsWith('Round Trip'))
     : allPlotTypes;
   $: isFan = scenario.startsWith('fan_');
-  $: title = `${scenario} - ${plotType} - ${statName}`;
+  $: title =
+    scenario === 'disco'
+      ? `${scenario} - ${statName}`
+      : `${scenario} - ${plotType} - ${statName}`;
 
   $: if (collectedData) {
     data.columns = [];
@@ -113,9 +125,14 @@
       getChartDataBySize(scenario, serverCount, plotType, statName);
     }
 
-    if (axis) axis.y.label.text = statName;
+    if (axis) axis.y.label.text = getYLabel(statName);
 
     if (isFan && !serverCounts.length) getServerCounts();
+  }
+
+  function getYLabel(statName) {
+    const unit = statToUnit[statName];
+    return statName + (unit ? ' ' + unit : '');
   }
 
   function scenarioChanged(event) {
