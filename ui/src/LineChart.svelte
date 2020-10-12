@@ -1,5 +1,6 @@
 <script>
   import c3 from 'c3';
+  import * as d3 from 'd3';
 
   export let axis;
   export let data;
@@ -35,27 +36,56 @@
     });
   }
 
+  let cachedX, cachedY;
+
+  function getRelativeXY(x, y, svg, element) {
+    var p = svg.createSVGPoint();
+    var ctm = element.getCTM();
+    p.x = x;
+    p.y = y;
+    return p.matrixTransform(ctm);
+  }
+
   function addLegendTitle() {
     const chart = document.querySelector(CHART_SELECTOR);
+    // If we don't have a chart, we can't add a legend title.
     if (!chart) return;
 
-    let lt = chart.querySelector('.legend-title');
-    if (lt) lt.parentElement.removeChild(lt);
-
+    // If there are no legend items then no title is needed.
     const firstLegendItem = chart.querySelector('.c3-legend-item');
     if (!firstLegendItem) return;
 
+    // Get the relative position of the first legend item.
     const itemText = firstLegendItem.firstChild;
-    const x = itemText.getAttribute('x');
-    const y = itemText.getAttribute('y');
+    const legendX = itemText.getAttribute('x');
+    const legendY = itemText.getAttribute('y');
 
-    lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    lt.setAttribute('class', 'legend-title');
-    lt.setAttribute('x', Number(x) - 17);
-    lt.setAttribute('y', Number(y) - 20);
-    lt.textContent = legendTitle;
+    // Get the SVG group element that contains the legend.
+    const legendContainer = firstLegendItem.parentElement;
 
-    firstLegendItem.parentElement.insertBefore(lt, firstLegendItem);
+    // If we don't already have a text element for the title,
+    // create it and insert it before the legend container.
+    let legendTitleText = chart.querySelector('.legend-title');
+    if (!legendTitleText) {
+      legendTitleText = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'text'
+      );
+      legendTitleText.setAttribute('class', 'legend-title');
+      legendContainer.parentElement.insertBefore(
+        legendTitleText,
+        legendContainer
+      );
+    }
+
+    // Set the text and position of the legend title.
+    legendTitleText.textContent = legendTitle;
+    legendTitleText.setAttribute('x', legendX - 17);
+    legendTitleText.setAttribute('y', legendY - 20);
+    legendTitleText.setAttribute(
+      'transform',
+      legendContainer.getAttribute('transform')
+    );
 
     titleUsed = title;
   }

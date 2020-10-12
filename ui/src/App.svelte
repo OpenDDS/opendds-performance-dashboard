@@ -251,7 +251,11 @@
   }
 
   const getLegendTitle = (scenario, chartType) =>
-    chartType === BY_SIZE ? 'Timestamp' : hasNodes ? 'Nodes' : 'Payload';
+    chartType === BY_SIZE
+      ? 'Timestamp'
+      : hasNodes
+      ? 'Node Count'
+      : 'Payload Bytes';
 
   function getServerCounts() {
     if (!isFan) return [];
