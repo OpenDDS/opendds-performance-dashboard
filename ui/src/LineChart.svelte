@@ -9,9 +9,7 @@
 
   const CHART_HEIGHT = 500;
   const CHART_SELECTOR = '#open-dds-chart';
-
-  //$: console.log('LineChart.svelte: axis =', axis);
-  //$: console.log('LineChart.svelte: data =', data);
+  const LEGEND_TILE_WIDTH = 55;
 
   let container;
   let titleUsed = '';
@@ -28,7 +26,12 @@
         axis,
         bindto: CHART_SELECTOR,
         data,
-        legend: {position: 'right'},
+        legend: {
+          item: {
+            tile: {width: LEGEND_TILE_WIDTH}
+          },
+          position: 'right'
+        },
         onrendered: addLegendTitle,
         size: {height: CHART_HEIGHT}
         //zoom: {enabled: true}
@@ -80,7 +83,7 @@
 
     // Set the text and position of the legend title.
     legendTitleText.textContent = legendTitle;
-    legendTitleText.setAttribute('x', legendX - 17);
+    legendTitleText.setAttribute('x', legendX - LEGEND_TILE_WIDTH - 6);
     legendTitleText.setAttribute('y', legendY - 20);
     legendTitleText.setAttribute(
       'transform',
