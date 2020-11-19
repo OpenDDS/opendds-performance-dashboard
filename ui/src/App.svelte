@@ -14,6 +14,11 @@
       ? 'http://localhost:1919/data'
       : 'http://scoreboard.ociweb.com/bench2/scrape_output.json';
 
+  const STAT_PROPERTIES_URL =
+    location.hostname === 'localhost'
+      ? 'http://localhost:1919/stat-properties'
+      : 'http://scoreboard.ociweb.com/bench2/stat_properties.json';
+
   const GITHUB_COMMIT_URL =
     'https://github.com/objectcomputing/OpenDDS/commit/';
 
@@ -24,6 +29,7 @@
   const DEFAULT_STAT_NAME = 'mean';
   const MDTD = 'Max Discovery Time Delta';
 
+  /*
   const statToUnit = {
     madev: 'seconds',
     max: 'seconds',
@@ -33,6 +39,7 @@
     overflow: 'count',
     stdev: 'seconds'
   };
+  */
 
   const yAxis = {
     label: {
@@ -87,6 +94,7 @@
   let serverCounts = [];
   let statName = DEFAULT_STAT_NAME;
   let statNames = [];
+  let statProperties;
   let plotType = DEFAULT_PLOT_TYPE;
   let plotTypes = [];
   let timestamps = [];
@@ -110,14 +118,18 @@
   $: legendTitle = getLegendTitle(scenario, chartType);
   $: plotTypes = scenario.startsWith('showtime_')
     ? allPlotTypes.filter(st => !st.startsWith('Round Trip'))
+    : scenario === 'disco'
+    ? allPlotTypes.filter(st => !st.includes('Latency'))
     : allPlotTypes;
-  $: isFan = scenario.startsWith('fan_');
-  $: title =
-    scenario === 'disco'
-      ? `${scenario} - ${statName}`
-      : `${scenario} - ${plotType} - ${statName}`;
 
-  $: if (collectedData) {
+  // If the current value of plotType is not in the list of
+  // supported plot types, change it to the first supported plot type.
+  $: if (!plotTypes.includes(plotType)) plotType = plotTypes[0];
+
+  $: isFan = scenario.startsWith('fan_');
+  $: title = `${scenario} - ${plotType} - ${statName}`;
+
+  $: if (collectedData && statProperties) {
     data.columns = [];
 
     if (chartType === BY_TIMESTAMP) {
@@ -132,17 +144,14 @@
   }
 
   function getYLabel(statName) {
-    const unit = statToUnit[statName];
+    //const unit = statToUnit[statName];
+    const unit = statProperties[plotType].units;
     return statName + (unit ? ' ' + unit : '');
   }
 
   function scenarioChanged(event) {
     scenario = event.target.value;
-    if (scenario === 'disco') {
-      statName = MDTD;
-    } else if (statName === MDTD) {
-      statName = DEFAULT_STAT_NAME;
-    }
+    if (statName === MDTD) statName = DEFAULT_STAT_NAME;
   }
 
   async function getChartDataBySize(scenario, serverCount, plotType, statName) {
@@ -366,14 +375,14 @@
 
   async function loadData() {
     try {
-      const res = await fetch(DATA_URL);
-      if (res.ok) {
-        collectedData = await res.json();
-        //console.log('App.svelte loadData: collectedData =', collectedData);
-        getUniqueValues(collectedData);
-      } else {
-        throw new Error(await res.text());
-      }
+      let res = await fetch(DATA_URL);
+      if (!res.ok) throw new Error(await res.text());
+      collectedData = await res.json();
+      getUniqueValues(collectedData);
+
+      res = await fetch(STAT_PROPERTIES_URL);
+      if (!res.ok) throw new Error(await res.text());
+      statProperties = await res.json();
     } catch (e) {
       alert(e.message);
       console.error(e);
@@ -408,10 +417,8 @@
       </label>
     </div>
     <div>
-      {#if scenario !== 'disco'}
-        <Select label="Plot" options={plotTypes} bind:value={plotType} />
-        <Select label="Statistic" options={statNames} bind:value={statName} />
-      {/if}
+      <Select label="Plot" options={plotTypes} bind:value={plotType} />
+      <Select label="Statistic" options={statNames} bind:value={statName} />
     </div>
     <div>
       <button type="button" on:click={() => (selectingTimestamps = true)}>

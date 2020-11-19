@@ -25,12 +25,7 @@ app.get('/:scenario/:statType', async (req, res) => {
   res.send(JSON.stringify(data));
 });
 
-// This retrieves the JSON data at a specific URL.
-// It is needed to work around CORS issues
-// because the client cannot directly fetch this URL.
-app.get('/data', async (req, res) => {
-  const url = 'http://scoreboard.ociweb.com/bench2/scrape_output.json';
-  //const url = 'http://localhost:1919/open-dds-statistics.json';
+async function fetchJson(url, res) {
   try {
     const response = await fetch(url);
     if (response.ok) {
@@ -42,6 +37,24 @@ app.get('/data', async (req, res) => {
   } catch (e) {
     res.status(500).end(e.message);
   }
+}
+
+// This retrieves the JSON data at a specific URL.
+// It is needed to work around CORS issues
+// because the client cannot directly fetch this URL.
+app.get('/data', async (req, res) => {
+  const url = 'http://scoreboard.ociweb.com/bench2/scrape_output.json';
+  //const url = 'http://localhost:1919/open-dds-statistics.json';
+  fetchJson(url, res);
+});
+
+// This retrieves the JSON data at a specific URL.
+// It is needed to work around CORS issues
+// because the client cannot directly fetch this URL.
+app.get('/stat-properties', async (req, res) => {
+  const url = 'http://scoreboard.ociweb.com/bench2/stat_properties.json';
+  //const url = 'http://localhost:1919/stat-properties.json';
+  fetchJson(url, res);
 });
 
 const PORT = 1919;
