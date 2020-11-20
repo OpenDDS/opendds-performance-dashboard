@@ -462,11 +462,15 @@
       if (selectedSet.has(timestampAsClassName) && errorScenario === scenario) {
         const trimmedSize = size.split('_')[0];
         const className = bySize ? timestampAsClassName : trimmedSize;
+        console.log('App.svelte styleErrors: className =', className);
         const circleGroup = document.querySelector('.c3-circles-' + className);
+        console.log('App.svelte styleErrors: circleGroup =', className);
         if (circleGroup) {
           const label = bySize ? trimmedSize : classNameToDateTime(timestamp);
-          const sizeIndex = xLabels.indexOf(label);
-          const circle = circleGroup.children.item(sizeIndex);
+          const index = xLabels.indexOf(label);
+          console.log('App.svelte styleErrors: index =', index);
+          const circle = circleGroup.children.item(index);
+          console.log('App.svelte styleErrors: circle =', circle);
           circle.style.stroke = 'red';
           circle.style.strokeWidth = 4;
         } else {
