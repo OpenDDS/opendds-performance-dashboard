@@ -1,6 +1,7 @@
 <script>
   import c3 from 'c3';
   import * as d3 from 'd3';
+  import {createEventDispatcher} from 'svelte';
 
   export let axis;
   export let data;
@@ -10,6 +11,8 @@
   const CHART_HEIGHT = 500;
   const CHART_SELECTOR = '#open-dds-chart';
   const LEGEND_TILE_WIDTH = 55;
+
+  const dispatch = createEventDispatcher();
 
   let container;
   let titleUsed = '';
@@ -91,6 +94,8 @@
     );
 
     titleUsed = title;
+
+    dispatch('rendered');
   }
 </script>
 

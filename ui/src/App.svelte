@@ -83,6 +83,7 @@
   };
 
   let data = {columns: [], x: 'x'};
+  const errors = new Set();
 
   let allPlotTypes = [];
   let chartType = DEFAULT_CHART_TYPE;
@@ -137,21 +138,46 @@
     } else {
       getChartDataBySize(scenario, serverCount, plotType, statName);
     }
+    addNames();
 
     if (axis) axis.y.label.text = getYLabel(statName);
 
     if (isFan && !serverCounts.length) getServerCounts();
   }
 
+  function addNames() {
+    data.names = {};
+    for (const column of data.columns) {
+      const name = column[0];
+      if (name.includes('_')) data.names[name] = classNameToDateTime(name);
+    }
+  }
+
+  function findErrors(collectedData) {
+    errors.clear();
+
+    for (const [timestamp, timeData] of Object.entries(collectedData)) {
+      const ts = getTimeKey(timestamp);
+      for (const [scenario, scenarioData] of Object.entries(timeData)) {
+        for (const [size, sizeData] of Object.entries(scenarioData)) {
+          if (sizeData.Errors) {
+            const key = ts + '|' + scenario + '|' + size;
+            errors.add(key);
+          }
+        }
+      }
+    }
+  }
+
+  function getTimeKey(timestamp) {
+    const dateTimeString = timestamp.split('+')[0];
+    return dateTimeString.replace('T', '_');
+  }
+
   function getYLabel(statName) {
     //const unit = statToUnit[statName];
     const unit = statProperties[plotType].units;
     return statName + (unit ? ' ' + unit : '');
-  }
-
-  function scenarioChanged(event) {
-    scenario = event.target.value;
-    if (statName === MDTD) statName = DEFAULT_STAT_NAME;
   }
 
   async function getChartDataBySize(scenario, serverCount, plotType, statName) {
@@ -162,12 +188,10 @@
     const arr = ['x', ...sizes];
     const columns = [arr];
 
-    data = {...data, columns};
-
     for (const timestamp of timestamps) {
       if (!timestamp.selected) continue;
 
-      const column = [timestamp.dateTime];
+      const column = [dateTimeToClassName(timestamp.dateTime)];
       for (const size of sizes) {
         let value = 0;
 
@@ -242,6 +266,20 @@
 
     const xFormat = '%Y-%m-%d %H:%M:%S'; // data format
     data = {...data, columns, xFormat};
+  }
+
+  // C3 uses the first value in the data columns arrays as CSS class names.
+  // In this application, those values are date/time strings.
+  // This function is needed because it is not valid
+  // to have spaces or colons in CSS class names.
+  function dateTimeToClassName(text) {
+    return text.replaceAll(' ', '_').replaceAll(':', '-');
+  }
+
+  function classNameToDateTime(text) {
+    const [date, time] = text.split('_');
+    const newTime = time.replaceAll('-', ':');
+    return date + ' ' + newTime;
   }
 
   function getDataNames() {
@@ -379,6 +417,7 @@
       if (!res.ok) throw new Error(await res.text());
       collectedData = await res.json();
       getUniqueValues(collectedData);
+      findErrors(collectedData);
 
       res = await fetch(STAT_PROPERTIES_URL);
       if (!res.ok) throw new Error(await res.text());
@@ -386,6 +425,55 @@
     } catch (e) {
       alert(e.message);
       console.error(e);
+    }
+  }
+
+  function scenarioChanged(event) {
+    scenario = event.target.value;
+    if (statName === MDTD) statName = DEFAULT_STAT_NAME;
+  }
+
+  function styleErrors() {
+    const selectedTimestamps = timestamps.filter(
+      timestamp => timestamp.selected
+    );
+    const selectedDateTimes = selectedTimestamps.map(ts =>
+      dateTimeToClassName(ts.dateTime)
+    );
+    const selectedSet = new Set(selectedDateTimes);
+
+    const bySize = chartType === 'by size';
+
+    const xLabels = data.columns[0].slice(1);
+
+    // SVG circle elements for points can be found
+    // with this series of CSS selectors:
+    // .open-dds-chart
+    // svg
+    // .c3-chart
+    // .c3-chart-lines
+    // .c3-chart-line
+    // .c3-circles-{className}
+    // circle
+    // where the circle elements are in order by x label.
+    for (const error of errors) {
+      const [timestamp, errorScenario, size] = error.split('|');
+      const timestampAsClassName = dateTimeToClassName(timestamp);
+      if (selectedSet.has(timestampAsClassName) && errorScenario === scenario) {
+        const trimmedSize = size.split('_')[0];
+        const className = bySize ? timestampAsClassName : trimmedSize;
+        const circleGroup = document.querySelector('.c3-circles-' + className);
+        if (circleGroup) {
+          const label = bySize ? trimmedSize : classNameToDateTime(timestamp);
+          const sizeIndex = xLabels.indexOf(label);
+          const circle = circleGroup.children.item(sizeIndex);
+          circle.style.stroke = 'red';
+          circle.style.strokeWidth = 4;
+        } else {
+          // This should never happen.
+          console.error('circle group not found');
+        }
+      }
     }
   }
 </script>
@@ -417,7 +505,9 @@
       </label>
     </div>
     <div>
-      <Select label="Plot" options={plotTypes} bind:value={plotType} />
+      {#if plotType}
+        <Select label="Plot" options={plotTypes} bind:value={plotType} />
+      {/if}
       <Select label="Statistic" options={statNames} bind:value={statName} />
     </div>
     <div>
@@ -432,7 +522,12 @@
       bind:timestamps
       on:close={() => (selectingTimestamps = false)} />
   {:else}
-    <LineChart {axis} bind:data {legendTitle} {title} />
+    <LineChart
+      {axis}
+      bind:data
+      {legendTitle}
+      {title}
+      on:rendered={styleErrors} />
   {/if}
 </main>
 
