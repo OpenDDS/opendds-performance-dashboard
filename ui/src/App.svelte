@@ -33,7 +33,7 @@
 
   // This is a value that would never occur in a real run
   // and is very close to zero.
-  const MISSING_VALUE = -0.001;
+  const MISSING_VALUE = -0.0000001;
 
   /*
   const statToUnit = {
