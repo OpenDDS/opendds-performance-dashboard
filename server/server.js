@@ -1,3 +1,5 @@
+// This is only used for running the app locally.
+
 const cors = require('cors');
 const express = require('express');
 const fetch = require('node-fetch');

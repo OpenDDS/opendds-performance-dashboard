@@ -12,12 +12,14 @@
   const DATA_URL =
     location.hostname === 'localhost'
       ? 'http://localhost:1919/data'
-      : 'http://scoreboard.ociweb.com/bench2/scrape_output.json';
+      : //: 'http://scoreboard.ociweb.com/bench2/scrape_output.json';
+        'scrape_output.json';
 
   const STAT_PROPERTIES_URL =
     location.hostname === 'localhost'
       ? 'http://localhost:1919/stat-properties'
-      : 'http://scoreboard.ociweb.com/bench2/stat_properties.json';
+      : //: 'http://scoreboard.ociweb.com/bench2/stat_properties.json';
+        'stat_properties.json';
 
   const GITHUB_COMMIT_URL =
     'https://github.com/objectcomputing/OpenDDS/commit/';
@@ -28,6 +30,10 @@
   const DEFAULT_SCENARIO = 'fan_rtps';
   const DEFAULT_STAT_NAME = 'mean';
   const MDTD = 'Max Discovery Time Delta';
+
+  // This is a value that would never occur in a real run
+  // and is very close to zero.
+  const MISSING_VALUE = -0.001;
 
   /*
   const statToUnit = {
@@ -183,7 +189,6 @@
   async function getChartDataBySize(scenario, serverCount, plotType, statName) {
     if (!scenario || !statName || !plotType) return;
 
-    const isDiscovery = scenario === 'disco';
     const sizes = getSizes();
     const arr = ['x', ...sizes];
     const columns = [arr];
@@ -193,19 +198,15 @@
 
       const column = [dateTimeToClassName(timestamp.dateTime)];
       for (const size of sizes) {
-        let value = 0;
+        let value = MISSING_VALUE;
 
         const key = isFan ? size + '_' + serverCount : size;
         let obj = collectedData[timestamp.full][scenario];
         if (obj) {
           obj = obj[key];
           if (obj) {
-            if (isDiscovery) {
-              value = obj[MDTD];
-            } else {
-              const stats = obj[plotType];
-              if (stats) value = stats[statName];
-            }
+            const stats = obj[plotType];
+            if (stats) value = stats[statName];
           }
         }
 
@@ -225,8 +226,6 @@
     statName
   ) {
     if (!scenario || !statName || !plotType) return;
-
-    const isDiscovery = scenario === 'disco';
 
     const xValues = timestamps
       .filter(ts => ts.selected)
@@ -249,12 +248,8 @@
           const obj =
             dataForName[isFan ? dataName + '_' + serverCount : dataName];
           if (obj) {
-            if (isDiscovery) {
-              value = obj[MDTD];
-            } else {
-              const stats = obj[plotType];
-              if (stats) value = stats[statName];
-            }
+            const stats = obj[plotType];
+            if (stats) value = stats[statName];
           }
         }
 
@@ -462,15 +457,11 @@
       if (selectedSet.has(timestampAsClassName) && errorScenario === scenario) {
         const trimmedSize = size.split('_')[0];
         const className = bySize ? timestampAsClassName : trimmedSize;
-        console.log('App.svelte styleErrors: className =', className);
         const circleGroup = document.querySelector('.c3-circles-' + className);
-        console.log('App.svelte styleErrors: circleGroup =', className);
         if (circleGroup) {
           const label = bySize ? trimmedSize : classNameToDateTime(timestamp);
           const index = xLabels.indexOf(label);
-          console.log('App.svelte styleErrors: index =', index);
           const circle = circleGroup.children.item(index);
-          console.log('App.svelte styleErrors: circle =', circle);
           circle.style.stroke = 'red';
           circle.style.strokeWidth = 4;
         } else {
@@ -479,6 +470,34 @@
         }
       }
     }
+  }
+
+  function styleMissingPoints() {
+    console.log('App.svelte styleMissingPoints: data =', data);
+
+    const {columns} = data;
+    for (const column of columns) {
+      const [timestamp] = column;
+      column.forEach((value, index) => {
+        if (value === MISSING_VALUE) {
+          console.log(
+            'App.svelte x: timestamp =',
+            timestamp,
+            ', index =',
+            index
+          );
+          const g = document.querySelector('.c3-circles-' + timestamp);
+          const circle = g.querySelector('.c3-circle-' + (index - 1));
+          circle.style.stroke = 'orange';
+          circle.style.strokeWidth = 4;
+        }
+      });
+    }
+  }
+
+  function styleSpecialPoints() {
+    styleErrors();
+    styleMissingPoints();
   }
 </script>
 
@@ -531,7 +550,7 @@
       bind:data
       {legendTitle}
       {title}
-      on:rendered={styleErrors} />
+      on:rendered={styleSpecialPoints} />
   {/if}
 </main>
 
