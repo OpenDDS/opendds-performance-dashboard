@@ -3,6 +3,8 @@
   import LineChart from './LineChart.svelte';
   import Select from './Select.svelte';
   import TimestampSelection from './TimestampSelection.svelte';
+  import {collectedData, getTestList} from './DataLoader';
+  import {chartDataFactory} from './DataExtractor';
 
   const BY_SIZE = 'by size';
   const BY_TIMESTAMP = 'by timestamp';
@@ -93,7 +95,7 @@
 
   let allPlotTypes = [];
   let chartType = DEFAULT_CHART_TYPE;
-  let collectedData;
+
   let scenarios = [];
   let scenario = DEFAULT_SCENARIO;
   let selectingTimestamps = false;
@@ -123,6 +125,7 @@
   $: axis.y.min = getMinY(data);
   $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(scenario, chartType);
+
   $: plotTypes = scenario.startsWith('showtime_')
     ? allPlotTypes.filter(st => !st.startsWith('Round Trip'))
     : scenario === 'disco'
@@ -136,33 +139,34 @@
   $: isFan = scenario.startsWith('fan_');
   $: title = `${scenario} - ${plotType} - ${statName}`;
 
-  $: if (collectedData && statProperties) {
-    data.columns = [];
+  $: if ($collectedData && statProperties) {
+    const selectedTimestamps = timestamps.filter(ts => ts.selected);
+    const opts = {
+      selectedTimestamps,
+      scenario,
+      serverCount,
+      plotType,
+      statName,
+      isFan
+    };
 
-    if (chartType === BY_TIMESTAMP) {
-      getChartDataByTimestamp(scenario, serverCount, plotType, statName);
-    } else {
-      getChartDataBySize(scenario, serverCount, plotType, statName);
-    }
-    addNames();
-
-    if (axis) axis.y.label.text = getYLabel(statName);
-
-    if (isFan && !serverCounts.length) getServerCounts();
+    const factory = chartDataFactory(chartType);
+    factory($collectedData, opts).then(results => {
+      console.log({results});
+      if (!results) return;
+      data = results;
+    });
   }
 
-  function addNames() {
-    data.names = {};
-    for (const column of data.columns) {
-      const name = column[0];
-      if (name.includes('_')) data.names[name] = classNameToDateTime(name);
-    }
+  $: if ($collectedData && statProperties) {
+    if (axis) axis.y.label.text = getYLabel(statProperties, plotType, statName);
+    if (isFan && !serverCounts.length) getServerCounts($collectedData);
   }
 
-  function findErrors(collectedData) {
+  function findErrors() {
     errors.clear();
 
-    for (const [timestamp, timeData] of Object.entries(collectedData)) {
+    for (const [timestamp, timeData] of Object.entries($collectedData)) {
       const ts = getTimeKey(timestamp);
       for (const [scenario, scenarioData] of Object.entries(timeData)) {
         for (const [size, sizeData] of Object.entries(scenarioData)) {
@@ -180,22 +184,24 @@
     return dateTimeString.replace('T', '_');
   }
 
-  function getYLabel(statName) {
+  function getYLabel(statProperties, plotType, statName) {
     //const unit = statToUnit[statName];
+    if (!plotType) return '';
     const unit = statProperties[plotType].units;
     return statName + (unit ? ' ' + unit : '');
   }
 
-  async function getChartDataBySize(scenario, serverCount, plotType, statName) {
+  async function getChartDataBySize(
+    collectedData,
+    {selectedTimestamps, scenario, serverCount, plotType, statName, isFan}
+  ) {
     if (!scenario || !statName || !plotType) return;
 
-    const sizes = getSizes();
+    const sizes = getSizes(collectedData, scenario, isFan, serverCount);
     const arr = ['x', ...sizes];
     const columns = [arr];
 
-    for (const timestamp of timestamps) {
-      if (!timestamp.selected) continue;
-
+    for (const timestamp of selectedTimestamps) {
       const column = [dateTimeToClassName(timestamp.dateTime)];
       for (const size of sizes) {
         let value = MISSING_VALUE;
@@ -220,27 +226,22 @@
   }
 
   async function getChartDataByTimestamp(
-    scenario,
-    serverCount,
-    plotType,
-    statName
+    collectedData,
+    {selectedTimestamps, scenario, serverCount, plotType, statName, isFan}
   ) {
     if (!scenario || !statName || !plotType) return;
+    // Load Data For Selected TimeStamps
 
-    const xValues = timestamps
-      .filter(ts => ts.selected)
-      .map(timestamp => timestamp.dateTime);
+    const xValues = selectedTimestamps.map(timestamp => timestamp.dateTime);
     const arr = ['x', ...xValues];
     const columns = [arr];
 
-    const dataNames = getDataNames();
+    const dataNames = getDataNames(collectedData, isFan);
 
     for (const dataName of dataNames) {
       const column = [dataName];
 
-      for (const timestamp of timestamps) {
-        if (!timestamp.selected) continue;
-
+      for (const timestamp of selectedTimestamps) {
         let value = 0;
 
         const dataForName = collectedData[timestamp.full][scenario];
@@ -277,7 +278,7 @@
     return date + ' ' + newTime;
   }
 
-  function getDataNames() {
+  function getDataNames(collectedData, isFan) {
     const dataNames = new Set();
     for (const timestampObj of Object.values(collectedData)) {
       const scenarioObj = timestampObj[scenario];
@@ -299,7 +300,7 @@
       ? 'Node Count'
       : 'Payload Bytes';
 
-  function getServerCounts() {
+  function getServerCounts(collectedData) {
     if (!isFan) return [];
 
     const uniqueServerCounts = new Set();
@@ -335,8 +336,9 @@
     return minY;
   }
 
-  function getSizes() {
+  function getSizes(collectedData, scenario, isFan, serverCount) {
     const sizes = new Set();
+
     for (const timestampObj of Object.values(collectedData)) {
       const scenarioObj = timestampObj[scenario];
       if (scenarioObj) {
@@ -372,7 +374,8 @@
     const uniquePlotTypes = new Set();
     const uniqueStatNames = new Set();
 
-    const timestampEntries = Object.entries(collectedData);
+    const timestampEntries = Object.entries($collectedData);
+
     const firstSelectedIndex = timestampEntries.length - DEFAULT_RECENT_COUNT;
 
     timestampEntries.forEach((timestampEntry, index) => {
@@ -400,6 +403,8 @@
 
     scenarios = [...uniqueScenarios].sort();
 
+    console.log(uniquePlotTypes);
+
     uniquePlotTypes.delete('Errors');
     uniquePlotTypes.delete(MDTD);
     allPlotTypes = [...uniquePlotTypes].sort();
@@ -408,15 +413,10 @@
 
   async function loadData() {
     try {
-      let res = await fetch(DATA_URL);
-      if (!res.ok) throw new Error(await res.text());
-      collectedData = await res.json();
-      getUniqueValues(collectedData);
-      findErrors(collectedData);
-
-      res = await fetch(STAT_PROPERTIES_URL);
-      if (!res.ok) throw new Error(await res.text());
-      statProperties = await res.json();
+      statProperties = await getTestList();
+      await collectedData.loadAll();
+      getUniqueValues();
+      findErrors();
     } catch (e) {
       alert(e.message);
       console.error(e);
