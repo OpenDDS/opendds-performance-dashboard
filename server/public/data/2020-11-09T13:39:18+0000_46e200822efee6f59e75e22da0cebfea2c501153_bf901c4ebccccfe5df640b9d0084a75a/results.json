@@ -1,0 +1,172 @@
+{
+  "fan_tcp": {
+    "65536_16": {
+      "Errors": 0,
+      "Max Discovery Time Delta": 15.392042,
+      "Discovery Time Delta": {
+        "count": 110,
+        "min": 3.238892,
+        "max": 15.392042,
+        "mean": 7.543019,
+        "stdev": 5.036463,
+        "median": 3.413912,
+        "madev": 0.15827,
+        "overflow": 0
+      },
+      "Cpu Utilization": {
+        "count": 66,
+        "min": 0,
+        "max": 31.157576,
+        "mean": 1.459164,
+        "stdev": 4.97503,
+        "median": 0.25,
+        "madev": 0.25,
+        "overflow": 0
+      },
+      "Memory Utilization": {
+        "count": 66,
+        "min": 0,
+        "max": 42.480888,
+        "mean": 39.493863,
+        "stdev": 7.183822,
+        "median": 42.287643,
+        "madev": 0.193245,
+        "overflow": 0
+      },
+      "Virtual Memory Utilization": {
+        "count": 66,
+        "min": 0,
+        "max": 0.039626,
+        "mean": 0.036676,
+        "stdev": 0.004746,
+        "median": 0.037701,
+        "madev": 0,
+        "overflow": 0
+      },
+      "Latency": {
+        "count": 760,
+        "min": 0.000333,
+        "max": 0.016558,
+        "mean": 0.003113,
+        "stdev": 0.002549,
+        "median": 0.002189,
+        "madev": 0.001197,
+        "overflow": 0
+      },
+      "Jitter": {
+        "count": 704,
+        "min": 0.000001,
+        "max": 0.010765,
+        "mean": 0.001274,
+        "stdev": 0.001593,
+        "median": 0.000667,
+        "madev": 0.000573,
+        "overflow": 0
+      },
+      "Round Trip Latency": {
+        "count": 440,
+        "min": 0.000824,
+        "max": 0.008917,
+        "mean": 0.003292,
+        "stdev": 0.00194,
+        "median": 0.002637,
+        "madev": 0.00129,
+        "overflow": 0
+      },
+      "Round Trip Jitter": {
+        "count": 416,
+        "min": 0.000001,
+        "max": 0.005564,
+        "mean": 0.001035,
+        "stdev": 0.001187,
+        "median": 0.000553,
+        "madev": 0.000471,
+        "overflow": 0
+      }
+    },
+    "1048576_4": {
+      "Errors": 0,
+      "Max Discovery Time Delta": 57.491995,
+      "Discovery Time Delta": {
+        "count": 102,
+        "min": 3.175642,
+        "max": 57.491995,
+        "mean": 24.66545,
+        "stdev": 26.22722,
+        "median": 3.925341,
+        "madev": 0.616956,
+        "overflow": 0
+      },
+      "Cpu Utilization": {
+        "count": 66,
+        "min": 0,
+        "max": 13.520408,
+        "mean": 0.73056,
+        "stdev": 2.099758,
+        "median": 0,
+        "madev": 0,
+        "overflow": 0
+      },
+      "Memory Utilization": {
+        "count": 66,
+        "min": 0,
+        "max": 30.621742,
+        "mean": 22.831964,
+        "stdev": 5.465094,
+        "median": 23.952992,
+        "madev": 0.041668,
+        "overflow": 0
+      },
+      "Virtual Memory Utilization": {
+        "count": 66,
+        "min": 0,
+        "max": 0.012124,
+        "mean": 0.011343,
+        "stdev": 0.0015,
+        "median": 0.011641,
+        "madev": 0,
+        "overflow": 0
+      },
+      "Latency": {
+        "count": 442,
+        "min": 0.000468,
+        "max": 0.016439,
+        "mean": 0.004785,
+        "stdev": 0.003596,
+        "median": 0.003721,
+        "madev": 0.00219,
+        "overflow": 0
+      },
+      "Jitter": {
+        "count": 394,
+        "min": 0.000002,
+        "max": 0.012879,
+        "mean": 0.001585,
+        "stdev": 0.001884,
+        "median": 0.000885,
+        "madev": 0.000696,
+        "overflow": 0
+      },
+      "Round Trip Latency": {
+        "count": 374,
+        "min": 0.000682,
+        "max": 0.010343,
+        "mean": 0.00524,
+        "stdev": 0.002141,
+        "median": 0.005397,
+        "madev": 0.001506,
+        "overflow": 0
+      },
+      "Round Trip Jitter": {
+        "count": 334,
+        "min": 0,
+        "max": 0.008325,
+        "mean": 0.00111,
+        "stdev": 0.0012,
+        "median": 0.000736,
+        "madev": 0.000498,
+        "overflow": 0
+      }
+    }
+  }
+}
