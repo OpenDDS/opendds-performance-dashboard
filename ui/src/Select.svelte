@@ -5,7 +5,7 @@
 </script>
 
 <label>
-  <span>{label}</span>
+  <div class="label-text">{label}</div>
   <select bind:value on:blur on:change>
     {#each options as option}
       <option>{option}</option>
@@ -14,8 +14,8 @@
 </label>
 
 <style>
-  label > span {
-    min-width: 10rem;
+  .label-text {
+    min-width: 12rem;
   }
 
   select {

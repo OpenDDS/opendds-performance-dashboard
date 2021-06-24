@@ -25,6 +25,7 @@ button {
   font-size: 1rem;
   font-weight: bold;
   padding: 0.5rem;
+  white-space: nowrap;
 }
 
 h1,

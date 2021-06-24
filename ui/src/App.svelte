@@ -3,7 +3,7 @@
   import LineChart from './LineChart.svelte';
   import Select from './Select.svelte';
   import TimestampSelection from './TimestampSelection.svelte';
-  import {collectedData, getStatProperties, getTimestamps} from './DataLoader';
+  import {collectedData, getStatProperties, getTimestamps} from './data-loader';
   import {
     BY_SIZE,
     BY_TIMESTAMP,
@@ -12,12 +12,25 @@
     chartDataFactory,
     deriveClassNameFromTimestampKey,
     deriveSelectOptionsFromData
-  } from './DataExtractor';
+  } from './data-extractor';
+  import {objectToQuery, queryToObject} from './url-builder';
 
   const debug = true;
   function Dlog(...args) {
     if (debug) console.debug(...args);
   }
+
+  const initialData = queryToObject(window.location.search);
+
+  const REQUIRED_WITH_INITIAL_DATA = [
+    'scenario',
+    'plotType',
+    'statName',
+    'chartType',
+    'useTimeSeries',
+    'useLogScale'
+  ];
+
   const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
 
   const GITHUB_COMMIT_URL =
@@ -82,7 +95,8 @@
     y: yAxis
   };
 
-  let data = {columns: [], x: 'x'};
+  let benchmarks = {};
+  let chartData = {columns: [], x: 'x'};
   const errors = new Map();
 
   let allPlotTypes = [];
@@ -101,11 +115,14 @@
   let statProperties;
   let plotType = DEFAULT_PLOT_TYPE;
   let plotTypes = [];
+
+  let selectedTimestamps = [];
   let timestamps = [];
+
   let useLogScale = false;
   let useTimeSeries = false;
 
-  onMount(loadData);
+  onMount(initialize);
 
   $: isReady = $collectedData && statProperties;
 
@@ -117,7 +134,7 @@
       ? 'nodes'
       : 'payload size in bytes';
   $: axis.y.type = useLogScale ? 'log' : 'linear';
-  $: axis.y.min = getMinY(data);
+  $: axis.y.min = getMinY(chartData);
   $: if (isReady) {
     if (axis) axis.y.label.text = getYLabel(statProperties, plotType, statName);
   }
@@ -136,7 +153,8 @@
 
   // If the current value of plotType is not in the list of
   // supported plot types, change it to the first supported plot type.
-  $: if (!plotTypes.includes(plotType)) plotType = plotTypes[0];
+  $: if (plotTypes.length && !plotTypes.includes(plotType))
+    plotType = plotTypes[0];
 
   $: isFan = scenario.startsWith('fan_');
   $: title = `${scenario} - ${plotType} - ${statName}`;
@@ -146,7 +164,6 @@
     loadBenchmarks(selectedTimestamps);
   }
 
-  let benchmarks = {};
   $: {
     const tsKeys = new Set(selectedTimestamps.map(t => t.key));
     benchmarks = Object.entries($collectedData).reduce(
@@ -160,6 +177,56 @@
     );
   }
 
+  $: {
+    const query = objectToQuery({
+      scenario,
+      serverCount,
+      plotType,
+      statName,
+      chartType,
+      useTimeSeries,
+      useLogScale,
+      timestamps: selectedTimestamps.map(i => i.key)
+    });
+    window.history.replaceState('', '', query);
+  }
+
+  function applyInitialData(timestamps) {
+    const required = [
+      'scenario',
+      'plotType',
+      'statName',
+      'chartType',
+      'useTimeSeries',
+      'useLogScale'
+    ];
+    const keys = Object.keys(initialData).filter(key => required.includes(key));
+    if (!keys.length) return;
+
+    const missing = required.filter(i => {
+      return !keys.includes(i);
+    });
+
+    if (missing.length) {
+      alert(
+        `There appears to be required parameters missing from the link: ${missing.toString()}`
+      );
+    }
+
+    scenario = initialData.scenario;
+    serverCount = initialData.serverCount;
+    plotType = initialData.plotType;
+    statName = initialData.statName;
+    chartType = initialData.chartType;
+    useTimeSeries = initialData.useTimeSeries;
+    useLogScale = initialData.useLogScale;
+
+    // Handle Optional Parameters
+    if (initialData.serverCount) {
+      serverCount = initialData.serverCount;
+    }
+  }
+
   $: if (isReady) {
     const opts = {
       selectedTimestamps,
@@ -169,11 +236,10 @@
       statName,
       isFan
     };
-
     const factory = chartDataFactory(chartType);
     factory(benchmarks, opts).then(results => {
       if (!results) return;
-      data = results;
+      chartData = results;
     });
   }
 
@@ -205,7 +271,7 @@
       : 'Payload Bytes';
 
   function getMinY() {
-    const {columns} = data;
+    const {columns} = chartData;
     if (!useLogScale || columns.length === 0) return 0;
 
     let minY = Number.MAX_VALUE;
@@ -220,7 +286,7 @@
     return minY;
   }
 
-  function setSelectOptions(collectedData) {
+  function setSelectOptions(benchmarks) {
     const options = deriveSelectOptionsFromData(benchmarks);
     scenarios = options.scenarios;
     allPlotTypes = options.allPlotTypes;
@@ -236,21 +302,34 @@
     setErrors(results);
   }
 
-  async function loadData() {
+  async function initialize() {
     try {
       statProperties = await getStatProperties();
-      timestamps = await loadTimestamps();
+      timestamps = await loadTimestamps(
+        DEFAULT_RECENT_COUNT,
+        initialData.timestamps
+      );
+      applyInitialData();
     } catch (e) {
       alert(e.message);
       console.error(e);
     }
   }
 
-  function mapTimestampsToViewModel(timestamps, start) {
+  function mapTimestampsToViewModel(timestamps, start, initiallySelected) {
+    const useStart =
+      !Array.isArray(initiallySelected) || initiallySelected.length === 0;
+
+    function isSelected(key, index) {
+      if (useStart) return index >= start;
+      return initiallySelected.indexOf(key) !== -1;
+    }
+
     return timestamps.map(
       ({key, commit, date: dateTime, hash, errors: errorCount}, index) => {
         const [date, timePlus] = dateTime.split('T');
         const [time] = timePlus.split('+');
+        const selected = isSelected(key, index);
 
         return {
           key,
@@ -261,17 +340,17 @@
           errorCount,
           gitCommit: commit,
           hash,
-          selected: index >= start,
+          selected,
           url: GITHUB_COMMIT_URL + commit
         };
       }
     );
   }
 
-  async function loadTimestamps() {
+  async function loadTimestamps(defaultCount = 1, initiallySelected = []) {
     const timestamps = await getTimestamps();
-    const start = timestamps.length - DEFAULT_RECENT_COUNT;
-    return mapTimestampsToViewModel(timestamps, start);
+    const start = timestamps.length - defaultCount;
+    return mapTimestampsToViewModel(timestamps, start, initiallySelected);
   }
 
   function scenarioChanged(event) {
@@ -306,7 +385,7 @@
 
     const bySize = chartType === BY_SIZE;
 
-    const xLabels = data.columns[0].slice(1);
+    const xLabels = chartData.columns[0].slice(1);
 
     const active = [...errors.values()].filter(error => {
       const {scenario, key} = error;
@@ -336,7 +415,10 @@
         const label = bySize ? trimmedSize : formattedDateTime;
         const index = xLabels.indexOf(label);
         const circle = circleGroup.children.item(index);
-        if (!circle) Dlog('circle not found', label, xLabels);
+        if (!circle) {
+          Dlog('circle not found', label, xLabels);
+          return;
+        }
         circle.style.stroke = 'red';
         circle.style.strokeWidth = 4;
       } else {
@@ -349,7 +431,7 @@
   function styleMissingPoints() {
     // console.log('App.svelte styleMissingPoints: data =', data);
 
-    const {columns} = data;
+    const {columns} = chartData;
     for (const column of columns) {
       const [timestamp] = column;
       column.forEach((value, index) => {
@@ -376,50 +458,56 @@
 </script>
 
 <main>
-  <h1>OpenDDS Bench Scoreboard</h1>
+  <header class="row">
+    <h1 class="title">OpenDDS Bench Scoreboard</h1>
 
-  <div class="row">
-    <form>
-      <div>
-        <Select
-          label="Scenario"
-          on:blur={scenarioChanged}
-          on:change={scenarioChanged}
-          options={scenarios}
-          value={scenario} />
-        {#if isFan}
-          <Select
-            label="# of Servers"
-            options={serverCounts}
-            bind:value={serverCount} />
-        {/if}
-
-        <Select
-          label="Chart Type"
-          options={CHART_TYPES}
-          bind:value={chartType} />
-        {#if chartType === BY_TIMESTAMP}
-          <label>Space X values by time <input type="checkbox" bind:checked={useTimeSeries} />
-          </label>
-        {/if}
-        <label>Log Scale for Y Axis <input type="checkbox" bind:checked={useLogScale} />
-        </label>
-      </div>
-      <div>
-        {#if plotType}
-          <Select label="Plot" options={plotTypes} bind:value={plotType} />
-        {/if}
-        <Select label="Statistic" options={statNames} bind:value={statName} />
-      </div>
-    </form>
-
-    <div>
+    <div class="right">
       <button
         type="button"
         on:click={() => (selectingTimestamps = !selectingTimestamps)}>
         {selectingTimestamps ? 'Close Timestamp Picker' : 'Select Timestamps'}
       </button>
     </div>
+  </header>
+  <div class="row">
+    <form>
+      <div class="row">
+        <Select
+          label="Scenario"
+          on:blur={scenarioChanged}
+          on:change={scenarioChanged}
+          options={scenarios}
+          value={scenario} />
+
+        <Select
+          label="Chart Type"
+          options={CHART_TYPES}
+          bind:value={chartType} />
+
+        {#if plotType}
+          <Select label="Plot" options={plotTypes} bind:value={plotType} />
+        {/if}
+
+        <Select label="Statistic" options={statNames} bind:value={statName} />
+
+        {#if isFan}
+          <Select
+            label="# of Servers"
+            options={serverCounts}
+            bind:value={serverCount} />
+        {/if}
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" bind:checked={useLogScale} /> Log Scale for Y Axis
+        </label>
+        {#if chartType === BY_TIMESTAMP}
+          <label><input type="checkbox" bind:checked={useTimeSeries} /> Space X values
+            by time
+          </label>
+        {/if}
+      </div>
+    </form>
   </div>
 
   {#if selectingTimestamps}
@@ -429,7 +517,7 @@
   {:else}
     <LineChart
       {axis}
-      bind:data
+      bind:data={chartData}
       {legendTitle}
       {title}
       on:rendered={styleSpecialPoints} />
@@ -437,18 +525,36 @@
 </main>
 
 <style>
+  main {
+    max-width: 1000px;
+    margin: auto;
+  }
+
+  header {
+    align-items: center;
+  }
+  header .right {
+    flex: 0;
+    width: max-content;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    min-height: 10rem;
+  }
+
+  form .row {
+  }
+  form > div {
+    margin-right: 2rem;
+    margin-bottom: 1rem;
+  }
+
   .row {
     display: flex;
   }
   .row > * {
     flex: 1;
-  }
-
-  form {
-    display: flex;
-  }
-
-  form > div {
-    margin-right: 2rem;
   }
 </style>

@@ -119,6 +119,7 @@
 
   h2 {
     text-align: center;
+    min-height: 1.5em;
   }
 
   .hide {
