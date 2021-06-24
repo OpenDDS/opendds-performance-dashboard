@@ -1,30 +1,30 @@
-import {writable} from 'svelte/store';
+import {writable, get} from 'svelte/store';
 
-const BASE_URL = location.hostname === 'localhost'
-      ? 'http://localhost:1919'
-      : 'http://scoreboard.ociweb.com';
+const BASE_URL =
+  location.hostname === 'localhost'
+    ? 'http://localhost:1919'
+    : 'http://scoreboard.ociweb.com';
 
-const collectedDataStore = writable(
-  {}
-);
+const collectedDataStore = writable({});
 
 export const collectedData = {
   ...collectedDataStore,
   loadAll: async () => {
-      const results = await getAllScraped()
-      collectedData.set(results)
+    const results = await getAllScraped();
+    collectedData.set(results);
+    return results;
   },
-  loadTests: async (ids = []) => {
+  loadBenchmarks: async (ids = []) => {
     const results = await getEntries(ids);
-    results.reduce((acc, entry) => {
+    const data = results.reduce((acc, entry) => {
       acc[entry.id] = entry.data;
-      return acc
+      return acc;
     }, {});
-    collectedDataStore.updateData(existing => ({
-        ...existing,
-        ...results,
-      })
-    );
+    collectedDataStore.update(existing => ({
+      ...existing,
+      ...data
+    }));
+    return get(collectedDataStore);
   }
 };
 
@@ -33,7 +33,7 @@ const Cache = {
     const existing = localStorage.getItem(key);
     if (existing) return JSON.parse(existing);
     const data = await callback();
-    localStorage.setItem(JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
     return data;
   }
 };
@@ -47,7 +47,7 @@ const responseHandler = async response => {
   }
 };
 
-const withBaseUrl = (url) =>  `${BASE_URL}${("/" + url).replace("//", "/")}`
+const withBaseUrl = url => `${BASE_URL}${('/' + url).replace('//', '/')}`;
 
 const fetcher = {
   get: url => fetch(withBaseUrl(url)).then(responseHandler)
@@ -57,8 +57,12 @@ export async function getAllScraped() {
   return fetcher.get('/bench2/scrape_output.json');
 }
 
-export async function getTestList() {
+export async function getStatProperties() {
   return fetcher.get('/bench2/stat-properties.json');
+}
+
+export async function getTimestamps() {
+  return fetcher.get('/bench2/timestamps.json');
 }
 
 export async function getEntries(ids = []) {
@@ -67,7 +71,7 @@ export async function getEntries(ids = []) {
 
 export async function getEntry(id) {
   return Cache.cache(id, async () => {
-    const data = await fetcher.get(`/bench2/raw/${id}/result.json`);
+    const data = await fetcher.get(`/bench2/raw/${id}/results.json`);
     return {id: id, data};
   });
 }

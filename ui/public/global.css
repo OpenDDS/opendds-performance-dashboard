@@ -1,7 +1,8 @@
 body {
   --oci-aqua: #72c7d5;
   --oci-blue: #255aa8;
-  --oci-orange: #feb672;
+  --oci-orange-rgb: 254, 182, 114;
+  --oci-orange: rgb(var(--oci-orange-rgb));
 
   /* background-color: linen; */
   background-color: var(--oci-orange);
