@@ -7,7 +7,8 @@
     "format": "prettier --write '**/*.js'",
     "lint": "eslint --fix --quiet . --ext .js,.svelte",
     "scrape": "node scrape.js",
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "dev": "nodemon server.js --dev"
   },
   "keywords": [],
   "author": "R. Mark Volkmann",

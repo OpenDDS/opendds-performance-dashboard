@@ -4,6 +4,7 @@ import livereload from 'rollup-plugin-livereload';
 import resolve from '@rollup/plugin-node-resolve';
 import svelte from 'rollup-plugin-svelte';
 import {terser} from 'rollup-plugin-terser';
+import strip from '@rollup/plugin-strip';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -41,6 +42,9 @@ export default {
     file: 'public/build/bundle.js'
   },
   plugins: [
+    strip({
+      labels: ['unittest']
+    }),
     svelte({
       // enable run-time checks when not in production
       dev: !production,
