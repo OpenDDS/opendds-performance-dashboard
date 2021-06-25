@@ -7,11 +7,11 @@ const BASE_URL = location.hostname === 'localhost' ? LOCALHOST : PRODUCTION;
 
 const collectedDataStore = writable({});
 
-export const collectedData = {
+export const dataStore = {
   ...collectedDataStore,
   loadAll: async () => {
     const results = await getAllScraped();
-    collectedData.set(results);
+    collectedDataStore.set(results);
     return results;
   },
   loadBenchmarks: async (ids = []) => {

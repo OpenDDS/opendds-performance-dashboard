@@ -2,7 +2,10 @@
   import {createEventDispatcher} from 'svelte';
 
   export let timestamps;
+  export let selected = [];
 
+  const GITHUB_COMMIT_URL =
+    'https://github.com/objectcomputing/OpenDDS/commit/';
   const MAX_RECENT_COUNT = 10;
   const MAX_TIMESTAMPS = 10;
   const MIN_TIMESTAMPS = 2;
@@ -17,30 +20,29 @@
     recentCount = value;
 
     const firstSelectedIndex = timestamps.length - recentCount;
-    timestamps.forEach((timestamp, index) => {
-      timestamp.selected = index >= firstSelectedIndex;
-    });
-    dispatch('change', timestamps);
+    selected = timestamps
+      .filter((_, index) => {
+        return index >= firstSelectedIndex;
+      })
+      .map(t => t.key);
+    dispatch('change', selected);
   }
 
   const rowPressHandler = timestamp =>
     function (event) {
-      updateIndex(timestamp.key, !timestamp.selected);
+      updateIndex(timestamp.key, !selected.includes(timestamp.key));
     };
 
-  function updateIndex(key, selected) {
-    console.log('Updating Index');
-    const index = timestamps.findIndex(i => i.key === key);
-    timestamps[index].selected = selected;
-    dispatch('change', timestamps);
+  function updateIndex(key, checked) {
+    if (checked) selected.push(key);
+    else {
+      selected = selected.filter(sKey => sKey !== key);
+    }
+    dispatch('change', selected);
   }
 
   function onUncheckAll() {
-    timestamps = timestamps.map(t => {
-      t.selected = false;
-      return t;
-    });
-    dispatch('change', timestamps);
+    dispatch('change', []);
   }
 
   const onClose = () => dispatch('close');
@@ -79,17 +81,19 @@
     <tbody>
       {#each [...timestamps].reverse() as timestamp (timestamp.full)}
         <tr
-          class:selected={timestamp.selected}
+          class:selected={selected.includes(timestamp.key)}
           on:click={rowPressHandler(timestamp)}>
-          <td><input type="checkbox" checked={timestamp.selected} /></td>
+          <td>
+            <input type="checkbox" checked={selected.includes(timestamp.key)} />
+          </td>
           <td class="date">{timestamp.date}</td>
           <td class="time">{timestamp.time}</td>
           <td>
             <a
               on:click|stopPropagation
-              href={timestamp.url}
+              href={GITHUB_COMMIT_URL + timestamp.commit}
               rel="noopener"
-              target="_blank">{timestamp.gitCommit}</a>
+              target="_blank">{timestamp.commit}</a>
           </td>
           <td class="hash">{timestamp.hash ? timestamp.hash : ''}</td>
           <td class="error-count">
