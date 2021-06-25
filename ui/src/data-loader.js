@@ -1,9 +1,9 @@
 import {writable, get} from 'svelte/store';
+import {Cache} from './caching';
 
-const BASE_URL =
-  location.hostname === 'localhost'
-    ? 'http://localhost:1919'
-    : 'http://scoreboard.ociweb.com';
+const PRODUCTION = 'http://scoreboard.ociweb.com';
+const LOCALHOST = 'http://localhost:1919';
+const BASE_URL = location.hostname === 'localhost' ? LOCALHOST : PRODUCTION;
 
 const collectedDataStore = writable({});
 
@@ -25,16 +25,6 @@ export const collectedData = {
       ...data
     }));
     return get(collectedDataStore);
-  }
-};
-
-const Cache = {
-  cache: async (key, callback) => {
-    const existing = localStorage.getItem(key);
-    if (existing) return JSON.parse(existing);
-    const data = await callback();
-    localStorage.setItem(key, JSON.stringify(data));
-    return data;
   }
 };
 

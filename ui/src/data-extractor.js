@@ -154,7 +154,7 @@ export function deriveSelectOptionsFromData(benchmarks) {
   const uniqueStatNames = new Set();
   const uniqueServerCounts = new Map();
 
-  const timestampEntries = Object.values(benchmarks);
+  const benchmarkEntries = Object.values(benchmarks);
 
   function updateServerCount(scenario, count) {
     if (!uniqueServerCounts.has(scenario)) {
@@ -165,7 +165,7 @@ export function deriveSelectOptionsFromData(benchmarks) {
     }
   }
 
-  timestampEntries.forEach(timestampObj => {
+  benchmarkEntries.forEach(timestampObj => {
     for (const [scenario, scenarioObj] of Object.entries(timestampObj)) {
       uniqueScenarios.add(scenario);
 

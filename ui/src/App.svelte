@@ -15,22 +15,6 @@
   } from './data-extractor';
   import {objectToQuery, queryToObject} from './url-builder';
 
-  const debug = true;
-  function Dlog(...args) {
-    if (debug) console.debug(...args);
-  }
-
-  const initialData = queryToObject(window.location.search);
-
-  const REQUIRED_WITH_INITIAL_DATA = [
-    'scenario',
-    'plotType',
-    'statName',
-    'chartType',
-    'useTimeSeries',
-    'useLogScale'
-  ];
-
   const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
 
   const GITHUB_COMMIT_URL =
@@ -41,6 +25,13 @@
   const DEFAULT_RECENT_COUNT = 5;
   const DEFAULT_SCENARIO = 'fan_rtps';
   const DEFAULT_STAT_NAME = 'mean';
+
+  const debug = true;
+  function Dlog(...args) {
+    if (debug) console.debug(...args);
+  }
+
+  const initialData = queryToObject(window.location.search);
 
   /*
   const statToUnit = {
@@ -53,7 +44,6 @@
     stdev: 'seconds'
   };
   */
-
   const yAxis = {
     label: {
       position: 'outer-middle',
@@ -68,31 +58,32 @@
     }
   };
 
-  const axisBySize = {
-    x: {
-      label: {
-        position: 'outer-left'
+  const AXIS_CONFIGURATION = {
+    [BY_SIZE]: {
+      x: {
+        label: {
+          position: 'outer-left'
+        },
+        type: 'category'
       },
-      type: 'category'
+      y: yAxis
     },
-    y: yAxis
-  };
-
-  const axisByTimestamp = {
-    x: {
-      label: {
-        position: 'outer-left',
-        text: 'Timestamp'
+    [BY_TIMESTAMP]: {
+      x: {
+        label: {
+          position: 'outer-left',
+          text: 'Timestamp'
+        },
+        //type: 'category',
+        tick: {
+          culling: false,
+          fit: false,
+          format: '%Y-%m-%d %H:%M:%S', // display format
+          rotate: -90
+        }
       },
-      //type: 'category',
-      tick: {
-        culling: false,
-        fit: false,
-        format: '%Y-%m-%d %H:%M:%S', // display format
-        rotate: -90
-      }
-    },
-    y: yAxis
+      y: yAxis
+    }
   };
 
   let benchmarks = {};
@@ -126,22 +117,23 @@
 
   $: isReady = $collectedData && statProperties;
 
-  $: axis = chartType === BY_TIMESTAMP ? axisByTimestamp : axisBySize;
-  $: axis.x.label.text =
-    chartType === BY_TIMESTAMP
-      ? 'timestamp'
-      : hasNodes
-      ? 'nodes'
-      : 'payload size in bytes';
+  // Axis Configuration
+  $: AXIS_CONFIGURATION[BY_TIMESTAMP].x.type = useTimeSeries
+    ? 'timeseries'
+    : 'category';
+  $: AXIS_CONFIGURATION[BY_TIMESTAMP].x.tick.fit = useTimeSeries;
+  $: axis = AXIS_CONFIGURATION[chartType];
+
   $: axis.y.type = useLogScale ? 'log' : 'linear';
   $: axis.y.min = getMinY(chartData);
-  $: if (isReady) {
-    if (axis) axis.y.label.text = getYLabel(statProperties, plotType, statName);
+
+  // X and Y Label
+  $: if (isReady && axis) {
+    axis.y.label.text = getYLabel({statProperties, plotType, statName});
+    axis.x.label.text = getXLabel({chartType, hasNodes});
   }
 
-  $: axisByTimestamp.x.type = useTimeSeries ? 'timeseries' : 'category';
-  $: axisByTimestamp.x.tick.fit = useTimeSeries;
-
+  // Whether The current benchmark should display nodes
   $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(scenario, chartType);
 
@@ -162,6 +154,10 @@
   $: selectedTimestamps = timestamps.filter(ts => ts.selected);
   $: {
     loadBenchmarks(selectedTimestamps);
+  }
+
+  $: {
+    console.debug('Timestamps Changed', timestamps);
   }
 
   $: {
@@ -189,6 +185,29 @@
       timestamps: selectedTimestamps.map(i => i.key)
     });
     window.history.replaceState('', '', query);
+  }
+
+  $: if (isReady) {
+    const opts = {
+      selectedTimestamps,
+      scenario,
+      serverCount,
+      plotType,
+      statName,
+      isFan
+    };
+    const factory = chartDataFactory(chartType);
+    factory(benchmarks, opts).then(results => {
+      if (!results) return;
+      chartData = results;
+    });
+  }
+
+  $: if (isReady) {
+    serverCounts = serverCountMap[scenario] || [];
+    if (serverCounts.length && serverCounts.indexOf(serverCount) === -1) {
+      serverCount === serverCounts[0];
+    }
   }
 
   function applyInitialData(timestamps) {
@@ -227,40 +246,23 @@
     }
   }
 
-  $: if (isReady) {
-    const opts = {
-      selectedTimestamps,
-      scenario,
-      serverCount,
-      plotType,
-      statName,
-      isFan
-    };
-    const factory = chartDataFactory(chartType);
-    factory(benchmarks, opts).then(results => {
-      if (!results) return;
-      chartData = results;
-    });
-  }
-
-  $: if (isReady) {
-    if (axis) axis.y.label.text = getYLabel(statProperties, plotType, statName);
-    serverCounts = serverCountMap[scenario] || [];
-    if (serverCounts.length && serverCounts.indexOf(serverCount) === -1) {
-      serverCount === serverCounts[0];
-    }
-  }
-
   function getTimeKey(timestamp) {
     const dateTimeString = timestamp.split('+')[0];
     return dateTimeString.replace('T', '_');
   }
 
-  function getYLabel(statProperties, plotType, statName) {
-    //const unit = statToUnit[statName];
+  function getYLabel({statProperties, plotType, statName}) {
     if (!plotType) return '';
     const unit = statProperties[plotType].units;
-    return statName + (unit ? ' ' + unit : '');
+    return [statName, unit].filter(i => i).join(' ');
+  }
+
+  function getXLabel({chartType, hasNodes}) {
+    return chartType === BY_TIMESTAMP
+      ? 'timestamp'
+      : hasNodes
+      ? 'nodes'
+      : 'payload size in bytes';
   }
 
   const getLegendTitle = (scenario, chartType) =>
@@ -305,6 +307,7 @@
   async function initialize() {
     try {
       statProperties = await getStatProperties();
+      console.log('Initializing...');
       timestamps = await loadTimestamps(
         DEFAULT_RECENT_COUNT,
         initialData.timestamps
@@ -512,12 +515,16 @@
 
   {#if selectingTimestamps}
     <TimestampSelection
-      bind:timestamps
+      {timestamps}
+      on:change={({detail}) => {
+        console.log('Parent Changes', detail);
+        timestamps = detail;
+      }}
       on:close={() => (selectingTimestamps = false)} />
   {:else}
     <LineChart
       {axis}
-      bind:data={chartData}
+      data={chartData}
       {legendTitle}
       {title}
       on:rendered={styleSpecialPoints} />
@@ -545,6 +552,8 @@
   }
 
   form .row {
+    display: flex;
+    flex-wrap: wrap;
   }
   form > div {
     margin-right: 2rem;

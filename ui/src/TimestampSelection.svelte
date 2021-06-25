@@ -20,14 +20,8 @@
     timestamps.forEach((timestamp, index) => {
       timestamp.selected = index >= firstSelectedIndex;
     });
-    timestamps = timestamps;
+    dispatch('change', timestamps);
   }
-
-  const checkHandler = key =>
-    function (event) {
-      const {checked} = event.target;
-      updateIndex(key, checked);
-    };
 
   const rowPressHandler = timestamp =>
     function (event) {
@@ -35,9 +29,10 @@
     };
 
   function updateIndex(key, selected) {
+    console.log('Updating Index');
     const index = timestamps.findIndex(i => i.key === key);
     timestamps[index].selected = selected;
-    timestamps = [...timestamps];
+    dispatch('change', timestamps);
   }
 
   function onUncheckAll() {
@@ -45,6 +40,7 @@
       t.selected = false;
       return t;
     });
+    dispatch('change', timestamps);
   }
 
   const onClose = () => dispatch('close');
@@ -85,12 +81,7 @@
         <tr
           class:selected={timestamp.selected}
           on:click={rowPressHandler(timestamp)}>
-          <td>
-            <input
-              type="checkbox"
-              checked={timestamp.selected}
-              on:input={checkHandler(timestamp.key)} />
-          </td>
+          <td><input type="checkbox" checked={timestamp.selected} /></td>
           <td class="date">{timestamp.date}</td>
           <td class="time">{timestamp.time}</td>
           <td>

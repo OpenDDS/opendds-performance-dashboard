@@ -42,9 +42,6 @@ export default {
     file: 'public/build/bundle.js'
   },
   plugins: [
-    strip({
-      labels: ['unittest']
-    }),
     svelte({
       // enable run-time checks when not in production
       dev: !production,
@@ -77,7 +74,12 @@ export default {
 
     // If we're building for production (npm run build
     // instead of npm run dev), minify
-    production && terser()
+    production && terser(),
+
+    production &&
+      strip({
+        labels: ['unittest']
+      })
   ],
   watch: {
     clearScreen: false
