@@ -9,7 +9,10 @@
   export let title;
 
   const CHART_HEIGHT = 500;
-  const CHART_SELECTOR = '#open-dds-chart';
+
+  const CHART_ID = 'open-dds-chart';
+  const CHART_SELECTOR = '#' + CHART_ID;
+
   const LEGEND_TILE_WIDTH = 55;
 
   const dispatch = createEventDispatcher();
@@ -17,11 +20,9 @@
   let container;
   let titleUsed = '';
 
-  $: hideChart = data.columns.length === 0;
-
   $: if (data.columns.length) {
     titleUsed = '';
-
+    console.log({data, axis});
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     setTimeout(() => {
@@ -37,7 +38,7 @@
         },
         onrendered: addLegendTitle,
         size: {height: CHART_HEIGHT}
-        //zoom: {enabled: true}
+        // zoom: {enabled: true}
       });
     });
   }
@@ -101,29 +102,30 @@
 
 <h2>{titleUsed}</h2>
 
-{#if !data.columns.length}
-  <h3>...loading chart data...</h3>
-{/if}
-
-<div bind:this={container} class={`container ${hideChart ? 'hide' : ''}`}>
-  <div id="open-dds-chart" />
+<div
+  bind:this={container}
+  class="panel container"
+  style={`min-height: ${CHART_HEIGHT}px`}>
+  {#if !data.columns.length}
+    <h3>...loading chart data...</h3>
+  {/if}
+  <div id={CHART_ID} />
 </div>
 
 <style>
   .container {
-    background-color: white;
-    border: solid var(--oci-aqua) 5px;
+    /* background-color: white;
+    border: solid var(--oci-aqua) 5px; */
     border-radius: 20px;
     padding: 20px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   h2 {
     text-align: center;
     min-height: 1.5em;
-  }
-
-  .hide {
-    display: none;
   }
 
   #open-dds-chart :global(.c3-axis-x-label),

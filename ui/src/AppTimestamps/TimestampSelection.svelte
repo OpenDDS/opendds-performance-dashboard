@@ -1,17 +1,17 @@
 <script>
   import {createEventDispatcher} from 'svelte';
+  import TimestampTableRow from './TimestampTableRow.svelte';
 
   export let timestamps;
   export let selected = [];
 
-  const GITHUB_COMMIT_URL =
-    'https://github.com/objectcomputing/OpenDDS/commit/';
-  const MAX_RECENT_COUNT = 10;
   const MAX_TIMESTAMPS = 10;
   const MIN_TIMESTAMPS = 2;
   const dispatch = createEventDispatcher();
 
   let recentCount = 5;
+
+  $: maxSelected = selected.length >= MAX_TIMESTAMPS;
 
   function handleChange(event) {
     let {value} = event.target;
@@ -28,10 +28,8 @@
     dispatch('change', selected);
   }
 
-  const rowPressHandler = timestamp =>
-    function (event) {
-      updateIndex(timestamp.key, !selected.includes(timestamp.key));
-    };
+  const onRowPressed = timestamp =>
+    updateIndex(timestamp.key, !selected.includes(timestamp.key));
 
   function updateIndex(key, checked) {
     if (checked) selected.push(key);
@@ -43,6 +41,19 @@
 
   function onUncheckAll() {
     dispatch('change', []);
+  }
+
+  function onSelectAll() {
+    const targets = timestamps.map(t => t.key);
+    let idx = targets.length - MAX_TIMESTAMPS;
+    if (selected.length) {
+      idx = Math.min(
+        targets.findIndex(t => t === selected[0]),
+        targets.length - MAX_TIMESTAMPS
+      );
+    }
+    const change = targets.slice(idx, idx + MAX_TIMESTAMPS);
+    dispatch('change', change);
   }
 
   const onClose = () => dispatch('close');
@@ -63,6 +74,7 @@
 
     <div>
       <button on:click={onUncheckAll}>Uncheck All</button>
+      <button on:click={onSelectAll}>Select Max</button>
       <button on:click={onClose}>Close</button>
     </div>
   </div>
@@ -73,33 +85,18 @@
         <th>Select</th>
         <th>Date</th>
         <th>Time</th>
-        <th>Git Commit Hash</th>
+        <th>Git SHA</th>
         <th>Build Hash</th>
         <th>Error Count</th>
       </tr>
     </thead>
     <tbody>
       {#each [...timestamps].reverse() as timestamp (timestamp.full)}
-        <tr
-          class:selected={selected.includes(timestamp.key)}
-          on:click={rowPressHandler(timestamp)}>
-          <td>
-            <input type="checkbox" checked={selected.includes(timestamp.key)} />
-          </td>
-          <td class="date">{timestamp.date}</td>
-          <td class="time">{timestamp.time}</td>
-          <td>
-            <a
-              on:click|stopPropagation
-              href={GITHUB_COMMIT_URL + timestamp.commit}
-              rel="noopener"
-              target="_blank">{timestamp.commit}</a>
-          </td>
-          <td class="hash">{timestamp.hash ? timestamp.hash : ''}</td>
-          <td class="error-count">
-            {timestamp.errorCount ? timestamp.errorCount : ''}
-          </td>
-        </tr>
+        <TimestampTableRow
+          {timestamp}
+          selected={selected.includes(timestamp.key)}
+          {maxSelected}
+          on:click={() => onRowPressed(timestamp)} />
       {/each}
     </tbody>
   </table>
@@ -108,29 +105,14 @@
 </div>
 
 <style>
-  a {
-    margin-right: 1rem;
-  }
-
-  input[type='checkbox'] {
-    --size: 1rem;
-    height: var(--size);
-    width: var(--size);
-  }
-  label {
-    margin-bottom: 0;
-  }
-
-  .date,
-  .time {
-    color: var(--oci-blue);
+  table {
+    width: 100%;
   }
 
   .panel {
-    border: 3px solid var(--oci-aqua);
     padding: 1rem;
     border-radius: 1rem;
-    background-color: white;
+    background-color: var(--bg-color);
     margin-top: 2rem;
   }
 
@@ -140,18 +122,8 @@
     align-items: center;
     padding: 0.5rem 0;
   }
-  .error-count {
-    color: red;
-  }
 
-  table {
-    width: 100%;
-  }
-
-  tr {
-    cursor: pointer;
-  }
-  tr.selected {
-    background-color: rgba(var(--oci-orange-rgb), 0.1);
+  label {
+    margin-bottom: 0;
   }
 </style>

@@ -4,7 +4,7 @@
 <script>
   import Select from '../Select.svelte';
   import {BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
-  import {CHART_TYPES, DEFAULT_STAT_NAME} from './form-data-helpers';
+  import {CHART_TYPES, DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
 
   export let options;
   export let form;
@@ -59,38 +59,45 @@
       options={options.statNames}
       bind:value={form.statName} />
 
-    {#if serverCounts && serverCounts.length}
-      <Select
-        label="# of Servers"
-        options={serverCounts}
-        bind:value={form.serverCount} />
-    {/if}
+    <Select
+      disabled={!serverCounts.length}
+      label="# of Servers"
+      options={serverCounts}
+      bind:value={form.serverCount} />
   </div>
   <div>
     <label>
       <input type="checkbox" bind:checked={form.useLogScale} /> Log Scale for Y Axis
     </label>
-    {#if form.chartType === BY_TIMESTAMP}
-      <label><input type="checkbox" bind:checked={form.useTimeSeries} /> Space X
-        values by time
-      </label>
-    {/if}
+
+    <label class:disabled={form.chartType !== BY_TIMESTAMP}><input
+        type="checkbox"
+        bind:checked={form.useTimeSeries} /> Space X values by time
+    </label>
   </div>
 </form>
 
 <style>
+  .row > :global(*) {
+    flex: 1;
+  }
+
+  form :global(select) {
+    width: 100%;
+    min-width: 10rem;
+  }
   form {
     display: flex;
     flex-direction: column;
-    min-height: 10rem;
+    width: 100%;
   }
 
   form .row {
     display: flex;
     flex-wrap: wrap;
+    gap: 1rem;
   }
   form > div {
-    margin-right: 2rem;
     margin-bottom: 1rem;
   }
 </style>

@@ -1,7 +1,6 @@
 export const MISSING_VALUE = -0.0000001;
 export const BY_SIZE = 'by size';
 export const BY_TIMESTAMP = 'by timestamp';
-export const MDTD = 'Max Discovery Time Delta';
 
 const FUNCTION_MAP = {
   [BY_TIMESTAMP]: getChartDataByTimestamp,

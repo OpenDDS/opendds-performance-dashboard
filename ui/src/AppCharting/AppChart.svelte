@@ -51,13 +51,13 @@
   //----------------------------------------------------------------------------
   // Pure Functions For Chart Data
   //----------------------------------------------------------------------------
-  function getYLabel({plotType, statName}, {statProperties}) {
+  function getAxisYLabel({plotType, statName}, {statProperties}) {
     if (!plotType) return '';
     const unit = statProperties[plotType].units;
     return [statName, unit].filter(i => i).join(' ');
   }
 
-  function getXLabel({chartType}, {hasNodes}) {
+  function getAxisXLabel({chartType}, {hasNodes}) {
     return chartType === BY_TIMESTAMP
       ? 'timestamp'
       : hasNodes
@@ -72,7 +72,7 @@
       ? 'Node Count'
       : 'Payload Bytes';
 
-  function getMinY({useLogScale}, {columns}) {
+  function getAxisYMin({useLogScale}, {columns}) {
     if (!useLogScale || columns.length === 0) return 0;
 
     let minY = Number.MAX_VALUE;
@@ -86,6 +86,15 @@
     }
     return minY;
   }
+
+  function getYAxisType({useLogScale}) {
+    if (useLogScale) return 'log';
+    return 'linear';
+  }
+
+  function getTimeStampXAxisType({useTimeSeries}) {
+    return useTimeSeries ? 'timeseries' : 'category';
+  }
 </script>
 
 <script>
@@ -98,28 +107,24 @@
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
-  $: useTimeSeries = form.useTimeSeries;
-  $: useLogScale = form.useLogScale;
-
-  $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
-  $: legendTitle = getLegendTitle(form, {hasNodes});
-  $: title = `${form.scenario} - ${form.plotType} - ${form.statName}`;
-
-  // Axis Configuration
-  $: AXIS_CONFIGURATION[BY_TIMESTAMP].x.type = useTimeSeries
-    ? 'timeseries'
-    : 'category';
-  $: AXIS_CONFIGURATION[BY_TIMESTAMP].x.tick.fit = useTimeSeries;
-  $: axis = AXIS_CONFIGURATION[chartType];
 
   $: isReady = chartData && statProperties && form;
 
+  $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
+  $: legendTitle = getLegendTitle(form, {hasNodes});
+  $: title = `${form.scenario} | ${form.plotType} | ${form.statName}`;
+
+  // Axis Configuration
+  $: AXIS_CONFIGURATION[BY_TIMESTAMP].x.type = getTimeStampXAxisType(form);
+  $: AXIS_CONFIGURATION[BY_TIMESTAMP].x.tick.fit = form.useTimeSeries;
+  $: axis = AXIS_CONFIGURATION[chartType];
+
   // X and Y Label
   $: if (axis && isReady) {
-    axis.y.type = useLogScale ? 'log' : 'linear';
-    axis.y.min = getMinY(form, chartData);
-    axis.y.label.text = getYLabel(form, {statProperties});
-    axis.x.label.text = getXLabel(form, {hasNodes});
+    axis.y.type = getYAxisType(form);
+    axis.y.min = getAxisYMin(form, chartData);
+    axis.y.label.text = getAxisYLabel(form, {statProperties});
+    axis.x.label.text = getAxisXLabel(form, {hasNodes});
   }
 
   function styleErrors() {
@@ -178,12 +183,12 @@
       const [timestamp] = column;
       column.forEach((value, index) => {
         if (value === MISSING_VALUE) {
-          console.log(
-            'App.svelte x: timestamp =',
-            timestamp,
-            ', index =',
-            index
-          );
+          // console.log(
+          //   'App.svelte x: timestamp =',
+          //   timestamp,
+          //   ', index =',
+          //   index
+          // );
           const g = document.querySelector('.c3-circles-' + timestamp);
           const circle = g.querySelector('.c3-circle-' + (index - 1));
           circle.style.stroke = 'orange';

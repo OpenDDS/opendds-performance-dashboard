@@ -1,6 +1,6 @@
 <script>
   import {onMount} from 'svelte';
-  import TimestampSelection from './TimestampSelection.svelte';
+  import TimestampSelection from './AppTimestamps/TimestampSelection.svelte';
   import {dataStore, getStatProperties, getTimestamps} from './data-loader';
   import {chartDataFactory} from './AppCharting/chart-data-extractor';
 
@@ -194,13 +194,17 @@
 
 <main>
   <header class="row">
-    <h1 class="title">OpenDDS Bench Scoreboard</h1>
+    <div>
+      <img alt="OpenDDS Scoreboard" src="/images/opendds-horizontal.svg" />
+    </div>
+
+    <h1 class="title">Bench Scoreboard</h1>
 
     <div class="right">
       <button
         type="button"
         on:click={() => (selectingTimestamps = !selectingTimestamps)}>
-        {selectingTimestamps ? 'Close Timestamp Picker' : 'Select Timestamps'}
+        {selectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
       </button>
     </div>
   </header>
@@ -232,14 +236,30 @@
   main {
     max-width: 1000px;
     margin: auto;
+    padding-bottom: 4rem;
   }
 
   header {
     align-items: center;
+    padding: 1rem 0;
   }
-  header .right {
-    flex: 0;
+
+  header h1 {
+    text-align: center;
+  }
+  header.row img {
+    height: 5rem;
+    object-fit: contain;
+    object-position: left;
+  }
+  header.row .right {
     width: max-content;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .right button {
+    min-width: 20ch;
   }
 
   .row {
