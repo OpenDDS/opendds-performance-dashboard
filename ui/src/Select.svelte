@@ -16,12 +16,9 @@
 
 <style>
   select {
-    background-color: var(--bg-color);
-    color: var(--open-dds-red);
     padding: 0.5rem;
   }
   .label-text {
-    color: var(--open-dds-red);
     margin-bottom: 0.5rem;
   }
 </style>

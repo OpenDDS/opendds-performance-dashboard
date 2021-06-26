@@ -1,11 +1,22 @@
 body {
   --oci-aqua: #72c7d5;
-  --oci-blue: #255aa8;
+  --oci-blue: #744040ef;
   --oci-orange-rgb: 254, 182, 114;
   --oci-orange: rgb(var(--oci-orange-rgb));
+  --open-dds-red: #71150e;
+  --open-dds-red-alt: #931914;
+  --open-dds-gray: #a2a0a0;
+  --open-dds-blue: #255aa8;
 
-  /* background-color: linen; */
-  background-color: var(--oci-orange);
+  --bg-color: #e6e6e6;
+  --text-color: var(--open-dds-red);
+  --text-color-secondary: var(--open-dds-alt);
+  --text-color-danger: var(--open-dds-alt);
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: sans-serif;
 }
 
@@ -20,12 +31,29 @@ textarea {
 }
 
 button {
-  background-color: var(--oci-aqua);
-  color: var(--oci-blue);
-  font-size: 1rem;
   font-weight: bold;
+}
+
+select,
+button {
+  background-color: var(--open-dds-red);
+  color: var(--bg-color);
+  font-size: 1rem;
   padding: 0.5rem;
   white-space: nowrap;
+}
+
+select:hover,
+button:hover,
+select:focus,
+button:focus {
+  background-color: var(--open-dds-red-alt);
+  color: var(--bg-color);
+}
+
+select:hover,
+button:hover {
+  background-color: var(--open-dds-red);
 }
 
 h1,
@@ -46,13 +74,33 @@ table {
 
 td,
 th {
-  border: solid var(--oci-blue) 1px;
   padding: 0.3rem;
   text-align: center;
 }
-
+td {
+  border: none;
+}
+tbody tr {
+  border-bottom: solid grey 1px;
+}
 th {
-  background-color: var(--oci-blue);
-  border-color: var(--oci-blue);
-  color: var(--oci-aqua);
+  background-color: var(--bg-color);
+  color: var(--open-dds-red);
+  position: sticky;
+  top: 0; /* Don't forget this, required for the stickiness */
+}
+
+a {
+  color: var(--open-dds-blue);
+  text-decoration: none;
+}
+
+.panel {
+  border: 2px solid darkgray;
+  background-color: white;
+}
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.5;
 }

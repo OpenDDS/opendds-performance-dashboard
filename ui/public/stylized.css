@@ -1,0 +1,38 @@
+.stylized .panel {
+  border: none;
+  background-color: var(--bg-color);
+  box-shadow: 9px 9px 16px rgba(163, 177, 198, 0.6),
+    -9px -9px 16px rgba(255, 255, 255, 0.5);
+}
+
+.stylized .pressed {
+  box-shadow: inset 6px 6px 10px 0 rgba(0, 0, 0, 0.2),
+    inset -6px -6px 10px 0 rgba(255, 255, 255, 0.5);
+}
+
+.stylized button {
+  border: none;
+}
+
+.stylized select,
+.stylized button {
+  border: none;
+  box-shadow: 5px 5px 10px rgba(163, 177, 198, 0.6),
+    -5px -5px 10px rgba(255, 255, 255, 0.5);
+  background-color: var(--bg-color);
+  color: var(--open-dds-red);
+}
+
+.stylized select:hover,
+.stylized button:hover,
+.stylized select:focus,
+.stylized button:focus {
+  outline: none;
+  background-color: var(--open-dds-red-alt);
+  color: var(--bg-color);
+}
+
+.stylized select:hover,
+.stylized button:hover {
+  background-color: var(--open-dds-red);
+}
