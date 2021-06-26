@@ -48,7 +48,7 @@ export async function getAllScraped() {
 }
 
 export async function getStatProperties() {
-  return fetcher.get('/bench2/stat-properties.json');
+  return fetcher.get('/bench2/stat_properties.json');
 }
 
 export async function getTimestamps() {
