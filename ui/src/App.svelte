@@ -1,5 +1,6 @@
 <script>
   import {onMount} from 'svelte';
+  import OpenDDSLogo from './OpenDDSLogo.svelte';
   import TimestampSelection from './AppTimestamps/TimestampSelection.svelte';
   import {
     dataStore,
@@ -181,7 +182,9 @@
 <main>
   <header class="row">
     <div>
-      <img alt="OpenDDS Scoreboard" src="/images/opendds-horizontal.svg" />
+      <div class="panel">
+        <OpenDDSLogo />
+      </div>
     </div>
 
     <div class="right">
