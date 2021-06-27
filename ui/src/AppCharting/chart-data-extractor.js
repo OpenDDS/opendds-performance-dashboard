@@ -37,17 +37,17 @@ export function mutating_assignNames(data) {
   return data;
 }
 
-export function determineIfFan({scenario}) {
+export function isFanScenario(scenario) {
   return (scenario || '').startsWith('fan_');
 }
 
 export async function getChartDataBySize(collectedData, opts) {
   const {timestamps, scenario, serverCount, plotType, statName} = opts;
-  const isFan = determineIfFan(opts);
+  const isFan = isFanScenario(scenario);
   let data = {columns: [], x: 'x'};
   if (!scenario || !statName || !plotType) return data;
 
-  const sizes = getSizes(collectedData, scenario, isFan, serverCount);
+  const sizes = getSizes(collectedData, {scenario, serverCount});
   const arr = ['x', ...sizes];
   const columns = [arr];
 
@@ -78,7 +78,7 @@ export async function getChartDataByTimestamp(collectedData, opts) {
   const {timestamps, scenario, serverCount, plotType, statName} = opts;
   let data = {columns: [], x: 'x'};
   if (!scenario || !statName || !plotType) return data;
-  const isFan = determineIfFan(opts);
+  const isFan = isFanScenario(scenario);
   // Load Data For Selected TimeStamps
 
   const xValues = timestamps.map(timestamp => timestamp.dateTime);
@@ -112,7 +112,8 @@ export async function getChartDataByTimestamp(collectedData, opts) {
   return {...data, columns, xFormat};
 }
 
-export function getSizes(collectedData, scenario, isFan, serverCount) {
+export function getSizes(collectedData, {scenario, serverCount}) {
+  const isFan = isFanScenario(scenario);
   const sizes = new Set();
 
   for (const timestampObj of Object.values(collectedData)) {
@@ -129,7 +130,8 @@ export function getSizes(collectedData, scenario, isFan, serverCount) {
   return [...sizes].sort((n1, n2) => Number(n1) - Number(n2));
 }
 
-export function getDataNames(collectedData, {scenario, isFan, serverCount}) {
+export function getDataNames(collectedData, {scenario, serverCount}) {
+  const isFan = isFanScenario(scenario);
   const dataNames = new Set();
   for (const timestampObj of Object.values(collectedData)) {
     const scenarioObj = timestampObj[scenario];

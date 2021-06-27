@@ -22,7 +22,6 @@
 
   $: if (data.columns.length) {
     titleUsed = '';
-    console.log({data, axis});
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     setTimeout(() => {

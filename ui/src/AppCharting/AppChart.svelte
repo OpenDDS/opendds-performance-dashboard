@@ -3,7 +3,8 @@
     deriveClassNameFromTimestampKey,
     BY_SIZE,
     BY_TIMESTAMP,
-    MISSING_VALUE
+    MISSING_VALUE,
+    chartDataFactory
   } from './chart-data-extractor';
 
   const yAxis = {
@@ -102,17 +103,20 @@
 
   export let form;
   export let errors;
-  export let chartData;
+  export let benchmarks = {};
+  export let timestamps = [];
   export let statProperties;
+
+  let chartData = {columns: [], x: 'x'};
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
 
-  $: isReady = chartData && statProperties && form;
+  $: isReady = benchmarks && statProperties && form;
 
   $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(form, {hasNodes});
-  $: title = `${form.scenario} | ${form.plotType} | ${form.statName}`;
+  $: title = [form.scenario, form.plotType, form.statName].join(' \uFF5C ');
 
   // Axis Configuration
   $: AXIS_CONFIGURATION[BY_TIMESTAMP].x.type = getTimeStampXAxisType(form);
@@ -120,11 +124,26 @@
   $: axis = AXIS_CONFIGURATION[chartType];
 
   // X and Y Label
-  $: if (axis && isReady) {
+  $: if (chartData && axis && isReady) {
     axis.y.type = getYAxisType(form);
     axis.y.min = getAxisYMin(form, chartData);
     axis.y.label.text = getAxisYLabel(form, {statProperties});
     axis.x.label.text = getAxisXLabel(form, {hasNodes});
+  }
+
+  $: if (isReady) {
+    const selected = timestamps.filter(({key}) => {
+      return form.selectedTimestamps.indexOf(key) !== -1;
+    });
+    const opts = {
+      timestamps: selected,
+      ...form
+    };
+    const factory = chartDataFactory(chartType);
+    factory(benchmarks, opts).then(results => {
+      if (!results) return;
+      chartData = results;
+    });
   }
 
   function styleErrors() {
