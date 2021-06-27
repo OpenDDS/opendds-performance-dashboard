@@ -1,8 +1,12 @@
 <script>
   import {onMount} from 'svelte';
   import TimestampSelection from './AppTimestamps/TimestampSelection.svelte';
-  import {dataStore, getStatProperties, getTimestamps} from './data-loader';
-  import {chartDataFactory} from './AppCharting/chart-data-extractor';
+  import {
+    dataStore,
+    getGitTags,
+    getStatProperties,
+    getRunIndex
+  } from './data-loader';
 
   import {deriveSelectOptionsFromData} from './AppForm/form-data-helpers';
 
@@ -40,7 +44,6 @@
   };
 
   // Chart Related Properties
-  let chartData = {columns: [], x: 'x'};
   $: chartType = form.chartType;
 
   let selectOptions = {
@@ -58,11 +61,7 @@
   $: serverCount = form.serverCount;
   $: serverCountMap = selectOptions.serverCountMap;
   let serverCounts = [];
-
-  $: statName = form.statName;
   let statProperties;
-
-  $: plotType = form.plotType;
 
   $: selectedTimestamps = form.selectedTimestamps;
   let timestamps = [];
@@ -88,24 +87,6 @@
 
   $: {
     generateShareLink(form);
-  }
-
-  $: if (isReady) {
-    const selected = timestamps.filter(({key}) => {
-      return selectedTimestamps.indexOf(key) !== -1;
-    });
-    const opts = {
-      timestamps: selected,
-      scenario,
-      serverCount,
-      plotType,
-      statName
-    };
-    const factory = chartDataFactory(chartType);
-    factory(benchmarks, opts).then(results => {
-      if (!results) return;
-      chartData = results;
-    });
   }
 
   $: if (isReady) {
@@ -146,29 +127,34 @@
     }
   }
 
-  function mapTimestampsToViewModel(timestamps) {
+  function mapTimestampsToViewModel(timestamps, gitHubTags) {
+    const keyedTags = gitHubTags.reduce((acc, tag) => {
+      acc[tag.commit.sha] = tag;
+      return acc;
+    }, {});
+
     return timestamps.map(
       ({key, commit, date: dateTime, hash, errors: errorCount}) => {
         const [date, timePlus] = dateTime.split('T');
         const [time] = timePlus.split('+');
-
         return {
           key,
           date,
           time,
           dateTime: date + ' ' + time,
-          full: key,
           errorCount,
           commit,
-          hash
+          hash,
+          tag: keyedTags[commit]
         };
       }
     );
   }
 
   async function loadTimestamps() {
-    const timestamps = await getTimestamps();
-    return mapTimestampsToViewModel(timestamps);
+    const timestamps = await getRunIndex();
+    const gitHubTags = await getGitTags();
+    return mapTimestampsToViewModel(timestamps, gitHubTags);
   }
 
   function setErrors(benchmarks) {
@@ -198,9 +184,8 @@
       <img alt="OpenDDS Scoreboard" src="/images/opendds-horizontal.svg" />
     </div>
 
-    <h1 class="title">Bench Scoreboard</h1>
-
     <div class="right">
+      <h1 class="title">Bench Scoreboard</h1>
       <button
         type="button"
         on:click={() => (selectingTimestamps = !selectingTimestamps)}>
@@ -222,7 +207,7 @@
       <AppForm bind:form options={selectOptions} />
     </div>
 
-    <AppChart {form} {chartData} {statProperties} {errors} />
+    <AppChart {form} {benchmarks} {timestamps} {statProperties} {errors} />
     <!-- <LineChart
       {axis}
       data={chartData}
@@ -240,22 +225,28 @@
   }
 
   header {
-    align-items: center;
     padding: 1rem 0;
   }
 
   header h1 {
+    margin-top: 0;
     text-align: center;
   }
-  header.row img {
-    height: 5rem;
-    object-fit: contain;
-    object-position: left;
-  }
-  header.row .right {
+  header .right {
     width: max-content;
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-left: auto;
+  }
+
+  .panel {
+    padding: 1rem;
+    width: max-content;
+  }
+  .panel > :global(svg) {
+    width: 15rem;
+    object-fit: contain;
   }
 
   .right button {
@@ -265,7 +256,7 @@
   .row {
     display: flex;
   }
-  .row > * {
+  .row > div {
     flex: 1;
   }
 </style>
