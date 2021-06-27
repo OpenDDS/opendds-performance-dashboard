@@ -61,37 +61,46 @@
 
 <h2>Select the timestamps to plot.</h2>
 <div class="panel">
-  <div class="row">
-    <label>
-      <span># of Recent Tests</span>
-      <input
-        type="number"
-        min={MIN_TIMESTAMPS}
-        max={MAX_TIMESTAMPS}
-        on:change={handleChange}
-        value={recentCount} />
-    </label>
-
-    <div>
-      <button on:click={onUncheckAll}>Uncheck All</button>
-      <button on:click={onSelectAll}>Select Max</button>
-      <button on:click={onClose}>Close</button>
-    </div>
-  </div>
-
   <table>
     <thead>
+      <tr>
+        <th colspan="1000">
+          <div class="row">
+            <label for="server-recent-count">
+              <span># of Recent Tests ({recentCount})</span>
+              <div style="display: flex; align-items: center;">
+                {MIN_TIMESTAMPS}
+                <input
+                  id="server-recent-count"
+                  type="range"
+                  min={MIN_TIMESTAMPS}
+                  max={MAX_TIMESTAMPS}
+                  on:change={handleChange}
+                  bind:value={recentCount} />
+                {MAX_TIMESTAMPS}
+              </div>
+            </label>
+
+            <div>
+              <button on:click={onUncheckAll}>Uncheck All</button>
+              <button on:click={onSelectAll}>Select Max</button>
+              <button on:click={onClose}>Close</button>
+            </div>
+          </div>
+        </th>
+      </tr>
       <tr>
         <th>Select</th>
         <th>Date</th>
         <th>Time</th>
         <th>Git SHA</th>
+        <th>Tag</th>
         <th>Build Hash</th>
-        <th>Error Count</th>
+        <th>#Error</th>
       </tr>
     </thead>
     <tbody>
-      {#each [...timestamps].reverse() as timestamp (timestamp.full)}
+      {#each [...timestamps].reverse() as timestamp (timestamp.key)}
         <TimestampTableRow
           {timestamp}
           selected={selected.includes(timestamp.key)}
@@ -100,19 +109,28 @@
       {/each}
     </tbody>
   </table>
-
-  <button on:click={onClose}>Close</button>
 </div>
 
 <style>
+  label {
+    margin-bottom: 0;
+  }
   table {
     width: 100%;
   }
 
+  thead {
+    z-index: 99999;
+    position: sticky;
+    top: 0;
+  }
+
+  thead tr {
+    z-index: 99999;
+  }
+
   .panel {
     padding: 1rem;
-    border-radius: 1rem;
-    background-color: var(--bg-color);
     margin-top: 2rem;
   }
 
@@ -121,9 +139,5 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
-  }
-
-  label {
-    margin-bottom: 0;
   }
 </style>

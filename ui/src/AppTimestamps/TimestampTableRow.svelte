@@ -7,9 +7,11 @@
 
   const GITHUB_COMMIT_URL =
     'https://github.com/objectcomputing/OpenDDS/commit/';
+  const GITHUB_TAG_URL =
+    'https://github.com/objectcomputing/OpenDDS/releases/tag/';
 </script>
 
-<tr class:selected class:disabled on:click {disabled}>
+<tr class:selected class:disabled on:click>
   <td><input type="checkbox" checked={selected} /></td>
   <td class="date">{timestamp.date}</td>
   <td class="time">{timestamp.time}</td>
@@ -20,6 +22,14 @@
       rel="noopener"
       title={timestamp.commit}
       target="_blank">{timestamp.commit.substr(0, 7)}</a>
+  </td>
+  <td class="hash">
+    {#if timestamp.tag}
+      <a
+        href={`${GITHUB_TAG_URL}${timestamp.tag.name}`}
+        rel="noopener"
+        target="_blank">{timestamp.tag.name}</a>
+    {/if}
   </td>
   <td class="hash">{timestamp.hash ? timestamp.hash : ''}</td>
   <td class="error-count">
@@ -34,11 +44,6 @@
     width: var(--size);
   }
 
-  .date,
-  .time {
-    color: var(--oci-blue);
-  }
-
   .error-count {
     color: red;
   }
@@ -49,11 +54,5 @@
 
   tr.selected {
     background-color: rgba(var(--oci-orange-rgb), 0.1);
-  }
-
-  tr.disabled {
-    opacity: 0.4;
-    pointer-events: none;
-    cursor: not-allowed;
   }
 </style>
