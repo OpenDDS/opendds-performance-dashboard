@@ -1,13 +1,13 @@
 <script>
   import {onMount} from 'svelte';
-  import OpenDDSLogo from './OpenDDSLogo.svelte';
+  import OpenDDSLogo from './components/OpenDDSLogo.svelte';
   import TimestampSelection from './AppTimestamps/TimestampSelection.svelte';
   import {
     dataStore,
     getGitTags,
     getStatProperties,
     getRunIndex
-  } from './data-loader';
+  } from './utility/data-loader';
 
   import {deriveSelectOptionsFromData} from './AppForm/form-data-helpers';
 
@@ -24,8 +24,9 @@
   import {
     getValidatedInitialData,
     getInitialData,
-    generateShareLink
-  } from './share-data';
+    updateBrowserHistory
+  } from './AppSharing/share-data';
+  import AppSharing from './AppSharing/AppSharing.svelte';
 
   const initialData = getInitialData(window.location.search);
 
@@ -45,7 +46,6 @@
   };
 
   // Chart Related Properties
-  $: chartType = form.chartType;
 
   let selectOptions = {
     scenarios: [],
@@ -87,7 +87,7 @@
   }
 
   $: {
-    generateShareLink(form);
+    updateBrowserHistory(form, !isEmbedded);
   }
 
   $: if (isReady) {
@@ -95,6 +95,23 @@
     if (serverCounts.length && serverCounts.indexOf(serverCount) === -1) {
       serverCount === serverCounts[0];
     }
+  }
+
+  const {isEmbedded} = configureEmbedding(initialData);
+
+  function configureEmbedding({embed, text_color}) {
+    const isEmbedded = embed === 'iframe';
+    if (embed === 'iframe') {
+      document.body.classList.remove('stylized');
+      document.body.classList.add('embedded');
+      document.body.style.setProperty('--bg-color', 'transparent');
+    }
+    if (text_color) {
+      document.body.style.setProperty('--text-color', text_color);
+    }
+    return {
+      isEmbedded
+    };
   }
 
   function getTimeKey(timestamp) {
@@ -180,7 +197,7 @@
 </script>
 
 <main>
-  <header class="row">
+  <header class="row" class:hidden={isEmbedded}>
     <div>
       <div class="panel">
         <OpenDDSLogo />
@@ -206,17 +223,15 @@
       }}
       on:close={() => (selectingTimestamps = false)} />
   {:else}
-    <div class="row">
+    <div class="row" class:hidden={isEmbedded}>
       <AppForm bind:form options={selectOptions} />
     </div>
 
     <AppChart {form} {benchmarks} {timestamps} {statProperties} {errors} />
-    <!-- <LineChart
-      {axis}
-      data={chartData}
-      {legendTitle}
-      {title}
-      on:rendered={styleSpecialPoints} /> -->
+
+    <div class="row" class:hidden={isEmbedded}>
+      <AppSharing />
+    </div>
   {/if}
 </main>
 
@@ -243,6 +258,9 @@
     margin-left: auto;
   }
 
+  .hidden {
+    display: none !important;
+  }
   .panel {
     padding: 1rem;
     width: max-content;
@@ -261,5 +279,9 @@
   }
   .row > div {
     flex: 1;
+  }
+
+  .row > :global(.sharing) {
+    margin-top: 1rem;
   }
 </style>

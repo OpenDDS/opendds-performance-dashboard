@@ -2,7 +2,7 @@
 </script>
 
 <script>
-  import Select from '../Select.svelte';
+  import Select from '../components/Select.svelte';
   import {BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
   import {CHART_TYPES, DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
 

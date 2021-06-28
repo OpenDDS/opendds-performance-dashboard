@@ -1,10 +1,18 @@
-import {objectToQuery, queryToObject} from './url-builder';
+import {objectToQuery, queryToObject} from '../utility/url-builder';
+import {IFrameShareLink} from './generators/IFrameShareLink';
+import {WebsiteShareLink} from './generators/WebsiteShareLink';
 
-export const generateShareLink = (data, updateUrl = true) => {
+const linkGenerators = [WebsiteShareLink, IFrameShareLink];
+
+export function updateBrowserHistory(data, updateUrl = true) {
   const query = objectToQuery(data);
   updateUrl && window.history.replaceState('', '', query);
-  return query;
-};
+}
+
+export function generateShareLink(location) {
+  return linkGenerators.map(generator => generator.generate(location));
+}
+
 export const getInitialData = (query = window.location.search) =>
   queryToObject(query);
 
