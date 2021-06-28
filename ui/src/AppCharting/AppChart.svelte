@@ -181,12 +181,10 @@
         const label = bySize ? trimmedSize : formattedDateTime;
         const index = xLabels.indexOf(label);
         const circle = circleGroup.children.item(index);
-        if (!circle) {
-          console.error('circle not found', label, xLabels);
-          return;
+        if (circle) {
+          circle.style.stroke = 'red';
+          circle.style.strokeWidth = 4;
         }
-        circle.style.stroke = 'red';
-        circle.style.strokeWidth = 4;
       } else {
         // This should never happen.
         console.error('circle group not found');
