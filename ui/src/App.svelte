@@ -1,16 +1,13 @@
 <script>
   import {onMount} from 'svelte';
   import OpenDDSLogo from './components/OpenDDSLogo.svelte';
-  import TimestampSelection from './AppTimestamps/TimestampSelection.svelte';
   import {
     dataStore,
     getGitTags,
     getStatProperties,
     getRunIndex
   } from './utility/data-loader';
-
   import {deriveSelectOptionsFromData} from './AppForm/form-data-helpers';
-
   import AppForm from './AppForm/AppForm.svelte';
   import {
     DEFAULT_CHART_TYPE,
@@ -21,6 +18,9 @@
     DEFAULT_SERVER_COUNT
   } from './AppForm/form-data-helpers';
   import AppChart from './AppCharting/AppChart.svelte';
+
+  import AppTimestampsPicker from './AppTimestamps/AppTimestampsPicker.svelte';
+
   import {
     getValidatedInitialData,
     getInitialData,
@@ -29,6 +29,7 @@
   import AppSharing from './AppSharing/AppSharing.svelte';
 
   const initialData = getInitialData(window.location.search);
+  const {isEmbedded} = configureEmbedding(initialData);
 
   // The segment of data based on
   // The selected timestamps / $collectedData
@@ -46,7 +47,6 @@
   };
 
   // Chart Related Properties
-
   let selectOptions = {
     scenarios: [],
     allPlotTypes: [],
@@ -54,27 +54,26 @@
     serverCountMap: {scenario: []}
   };
 
-  const errors = new Map();
   let selectingTimestamps = false;
-
-  $: scenario = form.scenario;
-
-  $: serverCount = form.serverCount;
-  $: serverCountMap = selectOptions.serverCountMap;
   let serverCounts = [];
   let statProperties;
-
-  $: selectedTimestamps = form.selectedTimestamps;
   let timestamps = [];
 
-  onMount(initialize);
-
+  //-------------------------------------------------------------------------------
+  // Computed
+  //--------------------------------------------------------------------
+  $: scenario = form.scenario;
+  $: serverCount = form.serverCount;
+  $: serverCountMap = selectOptions.serverCountMap;
+  $: selectedTimestamps = form.selectedTimestamps;
   $: isReady = $dataStore && statProperties;
-
   $: {
     loadBenchmarks(selectedTimestamps);
   }
 
+  //-------------------------------------------------------------------------------
+  // Observed
+  //--------------------------------------------------------------------
   // We'll only re-render the chart once the
   // timestamp picker is closed.
   $: if (!selectingTimestamps) {
@@ -97,8 +96,14 @@
     }
   }
 
-  const {isEmbedded} = configureEmbedding(initialData);
+  //-------------------------------------------------------------------------------
+  //  Lifecycle Methods
+  //--------------------------------------------------------------------
+  onMount(initialize);
 
+  //-------------------------------------------------------------------------------
+  //  Methods
+  //-------------------------------------------------------------------------------
   function configureEmbedding({embed, text_color}) {
     const isEmbedded = embed === 'iframe';
     if (embed === 'iframe') {
@@ -114,11 +119,6 @@
     };
   }
 
-  function getTimeKey(timestamp) {
-    const dateTimeString = timestamp.split('+')[0];
-    return dateTimeString.replace('T', '_');
-  }
-
   function setSelectOptions(benchmarks) {
     selectOptions = deriveSelectOptionsFromData(benchmarks);
   }
@@ -126,7 +126,6 @@
   async function loadBenchmarks(ids = []) {
     const results = await dataStore.loadBenchmarks(ids);
     setSelectOptions(results);
-    setErrors(results);
   }
 
   async function initialize() {
@@ -174,26 +173,6 @@
     const gitHubTags = await getGitTags();
     return mapTimestampsToViewModel(timestamps, gitHubTags);
   }
-
-  function setErrors(benchmarks) {
-    errors.clear();
-    for (const [timestamp, timeData] of Object.entries(benchmarks)) {
-      const dateTime = getTimeKey(timestamp);
-      for (const [scenario, scenarioData] of Object.entries(timeData)) {
-        for (const [size, sizeData] of Object.entries(scenarioData)) {
-          if (sizeData.Errors) {
-            const id = [scenario, timestamp].join('|');
-            errors.set(id, {
-              key: timestamp,
-              scenario,
-              dateTime,
-              size
-            });
-          }
-        }
-      }
-    }
-  }
 </script>
 
 <main>
@@ -215,7 +194,7 @@
   </header>
 
   {#if selectingTimestamps}
-    <TimestampSelection
+    <AppTimestampsPicker
       {timestamps}
       selected={selectedTimestamps}
       on:change={({detail}) => {
@@ -227,7 +206,7 @@
       <AppForm bind:form options={selectOptions} />
     </div>
 
-    <AppChart {form} {benchmarks} {timestamps} {statProperties} {errors} />
+    <AppChart {form} {benchmarks} {timestamps} {statProperties} />
 
     <div class="row" class:hidden={isEmbedded}>
       <AppSharing />

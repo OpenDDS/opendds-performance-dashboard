@@ -19,11 +19,12 @@
   } from './chart-layout-helpers';
 
   export let form;
-  export let errors;
+
   export let benchmarks = {};
   export let timestamps = [];
   export let statProperties;
 
+  let errors = new Map();
   let chartData = {columns: [], x: 'x'};
 
   $: scenario = form.scenario;
@@ -63,6 +64,35 @@
       if (!results) return;
       chartData = results;
     });
+  }
+
+  $: {
+    makeErrors(benchmarks);
+  }
+
+  function getTimeKey(timestamp) {
+    const dateTimeString = timestamp.split('+')[0];
+    return dateTimeString.replace('T', '_');
+  }
+
+  function makeErrors(benchmarks) {
+    errors.clear();
+    for (const [timestamp, timeData] of Object.entries(benchmarks)) {
+      const dateTime = getTimeKey(timestamp);
+      for (const [scenario, scenarioData] of Object.entries(timeData)) {
+        for (const [size, sizeData] of Object.entries(scenarioData)) {
+          if (sizeData.Errors) {
+            const id = [scenario, timestamp].join('|');
+            errors.set(id, {
+              key: timestamp,
+              scenario,
+              dateTime,
+              size
+            });
+          }
+        }
+      }
+    }
   }
 
   function styleErrors() {
