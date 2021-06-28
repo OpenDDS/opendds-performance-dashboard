@@ -90,7 +90,6 @@
     }, {});
   }
 
-
   $: if (isReady) {
     serverCounts = serverCountMap[scenario] || [];
     if (serverCounts.length && serverCounts.indexOf(serverCount) === -1) {
@@ -139,45 +138,41 @@
 
   async function loadBenchmarks(ids = []) {
     const results = await dataStore.loadBenchmarks(ids);
-    setSelectOptions(results);
+    selectOptions = deriveSelectOptionsFromData(results);
   }
 
   async function loadTimestamps() {
     const timestamps = await getRunIndex();
     const gitHubTags = await getGitTags();
-    return mapTimestampsToViewModel(timestamps, gitHubTags);
+    const viewModelMapper = timeStampViewModelFactory({gitHubTags});
+    return viewModelMapper(timestamps);
   }
 
-
-  function mapTimestampsToViewModel(timestamps, gitHubTags) {
+  const timeStampViewModelFactory = ({gitHubTags}) => {
     const keyedTags = gitHubTags.reduce((acc, tag) => {
       acc[tag.commit.sha] = tag;
       return acc;
     }, {});
 
-    return timestamps.map(
-      ({key, commit, date: dateTime, hash, errors: errorCount}) => {
-        const [date, timePlus] = dateTime.split('T');
-        const [time] = timePlus.split('+');
-        return {
-          key,
-          date,
-          time,
-          dateTime: date + ' ' + time,
-          errorCount,
-          commit,
-          hash,
-          tag: keyedTags[commit]
-        };
-      }
-    );
-  }
-
-
-
-  function setSelectOptions(benchmarks) {
-    selectOptions = deriveSelectOptionsFromData(benchmarks);
-  }
+    return function map(timestamps) {
+      return timestamps.map(
+        ({key, commit, date: dateTime, hash, errors: errorCount}) => {
+          const [date, timePlus] = dateTime.split('T');
+          const [time] = timePlus.split('+');
+          return {
+            key,
+            date,
+            time,
+            dateTime: date + ' ' + time,
+            errorCount,
+            commit,
+            hash,
+            tag: keyedTags[commit]
+          };
+        }
+      );
+    };
+  };
 </script>
 
 <main>
