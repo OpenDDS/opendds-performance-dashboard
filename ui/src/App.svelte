@@ -67,13 +67,18 @@
   $: serverCountMap = selectOptions.serverCountMap;
   $: selectedTimestamps = form.selectedTimestamps;
   $: isReady = $dataStore && statProperties;
-  $: {
-    loadBenchmarks(selectedTimestamps);
-  }
 
   //-------------------------------------------------------------------------------
   // Observed
   //--------------------------------------------------------------------
+  $: {
+    loadBenchmarks(selectedTimestamps);
+  }
+
+  $: {
+    updateBrowserHistory(form, !isEmbedded);
+  }
+
   // We'll only re-render the chart once the
   // timestamp picker is closed.
   $: if (!selectingTimestamps) {
@@ -85,9 +90,6 @@
     }, {});
   }
 
-  $: {
-    updateBrowserHistory(form, !isEmbedded);
-  }
 
   $: if (isReady) {
     serverCounts = serverCountMap[scenario] || [];
@@ -104,30 +106,6 @@
   //-------------------------------------------------------------------------------
   //  Methods
   //-------------------------------------------------------------------------------
-  function configureEmbedding({embed, text_color}) {
-    const isEmbedded = embed === 'iframe';
-    if (embed === 'iframe') {
-      document.body.classList.remove('stylized');
-      document.body.classList.add('embedded');
-      document.body.style.setProperty('--bg-color', 'transparent');
-    }
-    if (text_color) {
-      document.body.style.setProperty('--text-color', text_color);
-    }
-    return {
-      isEmbedded
-    };
-  }
-
-  function setSelectOptions(benchmarks) {
-    selectOptions = deriveSelectOptionsFromData(benchmarks);
-  }
-
-  async function loadBenchmarks(ids = []) {
-    const results = await dataStore.loadBenchmarks(ids);
-    setSelectOptions(results);
-  }
-
   async function initialize() {
     try {
       statProperties = await getStatProperties();
@@ -143,6 +121,33 @@
       console.error(e);
     }
   }
+
+  function configureEmbedding({embed, text_color}) {
+    const isEmbedded = embed === 'iframe';
+    if (embed === 'iframe') {
+      document.body.classList.remove('stylized');
+      document.body.classList.add('embedded');
+      document.body.style.setProperty('--bg-color', 'transparent');
+    }
+    if (text_color) {
+      document.body.style.setProperty('--text-color', text_color);
+    }
+    return {
+      isEmbedded
+    };
+  }
+
+  async function loadBenchmarks(ids = []) {
+    const results = await dataStore.loadBenchmarks(ids);
+    setSelectOptions(results);
+  }
+
+  async function loadTimestamps() {
+    const timestamps = await getRunIndex();
+    const gitHubTags = await getGitTags();
+    return mapTimestampsToViewModel(timestamps, gitHubTags);
+  }
+
 
   function mapTimestampsToViewModel(timestamps, gitHubTags) {
     const keyedTags = gitHubTags.reduce((acc, tag) => {
@@ -168,10 +173,10 @@
     );
   }
 
-  async function loadTimestamps() {
-    const timestamps = await getRunIndex();
-    const gitHubTags = await getGitTags();
-    return mapTimestampsToViewModel(timestamps, gitHubTags);
+
+
+  function setSelectOptions(benchmarks) {
+    selectOptions = deriveSelectOptionsFromData(benchmarks);
   }
 </script>
 
