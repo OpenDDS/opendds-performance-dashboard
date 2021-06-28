@@ -28,27 +28,37 @@
 </script>
 
 <div class="sharing">
-  <button on:click={() => (visible = true)}>Embed and Share Info</button>
-  <div class="sharing-info_backdrop" class:visible>
-    <div class="sharing-info" role="dialog">
-      <span role="button" class="close" on:click={() => (visible = false)}>
-        Close [X]
-      </span>
-      {#each shareLinks as shareLink}
-        <h4>
-          {shareLink.label}
-          <span
-            role="button"
-            class="copy"
-            on:click={() => copy(shareLink.code)}>(Copy)</span>
-          {#if copied === shareLink.code}
-            <span transition:fade={{duration: 100}}>Copied!</span>
-          {/if}
-        </h4>
-        <pre>{shareLink.code}</pre>
-      {/each}
+  <button on:click={() => (visible = true)}>Embed and Share Info {`${visible}`}</button>
+  {#if visible}
+    <div
+      in:fade={{duration: 100}}
+      out:fade={{duration: 100, delay: 100}}
+      on:click={() => (visible = false)}
+      class="sharing-info_backdrop">
+      <div
+        in:fade={{duration: 100, delay: 100}}
+        out:fade={{duration: 100}}
+        class="sharing-info"
+        role="dialog">
+        <span role="button" class="close" on:click={() => (visible = false)}>
+          Close [X]
+        </span>
+        {#each shareLinks as shareLink}
+          <h4>
+            {shareLink.label}
+            <span
+              role="button"
+              class="copy"
+              on:click={() => copy(shareLink.code)}>(Copy)</span>
+            {#if copied === shareLink.code}
+              <span transition:fade={{duration: 100}}>Copied!</span>
+            {/if}
+          </h4>
+          <pre class:truncate={shareLink.truncate}>{shareLink.code}</pre>
+        {/each}
+      </div>
     </div>
-  </div>
+  {/if}
 </div>
 
 <style>
@@ -60,14 +70,6 @@
     --code-color: #00ff41;
     position: relative;
   }
-
-  .sharing-info_backdrop.visible {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
   .close {
     color: var(--code-color);
     position: absolute;
@@ -85,6 +87,11 @@
     padding: 0.5rem 1rem;
     overflow: scroll;
     border-radius: 0.4rem;
+    white-space: break-spaces;
+    word-break: break-all;
+  }
+  pre.truncate {
+    white-space: nowrap;
   }
 
   .sharing-info {
@@ -95,13 +102,17 @@
     width: 80vw;
     height: 60vh;
     border-radius: 1rem;
-    word-break: break-all;
+    overflow-y: scroll;
     z-index: 9999;
   }
 
   .sharing-info_backdrop {
-    display: none;
     position: fixed;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
     top: 0;
     bottom: 0;
     left: 0;
