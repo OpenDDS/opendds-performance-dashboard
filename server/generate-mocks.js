@@ -14,14 +14,15 @@ async function loadRemoteData() {
 }
 
 async function loadRunIndex() {
-  return await fetch(RUN_INDEX_URL);
+  const response = await fetch(RUN_INDEX_URL);
+  return response.json();
 }
 
 async function generateEntries(fullData = {}) {
   Object.entries(fullData).forEach(([key, entry]) => {
     const newPath = `${MOCKING_PATH}/raw/${key}`;
     if (!fs.existsSync(newPath)) {
-      fs.mkdirSync(newPath);
+      fs.mkdirSync(newPath, {recursive: true});
     }
     fs.writeFileSync(`${newPath}/results.json`, JSON.stringify(entry, null, 2));
   });
@@ -39,7 +40,7 @@ async function scrape() {
   generateEntries(data);
   const end = Date.now();
 
-  console.log(`Took ${(start - end) / 1000} Seconds`);
+  console.log(`Took ${(end - start) / 1000} Seconds`);
 }
 
 scrape();
