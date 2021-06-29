@@ -19,48 +19,46 @@ app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
 
-
 // This retrieves the JSON data at a specific URL.
 // It is needed to work around CORS issues
 // because the client cannot directly fetch this URL.
-app.get('/bench2/timestamps.json', async (req, res) => {
-  if(isDev) {
-    const json = require('./public/open-dds-commits.json')
-    return res.json(json)
+app.get('/bench2/run_index.json', async (req, res) => {
+  // TODO: This file isn't created on prod yet,
+  //       So we need to unwind this before deploy.
+  if (isDev) {
+    const json = require('./public/mocking/run_index.json');
+    return res.json(json);
   }
-  fetchJson('http://scoreboard.ociweb.com/bench2/scrape_output.json', res);
+  fetchRemote('/bench2/run_index.json', res);
 });
 
 // This retrieves the JSON data at a specific URL.
 // It is needed to work around CORS issues
 // because the client cannot directly fetch this URL.
 app.get('/bench2/scrape_output.json', async (req, res) => {
-  if(isDev) {
-    const json = require('./public/open-dds-statistics.json')
-    return res.json(json)
+  if (isDev) {
+    const json = require('./public/open-dds-statistics.json');
+    return res.json(json);
   }
-  fetchJson('http://scoreboard.ociweb.com/bench2/scrape_output.json', res);
+  fetchRemote('/bench2/scrape_output.json', res);
 });
 
 // This retrieves the JSON data at a specific URL.
 // It is needed to work around CORS issues
 // because the client cannot directly fetch this URL.
-app.get('/bench2/stat-properties.json', async (req, res) => {  
-  if(isDev) {
-    const json = require('./public/stat-properties.json')
-    console.log(json)
-    return res.json(json)
-  }    
-  fetchJson('http://scoreboard.ociweb.com/bench2/stat_properties.json', res);
+app.get('/bench2/stat_properties.json', async (req, res) => {
+  if (isDev) {
+    return fetchLocal('/mocking/stat_properties.json', res);
+  }
+  fetchRemote('/bench2/stat_properties.json', res);
 });
 
-app.get('/bench2/raw/:timestamp/results.json', async (req, res) => {
-  const {timestamp} = req.params
-  console.log({timestamp, query: req.params})
-  if(isDev) {
-    return fetchJson(`http://localhost:${PORT}/data/${timestamp}/results.json`, res);
+app.get('/bench2/raw/:id/results.json', async (req, res) => {
+  const {id} = req.params;
+  if (isDev) {
+    return fetchLocal(`/mocking/raw/${id}/results.json`, res);
   }
-  fetchJson(`http://scoreboard.ociweb.com/bench2/raw/${timestamp}/results.json`, res);
+  fetchRemote(`/bench2/raw/${id}/results.json`, res);
 });
 
 // This scrapes data for a specific scenario and statistics type
@@ -73,17 +71,25 @@ app.get('/data/:scenario/:statType', async (req, res) => {
   res.send(JSON.stringify(data));
 });
 
+async function fetchLocal(path, res) {
+  return fetchJson(`http://localhost:${PORT}/mocking${path}`, res);
+}
+
+async function fetchRemote(path, res) {
+  return fetchJson(`http://scoreboard.ociweb.com${path}`, res);
+}
+
 async function fetchJson(url, res) {
   try {
     const response = await fetch(url);
     if (response.ok) {
       const data = await response.json();
-      res.end(JSON.stringify(data));
+      res.json(data);
     } else {
       throw new Error(await response.text());
     }
   } catch (e) {
-    res.status(500).end(e.message);
+    res.status(500).json({message: e.message});
   }
 }
 
