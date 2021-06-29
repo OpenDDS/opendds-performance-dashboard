@@ -13,7 +13,6 @@
   $: {
     serverCounts = options.serverCountMap[form.scenario] || [];
     if (serverCounts.length && serverCounts.indexOf(form.serverCount) === -1) {
-      console.log({serverCounts, sc: form.serverCount});
       form.serverCount === serverCounts[0];
     }
   }

@@ -3,12 +3,20 @@
 
   import {copyToClipboard} from '../utility/copy-to-clipboard';
   import {generateShareLink} from './share-data';
-  export let shareLinks = [];
-  export let visible = false;
+
+  let shareLinks = [];
+  let visible = false;
+
+  let shareOptions = {
+    color: undefined
+  };
+
+  $: if (visible) {
+    shareLinks = generateShareLink(window.location, shareOptions);
+  }
 
   $: {
     if (visible) {
-      shareLinks = generateShareLink(window.location);
       document.body.classList.add('sharing_visible');
     } else {
       document.body.classList.remove('sharing_visible');
@@ -28,7 +36,7 @@
 </script>
 
 <div class="sharing">
-  <button on:click={() => (visible = true)}>Embed and Share Info {`${visible}`}</button>
+  <button on:click={() => (visible = true)}>Embed and Share Info</button>
   {#if visible}
     <div
       in:fade={{duration: 100}}
@@ -38,11 +46,13 @@
       <div
         in:fade={{duration: 100, delay: 100}}
         out:fade={{duration: 100}}
+        on:click|stopPropagation
         class="sharing-info"
         role="dialog">
         <span role="button" class="close" on:click={() => (visible = false)}>
           Close [X]
         </span>
+
         {#each shareLinks as shareLink}
           <h4>
             {shareLink.label}

@@ -1,17 +1,30 @@
 <script>
   import {createEventDispatcher} from 'svelte';
   import TimestampTableRow from './TimestampTableRow.svelte';
+  import {MAX_TIMESTAMPS, MIN_TIMESTAMPS} from './timestamp-helpers';
 
   export let timestamps;
   export let selected = [];
 
-  const MAX_TIMESTAMPS = 10;
-  const MIN_TIMESTAMPS = 2;
+  export let latest = undefined;
+
+  let useLatest = !isNaN(latest);
+
   const dispatch = createEventDispatcher();
 
-  let recentCount = 5;
+  let recentCount = Math.min(
+    MAX_TIMESTAMPS,
+    Math.max(latest || 0, MIN_TIMESTAMPS)
+  );
 
   $: maxSelected = selected.length >= MAX_TIMESTAMPS;
+  $: {
+    if (useLatest) {
+      latest = recentCount;
+    } else {
+      latest = undefined;
+    }
+  }
 
   function handleChange(event) {
     let {value} = event.target;
@@ -28,8 +41,10 @@
     dispatch('change', selected);
   }
 
-  const onRowPressed = timestamp =>
+  const onRowPressed = timestamp => {
+    useLatest = false;
     updateIndex(timestamp.key, !selected.includes(timestamp.key));
+  };
 
   function updateIndex(key, checked) {
     if (checked) selected.push(key);
@@ -66,24 +81,32 @@
       <tr>
         <th colspan="1000">
           <div class="row">
-            <label for="server-recent-count">
-              <span># of Recent Tests ({recentCount})</span>
-              <div style="display: flex; align-items: center;">
-                {MIN_TIMESTAMPS}
+            <div>
+              <label class="server-recent-count" for="use-latest">
                 <input
+                  id="use-latest"
+                  type="checkbox"
+                  bind:checked={useLatest} />
+                <span>Using {recentCount} Most Recent</span>
+              </label>
+              <div class="range-wrapper">
+                <span>{MIN_TIMESTAMPS}</span>
+                <input
+                  disabled={!useLatest}
                   id="server-recent-count"
                   type="range"
                   min={MIN_TIMESTAMPS}
                   max={MAX_TIMESTAMPS}
                   on:change={handleChange}
                   bind:value={recentCount} />
-                {MAX_TIMESTAMPS}
+                <span>{MAX_TIMESTAMPS}</span>
               </div>
-            </label>
-
+            </div>
             <div>
-              <button on:click={onUncheckAll}>Uncheck All</button>
-              <button on:click={onSelectAll}>Select Max</button>
+              {#if !useLatest}
+                <button on:click={onUncheckAll}>Uncheck All</button>
+                <button on:click={onSelectAll}>Select Max</button>
+              {/if}
               <button on:click={onClose}>Close</button>
             </div>
           </div>
@@ -139,5 +162,21 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
+  }
+
+  .range-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .range-wrapper > * {
+    flex: 1;
+  }
+  .range-wrapper span {
+    flex: 0;
+  }
+  .server-recent-count {
+    min-width: 24ch;
+    text-align: left;
   }
 </style>

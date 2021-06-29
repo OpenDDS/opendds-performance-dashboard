@@ -1,24 +1,47 @@
 import {objectToQuery, queryToObject} from '../utility/url-builder';
 import {IFrameShareLink} from './generators/IFrameShareLink';
 import {WebsiteShareLink} from './generators/WebsiteShareLink';
-
+import {
+  MAX_TIMESTAMPS,
+  MIN_TIMESTAMPS
+} from '../AppTimestamps/timestamp-helpers';
 const linkGenerators = [WebsiteShareLink, IFrameShareLink];
 
-export function updateBrowserHistory(data, updateUrl = true) {
-  const query = objectToQuery(data);
-  updateUrl && window.history.replaceState('', '', query);
+export function generateShareLink(location, options = {}) {
+  return linkGenerators.map(generator => generator.generate(location, options));
 }
 
-export function generateShareLink(location) {
-  return linkGenerators.map(generator => generator.generate(location));
+export function configureEmbedding(opts) {
+  const {embed, text_color} = opts;
+  const isEmbedded = embed === 'iframe';
+  if (embed === 'iframe') {
+    document.body.classList.remove('stylized');
+    document.body.classList.add('embedded');
+    document.body.style.setProperty('--bg-color', 'transparent');
+  }
+  if (text_color) {
+    document.body.style.setProperty('--text-color', text_color);
+  }
+  return {
+    isEmbedded
+  };
+}
+
+export function updateBrowserHistory(data, updateUrl = true) {
+  const sharable = {...data}; // Make a copy
+  if (sharable.latest) {
+    delete sharable.selectedTimestamps;
+  }
+  const query = objectToQuery(sharable);
+  updateUrl && window.history.replaceState('', '', query);
 }
 
 export const getInitialData = (query = window.location.search) =>
   queryToObject(query);
 
 export function getValidatedInitialData({
-  initialData,
-  timestamps,
+  initialData = {},
+  timestamps = [],
   defaultCount = 2
 }) {
   const required = [
@@ -30,11 +53,20 @@ export function getValidatedInitialData({
     'useLogScale',
     'selectedTimestamps'
   ];
-  const optional = ['serverCount'];
+
+  const optional = ['serverCount', 'latest'];
+
+  if (!isNaN(initialData.latest)) {
+    const latest = Math.min(parseInt(initialData.latest), MAX_TIMESTAMPS);
+    initialData.selectedTimestamps = timestamps
+      .slice(timestamps.length - latest, timestamps.length)
+      .map(t => t.key);
+  }
 
   const keys = Object.keys(initialData).filter(key => required.includes(key));
 
   const start = timestamps.length - defaultCount;
+
   const maybeSelected = () =>
     timestamps.filter((_, idx) => idx > start).map(t => t.key);
 
@@ -46,9 +78,9 @@ export function getValidatedInitialData({
   };
 
   const onError = message => {
-    if (message) alert(message);
     return {
-      selectedTimestamps: maybeSelected()
+      error: message,
+      validated: {selectedTimestamps: maybeSelected()}
     };
   };
 
@@ -71,10 +103,13 @@ export function getValidatedInitialData({
   }
 
   return {
-    ...[...keys, ...optional].reduce((acc, key) => {
-      const value = initialData[key];
-      if (value) acc[key] = value;
-      return acc;
-    }, {})
+    error: null,
+    validated: {
+      ...[...keys, ...optional].reduce((acc, key) => {
+        const value = initialData[key];
+        if (value) acc[key] = value;
+        return acc;
+      }, {})
+    }
   };
 }

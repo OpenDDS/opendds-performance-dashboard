@@ -9,7 +9,7 @@ const FUNCTION_MAP = {
 
 export function deriveClassNameFromTimestampKey(key) {
   const [date] = key.split('_');
-  return date.split('+')[0].replaceAll(' ', '_').replaceAll(':', '-');
+  return date.split('+')[0].replaceAll('T', '_').replaceAll(':', '-');
 }
 
 export function classNameToDateTime(text) {

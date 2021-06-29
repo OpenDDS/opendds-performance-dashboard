@@ -22,6 +22,7 @@
   import AppTimestampsPicker from './AppTimestamps/AppTimestampsPicker.svelte';
 
   import {
+    configureEmbedding,
     getValidatedInitialData,
     getInitialData,
     updateBrowserHistory
@@ -43,7 +44,8 @@
     chartType: DEFAULT_CHART_TYPE,
     useTimeSeries: false,
     useLogScale: false,
-    selectedTimestamps: []
+    selectedTimestamps: [],
+    latest: undefined
   };
 
   // Chart Related Properties
@@ -109,31 +111,18 @@
     try {
       statProperties = await getStatProperties();
       timestamps = await loadTimestamps();
-      const validated = getValidatedInitialData({
+      const {error, validated} = getValidatedInitialData({
         initialData,
         timestamps,
         defaultCount: DEFAULT_RECENT_COUNT
       });
       form = {...form, ...validated};
+      if (error) {
+        alert(e.message);
+      }
     } catch (e) {
-      alert(e.message);
       console.error(e);
     }
-  }
-
-  function configureEmbedding({embed, text_color}) {
-    const isEmbedded = embed === 'iframe';
-    if (embed === 'iframe') {
-      document.body.classList.remove('stylized');
-      document.body.classList.add('embedded');
-      document.body.style.setProperty('--bg-color', 'transparent');
-    }
-    if (text_color) {
-      document.body.style.setProperty('--text-color', text_color);
-    }
-    return {
-      isEmbedded
-    };
   }
 
   async function loadBenchmarks(ids = []) {
@@ -176,41 +165,48 @@
 </script>
 
 <main>
-  <header class="row" class:hidden={isEmbedded}>
-    <div>
-      <div class="panel">
-        <OpenDDSLogo />
+  {#if !isEmbedded}
+    <header class="row">
+      <div>
+        <div class="panel">
+          <OpenDDSLogo />
+        </div>
       </div>
-    </div>
 
-    <div class="right">
-      <h1 class="title">Bench Scoreboard</h1>
-      <button
-        type="button"
-        on:click={() => (selectingTimestamps = !selectingTimestamps)}>
-        {selectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
-      </button>
-    </div>
-  </header>
+      <div class="right">
+        <h1 class="title">Bench Scoreboard</h1>
+        <button
+          type="button"
+          on:click={() => (selectingTimestamps = !selectingTimestamps)}>
+          {selectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
+        </button>
+      </div>
+    </header>
+  {/if}
 
   {#if selectingTimestamps}
     <AppTimestampsPicker
       {timestamps}
+      bind:latest={form.latest}
       selected={selectedTimestamps}
       on:change={({detail}) => {
         form.selectedTimestamps = detail;
       }}
       on:close={() => (selectingTimestamps = false)} />
   {:else}
-    <div class="row" class:hidden={isEmbedded}>
-      <AppForm bind:form options={selectOptions} />
-    </div>
+    {#if !isEmbedded}
+      <div class="row">
+        <AppForm bind:form options={selectOptions} />
+      </div>
+    {/if}
 
     <AppChart {form} {benchmarks} {timestamps} {statProperties} />
 
-    <div class="row" class:hidden={isEmbedded}>
-      <AppSharing />
-    </div>
+    {#if !isEmbedded}
+      <div class="row">
+        <AppSharing />
+      </div>
+    {/if}
   {/if}
 </main>
 
@@ -237,9 +233,6 @@
     margin-left: auto;
   }
 
-  .hidden {
-    display: none !important;
-  }
   .panel {
     padding: 1rem;
     width: max-content;
