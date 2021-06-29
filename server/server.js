@@ -48,7 +48,7 @@ app.get('/bench2/scrape_output.json', async (req, res) => {
 // because the client cannot directly fetch this URL.
 app.get('/bench2/stat_properties.json', async (req, res) => {
   if (isDev) {
-    return fetchLocal('/mocking/stat_properties.json', res);
+    return fetchLocal('/stat_properties.json', res);
   }
   fetchRemote('/bench2/stat_properties.json', res);
 });
@@ -56,7 +56,7 @@ app.get('/bench2/stat_properties.json', async (req, res) => {
 app.get('/bench2/raw/:id/results.json', async (req, res) => {
   const {id} = req.params;
   if (isDev) {
-    return fetchLocal(`/mocking/raw/${id}/results.json`, res);
+    return fetchLocal(`/raw/${id}/results.json`, res);
   }
   fetchRemote(`/bench2/raw/${id}/results.json`, res);
 });

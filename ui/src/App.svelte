@@ -116,13 +116,16 @@
         timestamps,
         defaultCount: DEFAULT_RECENT_COUNT
       });
+      console.log({error, validated});
       form = {...form, ...validated};
-      if (error) {
-        alert(e.message);
-      }
-    } catch (e) {
-      console.error(e);
+      if (error) throw new Error(error);
+    } catch (ex) {
+      onError(ex);
     }
+  }
+
+  function onError(error) {
+    alert(error.message);
   }
 
   async function loadBenchmarks(ids = []) {
@@ -200,7 +203,7 @@
       </div>
     {/if}
 
-    <AppChart {form} {benchmarks} {timestamps} {statProperties} />
+    <AppChart {benchmarks} {form} {statProperties} {timestamps} />
 
     {#if !isEmbedded}
       <div class="row">
