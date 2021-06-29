@@ -143,13 +143,9 @@
   }
 
   thead {
-    z-index: 99999;
+    z-index: 1;
     position: sticky;
     top: 0;
-  }
-
-  thead tr {
-    z-index: 99999;
   }
 
   .panel {

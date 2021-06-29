@@ -116,7 +116,6 @@
         timestamps,
         defaultCount: DEFAULT_RECENT_COUNT
       });
-      console.log({error, validated});
       form = {...form, ...validated};
       if (error) throw new Error(error);
     } catch (ex) {
@@ -178,11 +177,14 @@
 
       <div class="right">
         <h1 class="title">Bench Scoreboard</h1>
-        <button
-          type="button"
-          on:click={() => (selectingTimestamps = !selectingTimestamps)}>
-          {selectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
-        </button>
+        <div class="buttons">
+          <AppSharing />
+          <button
+            type="button"
+            on:click={() => (selectingTimestamps = !selectingTimestamps)}>
+            {selectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
+          </button>
+        </div>
       </div>
     </header>
   {/if}
@@ -204,12 +206,6 @@
     {/if}
 
     <AppChart {benchmarks} {form} {statProperties} {timestamps} />
-
-    {#if !isEmbedded}
-      <div class="row">
-        <AppSharing />
-      </div>
-    {/if}
   {/if}
 </main>
 
@@ -247,6 +243,15 @@
 
   .right button {
     min-width: 20ch;
+    margin-left: 1rem;
+  }
+
+  .right .buttons {
+    display: flex;
+  }
+
+  .right .buttons :global(.sharing) {
+    z-index: 2;
   }
 
   .row {
