@@ -1,3 +1,19 @@
+/**
+ * The String to represent that the url query parameter's value
+ * should be an array
+ * @example
+ * ```
+ * ?key[]=hello&key[]=world
+ * would be deserialized as {key: ["hello", "world"]}
+ * ```
+ */
+const ARRAY_SYMBOLIZER = '[]';
+
+/**
+ * Convert an object to a url encoded query string
+ * @param {Object} The object to conver
+ * @returns
+ */
 export function objectToQuery(object = {}) {
   return (
     '?' +
@@ -6,7 +22,7 @@ export function objectToQuery(object = {}) {
         if (value !== undefined && value !== null) {
           if (Array.isArray(value)) {
             value.forEach(value =>
-              acc.push(`${key}[]=${encodeURIComponent(value)}`)
+              acc.push(`${key}${ARRAY_SYMBOLIZER}=${encodeURIComponent(value)}`)
             );
           } else {
             acc.push(`${key}=${encodeURIComponent(value)}`);
@@ -18,6 +34,11 @@ export function objectToQuery(object = {}) {
   );
 }
 
+/**
+ * Convert a Query string to an Object
+ * @param {String} query The Query String
+ * @returns
+ */
 export function queryToObject(query = '') {
   if (typeof query !== 'string' || !query.includes('=')) {
     return {};
@@ -28,8 +49,8 @@ export function queryToObject(query = '') {
     .reduce((acc, part) => {
       const [key, value] = part.split('=');
       const deserialized = decodeValue(value);
-      if (key.endsWith('[]')) {
-        const cleanKey = key.replace('[]', '');
+      if (key.endsWith(ARRAY_SYMBOLIZER)) {
+        const cleanKey = key.replace(ARRAY_SYMBOLIZER, '');
         if (!Array.isArray(acc[cleanKey])) {
           acc[cleanKey] = [];
         }

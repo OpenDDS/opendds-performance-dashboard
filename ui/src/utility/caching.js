@@ -42,6 +42,13 @@ class ExpiringEntity {
 }
 
 export const Cache = {
+  /**
+   * Get locally cahced data, or fetch and cache.
+   *
+   * @param {String} key the caching key
+   * @param {Function<Object>} callback callback returning promise that results in data to cache.
+   * @returns
+   */
   cache: async (key, callback) => {
     if (enabled) {
       try {
@@ -54,11 +61,18 @@ export const Cache = {
 
     const data = await callback();
 
-    if (enabled) setOrClear(key, data);
+    if (data && enabled) setOrClear(key, data);
 
     return data;
   },
 
+  /**
+   * Get locally cahced data, or fetch and cache if data doesn't exist or is stale.
+   *
+   * @param {String} key the caching key
+   * @param {Function<Object>} callback callback returning promise that results in data to cache.
+   * @returns
+   */
   expiring: async (ttl = CACHE_ONE_HOUR, key, callback) => {
     if (enabled) {
       const existing = localStorage.getItem(key);
@@ -69,7 +83,7 @@ export const Cache = {
             return entity.data;
           }
         } catch (error) {
-          console.warn('Error checking expriing storage', error.message);
+          console.warn('Error checking expiring storage', error.message);
         }
       }
     }

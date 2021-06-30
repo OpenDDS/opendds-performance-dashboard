@@ -1,16 +1,24 @@
 import {objectToQuery, queryToObject} from '../utility/url-builder';
 import {IFrameShareLink} from './generators/IFrameShareLink';
 import {WebsiteShareLink} from './generators/WebsiteShareLink';
-import {
-  MAX_TIMESTAMPS,
-  MIN_TIMESTAMPS
-} from '../AppTimestamps/timestamp-helpers';
+import {MAX_TIMESTAMPS} from '../AppTimestamps/timestamp-helpers';
 const linkGenerators = [WebsiteShareLink, IFrameShareLink];
 
-export function generateShareLink(location, options = {}) {
-  return linkGenerators.map(generator => generator.generate(location, options));
+/**
+ * Generate an Array of Share Links based on the available drivers
+ * @param {String} url the url to share
+ * @param {*} options additional configuration options
+ * @returns {Array} Array of ShareLink entities
+ */
+export function generateShareLinks(url, options = {}) {
+  return linkGenerators.map(generator => generator.generate(url, options));
 }
 
+/**
+ * Update the site to update the style to accomidate iFrame embedding
+ * @param {Object} opts configuration options
+ * @returns
+ */
 export function configureEmbedding(opts) {
   const {embed, text_color} = opts;
   const isEmbedded = embed === 'iframe';
@@ -27,8 +35,13 @@ export function configureEmbedding(opts) {
   };
 }
 
-export function updateBrowserHistory(data, updateUrl = true) {
-  const sharable = {...data}; // Make a copy
+/**
+ * Update the browser URL based on the form data
+ * @param {Object} formData
+ * @param {Boolean} updateUrl
+ */
+export function updateBrowserHistory(formData, updateUrl = true) {
+  const sharable = {...formData}; // Make a copy
   if (sharable.latest) {
     delete sharable.selectedTimestamps;
   }
@@ -36,9 +49,21 @@ export function updateBrowserHistory(data, updateUrl = true) {
   updateUrl && window.history.replaceState('', '', query);
 }
 
+/**
+ * Extract the initial share data based on a query string
+ * @param {String} query query string
+ * @returns
+ */
 export const getInitialData = (query = window.location.search) =>
   queryToObject(query);
 
+/**
+ *
+ * @param {Object} param0 Data used to determine if initial data is valid
+ * @returns {Object} Object with two keys
+ *                       error : the error string,
+ *                       validated : any valid keys to be applied to the data
+ */
 export function getValidatedInitialData({
   initialData = {},
   timestamps = [],

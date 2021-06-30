@@ -47,6 +47,7 @@ export const axisFactory = () => ({
 //----------------------------------------------------------------------------
 // Pure Functions For Chart Data
 //----------------------------------------------------------------------------
+
 export function getAxisYLabel({plotType, statName}, {statProperties}) {
   if (!plotType) return '';
   const unit = statProperties[plotType].units;

@@ -2,7 +2,7 @@
   import {fade} from 'svelte/transition';
 
   import {copyToClipboard} from '../utility/copy-to-clipboard';
-  import {generateShareLink} from './share-data';
+  import {generateShareLinks} from './share-data';
 
   let shareLinks = [];
   let visible = false;
@@ -12,7 +12,7 @@
   };
 
   $: if (visible) {
-    shareLinks = generateShareLink(window.location, shareOptions);
+    shareLinks = generateShareLinks(window.location, shareOptions);
   }
 
   $: {
