@@ -107,7 +107,7 @@ export async function getChartDataByTimestamp(collectedData, opts) {
 
     columns.push(column);
   }
-  console.log({columns});
+
   const xFormat = '%Y-%m-%d %H:%M:%S'; // date format
   return {...data, columns, xFormat};
 }
