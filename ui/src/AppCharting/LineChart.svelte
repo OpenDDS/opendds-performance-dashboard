@@ -86,6 +86,10 @@
 <div id={CHART_ID} />
 
 <style>
+  #open-dds-chart {
+    width: 100%;
+  }
+
   #open-dds-chart :global(.c3-axis-x-label),
   #open-dds-chart :global(.c3-axis-y-label) {
     fill: var(--oci-blue);
