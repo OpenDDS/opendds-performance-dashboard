@@ -86,6 +86,7 @@
     top: 0;
     right: 0;
     padding: 1rem;
+    cursor: pointer;
   }
 
   pre {

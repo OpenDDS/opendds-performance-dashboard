@@ -170,9 +170,12 @@
   {#if !isEmbedded}
     <header class="row">
       <div>
-        <div class="panel">
+        <a
+          href="https://opendds.org"
+          alt="Go to the OpenDDS website"
+          class="panel">
           <OpenDDSLogo />
-        </div>
+        </a>
       </div>
 
       <div class="right">
@@ -234,9 +237,11 @@
 
   .panel {
     padding: 1rem;
+    display: block;
     width: max-content;
   }
-  .panel > :global(svg) {
+
+  header .panel > :global(svg) {
     width: 15rem;
     object-fit: contain;
   }
@@ -256,6 +261,7 @@
 
   .row {
     display: flex;
+    flex-wrap: wrap;
   }
   .row > div {
     flex: 1;
