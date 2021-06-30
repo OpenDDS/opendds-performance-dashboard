@@ -1,5 +1,7 @@
 import {BY_SIZE, BY_TIMESTAMP} from './chart-data-extractor';
 
+export const DEFAULT_CHART_HEIGHT = 500;
+
 export const yAxis = {
   label: {
     position: 'outer-middle',

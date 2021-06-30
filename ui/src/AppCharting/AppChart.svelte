@@ -15,7 +15,8 @@
     getYAxisType,
     getLegendTitle,
     getTimeStampXAxisType,
-    axisFactory
+    axisFactory,
+    DEFAULT_CHART_HEIGHT
   } from './chart-layout-helpers';
 
   export let form;
@@ -24,6 +25,7 @@
   export let timestamps = [];
   export let statProperties;
 
+  let error = null;
   let errors = new Map();
   let chartData = {columns: [], x: 'x'};
 
@@ -60,14 +62,20 @@
       ...form
     };
     const factory = chartDataFactory(chartType);
-    factory(benchmarks, opts).then(results => {
-      if (!results) return;
-      chartData = results;
-    });
+    factory(benchmarks, opts).then(onLoaded).catch(onError);
   }
 
   $: {
-    makeErrors(benchmarks);
+    deriveDataPointErrors(benchmarks);
+  }
+
+  function onLoaded(results) {
+    if (!results) return;
+    chartData = results;
+  }
+
+  function onError(err) {
+    error = err;
   }
 
   function getTimeKey(timestamp) {
@@ -75,7 +83,7 @@
     return dateTimeString.replace('T', '_');
   }
 
-  function makeErrors(benchmarks) {
+  function deriveDataPointErrors(benchmarks) {
     errors.clear();
     for (const [timestamp, timeData] of Object.entries(benchmarks)) {
       const dateTime = getTimeKey(timestamp);
@@ -95,7 +103,7 @@
     }
   }
 
-  function styleErrors() {
+  function styleDataPointErrors() {
     const selectedSet = new Set(form.selectedTimestamps);
 
     const bySize = chartType === BY_SIZE;
@@ -143,7 +151,6 @@
 
   function styleMissingPoints() {
     // console.log('App.svelte styleMissingPoints: data =', data);
-
     const {columns} = chartData;
     for (const column of columns) {
       const [timestamp] = column;
@@ -165,14 +172,62 @@
   }
 
   function styleSpecialPoints() {
-    styleErrors();
+    styleDataPointErrors();
     styleMissingPoints();
   }
 </script>
 
-<LineChart
-  {axis}
-  data={chartData}
-  {legendTitle}
-  {title}
-  on:rendered={styleSpecialPoints} />
+<h2>{title}</h2>
+
+<div class="panel container" style={`min-height: ${DEFAULT_CHART_HEIGHT}px`}>
+  <LineChart
+    {axis}
+    data={chartData}
+    height={DEFAULT_CHART_HEIGHT}
+    {legendTitle}
+    on:rendered={styleSpecialPoints} />
+
+  {#if error}
+    <div class="error">
+      <b>There Was An Error</b>
+      <div>{error.message}</div>
+      <button role="button" on:click={() => (error = null)}>OK</button>
+    </div>
+  {/if}
+</div>
+
+<style>
+  .error {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    z-index: 2;
+    backdrop-filter: blur(6px);
+  }
+  .error > * {
+    margin: 0.3rem 0;
+  }
+  .error button {
+    margin-top: 1rem;
+    min-width: 10rem;
+  }
+
+  .container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  h2 {
+    text-align: center;
+    min-height: 1.5em;
+  }
+</style>

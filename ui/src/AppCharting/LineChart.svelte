@@ -1,14 +1,11 @@
 <script>
   import c3 from 'c3';
-  import * as d3 from 'd3';
   import {createEventDispatcher} from 'svelte';
 
   export let axis;
   export let data;
   export let legendTitle;
-  export let title;
-
-  const CHART_HEIGHT = 500;
+  export let height;
 
   const CHART_ID = 'open-dds-chart';
   const CHART_SELECTOR = '#' + CHART_ID;
@@ -17,11 +14,7 @@
 
   const dispatch = createEventDispatcher();
 
-  let container;
-  let titleUsed = '';
-
   $: if (data.columns.length) {
-    titleUsed = '';
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     setTimeout(() => {
@@ -35,21 +28,16 @@
           },
           position: 'right'
         },
-        onrendered: addLegendTitle,
-        size: {height: CHART_HEIGHT}
+        onrendered: onRendered,
+        size: {height: height}
         // zoom: {enabled: true}
       });
     });
   }
 
-  let cachedX, cachedY;
-
-  function getRelativeXY(x, y, svg, element) {
-    var p = svg.createSVGPoint();
-    var ctm = element.getCTM();
-    p.x = x;
-    p.y = y;
-    return p.matrixTransform(ctm);
+  function onRendered() {
+    addLegendTitle();
+    dispatch('rendered');
   }
 
   function addLegendTitle() {
@@ -92,41 +80,12 @@
       'transform',
       legendContainer.getAttribute('transform')
     );
-
-    titleUsed = title;
-
-    dispatch('rendered');
   }
 </script>
 
-<h2>{titleUsed}</h2>
-
-<div
-  bind:this={container}
-  class="panel container"
-  style={`min-height: ${CHART_HEIGHT}px`}>
-  {#if !data.columns.length}
-    <h3>...loading chart data...</h3>
-  {/if}
-  <div id={CHART_ID} />
-</div>
+<div id={CHART_ID} />
 
 <style>
-  .container {
-    /* background-color: white;
-    border: solid var(--oci-aqua) 5px; */
-    border-radius: 20px;
-    padding: 20px 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  h2 {
-    text-align: center;
-    min-height: 1.5em;
-  }
-
   #open-dds-chart :global(.c3-axis-x-label),
   #open-dds-chart :global(.c3-axis-y-label) {
     fill: var(--oci-blue);
