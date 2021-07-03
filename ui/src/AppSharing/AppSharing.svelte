@@ -1,18 +1,19 @@
-<script>
+<script lang="ts">
   import {fade} from 'svelte/transition';
 
   import {copyToClipboard} from '../utility/copy-to-clipboard';
+  import type {ShareLinkOptions} from './generators/ShareLink';
   import {generateShareLinks} from './share-data';
 
   let shareLinks = [];
   let visible = false;
 
-  let shareOptions = {
-    color: undefined
+  let shareOptions: ShareLinkOptions = {
+    text_color: undefined
   };
 
   $: if (visible) {
-    shareLinks = generateShareLinks(window.location, shareOptions);
+    shareLinks = generateShareLinks(window.location.toString(), shareOptions);
   }
 
   $: {
@@ -23,9 +24,9 @@
     }
   }
 
-  let copied = false;
+  let copied: string | boolean = false;
   let interval = null;
-  async function copy(text) {
+  async function copy(text: string) {
     clearInterval(interval);
     copied = text;
     await copyToClipboard(text);
@@ -42,13 +43,15 @@
       in:fade={{duration: 100}}
       out:fade={{duration: 100, delay: 100}}
       on:click={() => (visible = false)}
-      class="sharing-info_backdrop">
+      class="sharing-info_backdrop"
+    >
       <div
         in:fade={{duration: 100, delay: 100}}
         out:fade={{duration: 100}}
         on:click|stopPropagation
         class="sharing-info"
-        role="dialog">
+        role="dialog"
+      >
         <span role="button" class="close" on:click={() => (visible = false)}>
           Close [X]
         </span>
@@ -59,7 +62,8 @@
             <span
               role="button"
               class="copy"
-              on:click={() => copy(shareLink.code)}>(Copy)</span>
+              on:click={() => copy(shareLink.code)}>(Copy)</span
+            >
             {#if copied === shareLink.code}
               <span transition:fade={{duration: 100}}>Copied!</span>
             {/if}

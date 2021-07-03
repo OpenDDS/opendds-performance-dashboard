@@ -14,7 +14,7 @@ const ARRAY_SYMBOLIZER = '[]';
  * @param {Object} The object to conver
  * @returns
  */
-export function objectToQuery(object = {}) {
+export function objectToQuery(object: Record<string, any> = {}) {
   return (
     '?' +
     Object.entries(object)
@@ -36,10 +36,10 @@ export function objectToQuery(object = {}) {
 
 /**
  * Convert a Query string to an Object
- * @param {String} query The Query String
+ * @param query The Query String
  * @returns
  */
-export function queryToObject(query = '') {
+export function queryToObject(query: string = '') {
   if (typeof query !== 'string' || !query.includes('=')) {
     return {};
   }

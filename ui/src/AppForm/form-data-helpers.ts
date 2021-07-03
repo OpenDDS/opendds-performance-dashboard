@@ -1,4 +1,11 @@
 import {BY_SIZE, BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
+import type {
+  BenchmarkIdentifier,
+  Benchmarks,
+  PlotType,
+  Scenario,
+  StatName
+} from '../types';
 export const MDTD = 'Max Discovery Time Delta';
 export const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
 export const DEFAULT_CHART_TYPE = BY_SIZE;
@@ -8,20 +15,20 @@ export const DEFAULT_SCENARIO = 'fan_rtps';
 export const DEFAULT_STAT_NAME = 'mean';
 export const DEFAULT_SERVER_COUNT = 16;
 
-export function deriveSelectOptionsFromData(benchmarks) {
-  const uniqueScenarios = new Set();
-  const uniquePlotTypes = new Set();
-  const uniqueStatNames = new Set();
-  const uniqueServerCounts = new Map();
+export function deriveSelectOptionsFromData(benchmarks: Benchmarks) {
+  const uniqueScenarios = new Set<Scenario>();
+  const uniquePlotTypes = new Set<PlotType>();
+  const uniqueStatNames = new Set<StatName>();
+  const uniqueServerCounts = new Map<BenchmarkIdentifier, Set<number>>();
 
   const benchmarkEntries = Object.values(benchmarks);
 
-  function updateServerCount(scenario, count) {
+  function updateServerCount(scenario: Scenario, count: number | string) {
     if (!uniqueServerCounts.has(scenario)) {
       uniqueServerCounts.set(scenario, new Set());
     }
     if (count) {
-      uniqueServerCounts.get(scenario).add(parseInt(count));
+      uniqueServerCounts.get(scenario).add(parseInt(count.toString()));
     }
   }
 

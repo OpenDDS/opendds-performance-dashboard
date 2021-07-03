@@ -2,24 +2,47 @@ import {objectToQuery, queryToObject} from '../utility/url-builder';
 import {IFrameShareLink} from './generators/IFrameShareLink';
 import {WebsiteShareLink} from './generators/WebsiteShareLink';
 import {MAX_TIMESTAMPS} from '../AppTimestamps/timestamp-helpers';
-const linkGenerators = [WebsiteShareLink, IFrameShareLink];
+import type {ShareLink, ShareLinkOptions} from './generators/ShareLink';
+import type {FormConfiguration, TimestampViewModel} from '../types';
 
+export type InitialDataValidationConfig = {
+  initialData: Partial<FormConfiguration>;
+  timestamps: TimestampViewModel[];
+  defaultCount: number;
+};
+
+export type ValidationResults = {
+  /**
+   * Any valid piece of form data.
+   */
+  validated: Partial<FormConfiguration>;
+
+  /**
+   * The Message, if any, of the error
+   */
+  error?: string;
+};
+
+const linkGenerators: typeof ShareLink[] = [WebsiteShareLink, IFrameShareLink];
 /**
  * Generate an Array of Share Links based on the available drivers
  * @param {String} url the url to share
  * @param {*} options additional configuration options
  * @returns {Array} Array of ShareLink entities
  */
-export function generateShareLinks(url, options = {}) {
+export function generateShareLinks(
+  url: string,
+  options: ShareLinkOptions = {}
+): ShareLink[] {
   return linkGenerators.map(generator => generator.generate(url, options));
 }
 
 /**
  * Update the site to update the style to accomidate iFrame embedding
- * @param {Object} opts configuration options
- * @returns
+ * @param  opts configuration options
+ * @returns Configuration information
  */
-export function configureEmbedding(opts) {
+export function configureEmbedding(opts: ShareLinkOptions) {
   const {embed, text_color} = opts;
   const isEmbedded = embed === 'iframe';
   if (embed === 'iframe') {
@@ -37,10 +60,11 @@ export function configureEmbedding(opts) {
 
 /**
  * Update the browser URL based on the form data
- * @param {Object} formData
- * @param {Boolean} updateUrl
  */
-export function updateBrowserHistory(formData, updateUrl = true) {
+export function updateBrowserHistory(
+  formData: FormConfiguration,
+  updateUrl: boolean = true
+): void {
   const sharable = {...formData}; // Make a copy
   if (sharable.latest) {
     delete sharable.selectedTimestamps;
@@ -51,24 +75,21 @@ export function updateBrowserHistory(formData, updateUrl = true) {
 
 /**
  * Extract the initial share data based on a query string
- * @param {String} query query string
+ * @param query query string
  * @returns
  */
-export const getInitialData = (query = window.location.search) =>
-  queryToObject(query);
+export const getInitialData = (
+  query: string = window.location.search
+): Partial<FormConfiguration> => queryToObject(query);
 
 /**
- *
- * @param {Object} param0 Data used to determine if initial data is valid
- * @returns {Object} Object with two keys
- *                       error : the error string,
- *                       validated : any valid keys to be applied to the data
+ * Get Validated Data
  */
 export function getValidatedInitialData({
   initialData = {},
   timestamps = [],
   defaultCount = 2
-}) {
+}: InitialDataValidationConfig): ValidationResults {
   const required = [
     'scenario',
     'plotType',
@@ -81,8 +102,8 @@ export function getValidatedInitialData({
 
   const optional = ['serverCount', 'latest'];
 
-  if (!isNaN(initialData.latest)) {
-    const latest = Math.min(parseInt(initialData.latest), MAX_TIMESTAMPS);
+  if (initialData.latest && !isNaN(initialData.latest)) {
+    const latest = Math.min(initialData.latest, MAX_TIMESTAMPS);
     initialData.selectedTimestamps = timestamps
       .slice(timestamps.length - latest, timestamps.length)
       .map(t => t.key);
@@ -102,7 +123,7 @@ export function getValidatedInitialData({
     );
   };
 
-  const onError = message => {
+  const onError = (message: string | null) => {
     return {
       error: message,
       validated: {selectedTimestamps: maybeSelected()}
@@ -110,7 +131,7 @@ export function getValidatedInitialData({
   };
 
   if (!keys.length) {
-    return onError();
+    return onError(null);
   }
 
   const missing = required.filter(i => {
@@ -124,7 +145,9 @@ export function getValidatedInitialData({
   }
 
   if (!requestedTimestampsExist()) {
-    return onError('Some of the requested benchmarks are not longer available');
+    return onError(
+      `Some of the requested benchmarks are not longer available, resetting to the latest ${defaultCount} benchmarks.`
+    );
   }
 
   return {

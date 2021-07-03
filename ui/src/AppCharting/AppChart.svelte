@@ -1,38 +1,56 @@
-<script>
+<script lang="ts">
+  import {errorStore} from '../utility/data-loader';
   import LineChart from './LineChart.svelte';
-  import {
-    deriveClassNameFromTimestampKey,
-    BY_SIZE,
-    BY_TIMESTAMP,
-    MISSING_VALUE,
-    chartDataFactory
-  } from './chart-data-extractor';
 
   import {
+    chartDataFactory,
+    classNameFromBenchmarkKey,
+    BY_SIZE,
+    BY_TIMESTAMP,
+    MISSING_VALUE
+  } from './chart-data-extractor';
+
+  import type {ChartFactoryData} from './chart-data-extractor';
+
+  import {
+    axisFactory,
     getAxisYLabel,
     getAxisXLabel,
     getAxisYMin,
     getYAxisType,
     getLegendTitle,
     getTimeStampXAxisType,
-    axisFactory,
     DEFAULT_CHART_HEIGHT
   } from './chart-layout-helpers';
+  import type {
+    BenchmarkIdentifier,
+    Benchmarks,
+    FormConfiguration,
+    Scenario,
+    StatProperties,
+    TimestampViewModel
+  } from '../types';
 
-  export let form;
+  type ErrorEntry = {
+    key: BenchmarkIdentifier;
+    scenario: Scenario;
+    dateTime: string;
+    size: string;
+  };
 
-  export let benchmarks = {};
-  export let timestamps = [];
-  export let statProperties;
+  export let form: FormConfiguration;
 
-  let error = null;
-  let errors = new Map();
-  let chartData = {columns: [], x: 'x'};
+  export let benchmarks: Benchmarks = {};
+  export let timestamps: TimestampViewModel[] = [];
+  export let statProperties: StatProperties;
+
+  let errors = new Map<BenchmarkIdentifier, ErrorEntry>();
+  let chartData: ChartFactoryData = {columns: [], x: 'x', names: {}};
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
 
-  $: isReady = benchmarks && statProperties && form;
+  $: isReady = benchmarks && statProperties && form && true;
 
   $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(form, {hasNodes});
@@ -49,41 +67,42 @@
   $: if (chartData && axis && isReady) {
     axis.y.type = getYAxisType(form);
     axis.y.min = getAxisYMin(form, chartData);
-    axis.y.label.text = getAxisYLabel(form, {statProperties});
-    axis.x.label.text = getAxisXLabel(form, {hasNodes});
+    if (typeof axis.y.label !== 'string') {
+      axis.y.label.text = getAxisYLabel(form, {statProperties});
+    }
+    if (typeof axis.x.label !== 'string') {
+      axis.x.label.text = getAxisXLabel(form, {hasNodes});
+    }
   }
 
   $: if (isReady) {
     const selected = timestamps.filter(({key}) => {
       return form.selectedTimestamps.indexOf(key) !== -1;
     });
-    const opts = {
-      timestamps: selected,
-      ...form
-    };
+
     const factory = chartDataFactory(chartType);
-    factory(benchmarks, opts).then(onLoaded).catch(onError);
+    factory(benchmarks, selected, form).then(onLoaded).catch(onError);
   }
 
   $: {
     deriveDataPointErrors(benchmarks);
   }
 
-  function onLoaded(results) {
+  function onLoaded(results: ChartFactoryData) {
     if (!results) return;
     chartData = results;
   }
 
-  function onError(err) {
-    error = err;
+  function onError(error: Error) {
+    errorStore.onError(error);
   }
 
-  function getTimeKey(timestamp) {
+  function getTimeKey(timestamp: string): string {
     const dateTimeString = timestamp.split('+')[0];
     return dateTimeString.replace('T', '_');
   }
 
-  function deriveDataPointErrors(benchmarks) {
+  function deriveDataPointErrors(benchmarks: Benchmarks) {
     errors.clear();
     for (const [timestamp, timeData] of Object.entries(benchmarks)) {
       const dateTime = getTimeKey(timestamp);
@@ -104,6 +123,12 @@
   }
 
   function styleDataPointErrors() {
+    if (
+      !Array.isArray(chartData.columns) ||
+      !Array.isArray(chartData.columns[0])
+    )
+      return;
+
     const selectedSet = new Set(form.selectedTimestamps);
 
     const bySize = chartType === BY_SIZE;
@@ -127,7 +152,7 @@
     // where the circle elements are in order by x label.
     for (const error of active) {
       const {key, size, dateTime} = error;
-      const timestampAsClassName = deriveClassNameFromTimestampKey(key);
+      const timestampAsClassName = classNameFromBenchmarkKey(key);
 
       const trimmedSize = size.split('_')[0];
       const formattedDateTime = dateTime.replace('_', ' ');
@@ -137,10 +162,10 @@
       if (circleGroup) {
         const label = bySize ? trimmedSize : formattedDateTime;
         const index = xLabels.indexOf(label);
-        const circle = circleGroup.children.item(index);
+        const circle = <SVGElement>circleGroup.children.item(index);
         if (circle) {
           circle.style.stroke = 'red';
-          circle.style.strokeWidth = 4;
+          circle.style.strokeWidth = '4';
         }
       } else {
         // This should never happen.
@@ -163,9 +188,13 @@
           //   index
           // );
           const g = document.querySelector('.c3-circles-' + timestamp);
-          const circle = g.querySelector('.c3-circle-' + (index - 1));
+          if (!g) return;
+          const circle = <SVGElement>(
+            g.querySelector('.c3-circle-' + (index - 1))
+          );
+          if (!circle) return;
           circle.style.stroke = 'orange';
-          circle.style.strokeWidth = 4;
+          circle.style.strokeWidth = '4';
         }
       });
     }
@@ -185,40 +214,12 @@
     data={chartData}
     height={DEFAULT_CHART_HEIGHT}
     {legendTitle}
-    on:rendered={styleSpecialPoints} />
-
-  {#if error}
-    <div class="error">
-      <b>There Was An Error</b>
-      <div>{error.message}</div>
-      <button role="button" on:click={() => (error = null)}>OK</button>
-    </div>
-  {/if}
+    on:rendered={styleSpecialPoints}
+  />
+  <slot name="accessory" />
 </div>
 
 <style>
-  .error {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
-    z-index: 2;
-    backdrop-filter: blur(6px);
-  }
-  .error > * {
-    margin: 0.3rem 0;
-  }
-  .error button {
-    margin-top: 1rem;
-    min-width: 10rem;
-  }
-
   .container {
     position: relative;
     display: flex;

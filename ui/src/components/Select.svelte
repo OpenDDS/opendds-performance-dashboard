@@ -1,7 +1,7 @@
-<script>
-  export let label;
-  export let options;
-  export let value;
+<script lang="ts">
+  export let label: string;
+  export let options: unknown[];
+  export let value: unknown;
   export let disabled = false;
 </script>
 

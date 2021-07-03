@@ -1,5 +1,5 @@
-<script>
-  import c3 from 'c3';
+<script lang="ts">
+  import * as c3 from 'c3';
   import {createEventDispatcher} from 'svelte';
 
   export let axis;
@@ -50,9 +50,9 @@
     if (!firstLegendItem) return;
 
     // Get the relative position of the first legend item.
-    const itemText = firstLegendItem.firstChild;
-    const legendX = itemText.getAttribute('x');
-    const legendY = itemText.getAttribute('y');
+    const itemText = <SVGElement>firstLegendItem.firstChild;
+    const legendX: string = itemText.getAttribute('x');
+    const legendY: string = itemText.getAttribute('y');
 
     // Get the SVG group element that contains the legend.
     const legendContainer = firstLegendItem.parentElement;
@@ -74,8 +74,11 @@
 
     // Set the text and position of the legend title.
     legendTitleText.textContent = legendTitle;
-    legendTitleText.setAttribute('x', legendX - LEGEND_TILE_WIDTH - 6);
-    legendTitleText.setAttribute('y', legendY - 20);
+    legendTitleText.setAttribute(
+      'x',
+      (Number(legendX).valueOf() - LEGEND_TILE_WIDTH - 6).toString()
+    );
+    legendTitleText.setAttribute('y', (Number(legendY) - 20).toString());
     legendTitleText.setAttribute(
       'transform',
       legendContainer.getAttribute('transform')

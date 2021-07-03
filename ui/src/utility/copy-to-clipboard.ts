@@ -1,4 +1,4 @@
-export function copyToClipboard(str) {
+export function copyToClipboard(str: string) {
   if (window.navigator.clipboard) {
     return window.navigator.clipboard.writeText(str);
   }
@@ -15,7 +15,7 @@ export function copyToClipboard(str) {
     document.execCommand('Copy');
     setTimeout(() => {
       document.body.removeChild(el);
-      resolve();
+      resolve(null);
     }, 0);
   });
 }

@@ -1,7 +1,9 @@
-<script>
-  export let timestamp;
-  export let selected;
-  export let maxSelected;
+<script lang="ts">
+  import type {TimestampViewModel} from '../types';
+
+  export let timestamp: TimestampViewModel;
+  export let selected: boolean;
+  export let maxSelected: boolean;
 
   $: disabled = maxSelected && !selected;
 
@@ -21,14 +23,16 @@
       href={GITHUB_COMMIT_URL + timestamp.commit}
       rel="noopener"
       title={timestamp.commit}
-      target="_blank">{timestamp.commit.substr(0, 7)}</a>
+      target="_blank">{timestamp.commit.substr(0, 7)}</a
+    >
   </td>
   <td class="hash">
     {#if timestamp.tag}
       <a
         href={`${GITHUB_TAG_URL}${timestamp.tag.name}`}
         rel="noopener"
-        target="_blank">{timestamp.tag.name}</a>
+        target="_blank">{timestamp.tag.name}</a
+      >
     {/if}
   </td>
   <td class="hash">{timestamp.hash ? timestamp.hash : ''}</td>

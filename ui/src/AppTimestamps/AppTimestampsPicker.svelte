@@ -1,16 +1,21 @@
-<script>
+<script lang="ts">
   import {createEventDispatcher} from 'svelte';
   import TimestampTableRow from './TimestampTableRow.svelte';
   import {MAX_TIMESTAMPS, MIN_TIMESTAMPS} from './timestamp-helpers';
+  import type {BenchmarkIdentifier, TimestampViewModel} from '../types';
 
-  export let timestamps;
-  export let selected = [];
+  export let timestamps: TimestampViewModel[];
+  export let selected: BenchmarkIdentifier[] = [];
+  export let latest: number = undefined;
 
-  export let latest = undefined;
+  type DispatcherEvents = {
+    change: BenchmarkIdentifier[];
+    close: undefined;
+  };
 
   let useLatest = !isNaN(latest);
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<DispatcherEvents>();
 
   let recentCount = Math.min(
     MAX_TIMESTAMPS,
@@ -41,12 +46,12 @@
     dispatch('change', selected);
   }
 
-  const onRowPressed = timestamp => {
+  const onRowPressed = (timestamp: TimestampViewModel) => {
     useLatest = false;
     updateIndex(timestamp.key, !selected.includes(timestamp.key));
   };
 
-  function updateIndex(key, checked) {
+  function updateIndex(key: BenchmarkIdentifier, checked: boolean) {
     if (checked) selected.push(key);
     else {
       selected = selected.filter(sKey => sKey !== key);
@@ -86,7 +91,8 @@
                 <input
                   id="use-latest"
                   type="checkbox"
-                  bind:checked={useLatest} />
+                  bind:checked={useLatest}
+                />
                 <span>Using {recentCount} Most Recent</span>
               </label>
               <div class="range-wrapper">
@@ -98,7 +104,8 @@
                   min={MIN_TIMESTAMPS}
                   max={MAX_TIMESTAMPS}
                   on:change={handleChange}
-                  bind:value={recentCount} />
+                  bind:value={recentCount}
+                />
                 <span>{MAX_TIMESTAMPS}</span>
               </div>
             </div>
@@ -128,7 +135,8 @@
           {timestamp}
           selected={selected.includes(timestamp.key)}
           {maxSelected}
-          on:click={() => onRowPressed(timestamp)} />
+          on:click={() => onRowPressed(timestamp)}
+        />
       {/each}
     </tbody>
   </table>

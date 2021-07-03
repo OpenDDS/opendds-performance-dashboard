@@ -1,11 +1,54 @@
 import {writable, get} from 'svelte/store';
+import type {
+  Benchmark,
+  BenchmarkIdentifier,
+  Benchmarks,
+  GitHubTag,
+  RunIndex,
+  StatProperties
+} from '../types';
 import {Cache, CACHE_TEN_MIN} from './caching';
 
 const PRODUCTION = 'http://scoreboard.ociweb.com';
 const LOCALHOST = 'http://localhost:1919';
 const BASE_URL = location.hostname === 'localhost' ? LOCALHOST : PRODUCTION;
 
-const collectedDataStore = writable({});
+const collectedDataStore = writable<Benchmarks>({});
+const collectedDataErrors = writable<Error[]>([]);
+
+type BenchmarkEntry = {
+  id: BenchmarkIdentifier;
+  data: Benchmark;
+};
+
+type BenchmarkLoadResponse = {
+  results: Benchmarks;
+  errors: Error[];
+};
+
+type BenchmarkEntriesResponse = {
+  results: BenchmarkEntry[];
+  errors: Error[];
+};
+
+export const errorStore = {
+  ...collectedDataErrors,
+  clear() {
+    collectedDataErrors.set([]);
+  },
+
+  onError(error: Error) {
+    errorStore.addErrors([error]);
+  },
+
+  addErrors(errors: Error[]) {
+    errorStore.update(store => {
+      const keys = store.map(e => e.message);
+      const newErrors = errors.filter(e => !keys.includes(e.message));
+      return [...store, ...newErrors];
+    });
+  }
+};
 
 /**
  * Fetchable Data Store that collects that aggregates the incrementally loaded benchmarks
@@ -14,10 +57,10 @@ export const dataStore = {
   ...collectedDataStore,
   /**
    * Load All Benchmarks at once
-   * @returns {Promise<Object>}
+   * @returns {Promise<Benchmarks>}
    * @deprecated use incremental loading
    */
-  loadAll: async () => {
+  loadAll: async (): Promise<Benchmarks> => {
     const results = await getAllScraped();
     collectedDataStore.set(results);
     return results;
@@ -25,11 +68,13 @@ export const dataStore = {
 
   /**
    * Incrementally load benchmarks for given ids
-   * @param {Array<String>} ids the list of benchmark-timestamps ot load
+   * @param {Array<String>} ids the list of benchmark-timestamps to load
    * @returns
    */
-  loadBenchmarks: async (ids = []) => {
-    const results = await getEntries(ids);
+  loadBenchmarks: async (
+    ids: BenchmarkIdentifier[] = []
+  ): Promise<BenchmarkLoadResponse> => {
+    const {results, errors} = await getEntries(ids);
     const data = results.reduce((acc, entry) => {
       acc[entry.id] = entry.data;
       return acc;
@@ -38,46 +83,65 @@ export const dataStore = {
       ...existing,
       ...data
     }));
-    return get(collectedDataStore);
+
+    errorStore.addErrors(errors);
+
+    return {
+      results: get(collectedDataStore),
+      errors: errors
+    };
   }
 };
 
 /**
- *Get The Full Scrape Data all at once
- * @returns {Promise<Object>}
+ * Get The Full Scrape Data all at once
  * @deprecated Use the incremental loader
  */
-export async function getAllScraped() {
+export async function getAllScraped(): Promise<Benchmarks> {
   return fetcher.get('/bench2/scrape_output.json');
 }
 
 /**
  * Get the Stat Properties
- * @returns {Promise<Object>}
  */
-export async function getStatProperties() {
+export async function getStatProperties(): Promise<StatProperties> {
   return fetcher.get('/bench2/stat_properties.json');
 }
 
 /**
  * Get List of runs with relevant
- * @returns Promise<Array>
  */
-export async function getRunIndex() {
+export async function getRunIndex(): Promise<RunIndex> {
   return fetcher.get('/bench2/run_index.json');
 }
 
 /**
  * Load a list of benchmark / timestamp entries
- * @returns Promise<Array>
  */
-export async function getEntries(ids = []) {
-  return Promise.all(ids.map(getEntry));
+export async function getEntries(
+  ids: BenchmarkIdentifier[] = []
+): Promise<BenchmarkEntriesResponse> {
+  const data = await Promise.all(
+    ids.map<Promise<BenchmarkEntry | Error>>(i => getEntry(i).catch(e => e))
+  );
+
+  const collector: BenchmarkEntriesResponse = {
+    results: [],
+    errors: []
+  };
+
+  return data.reduce((acc, response) => {
+    if (response instanceof Error) acc.errors.push(response);
+    else acc.results.push(response);
+    return acc;
+  }, collector);
 }
 
-export async function getEntry(id) {
+export async function getEntry(
+  id: BenchmarkIdentifier
+): Promise<BenchmarkEntry> {
   return Cache.cache(id, async () => {
-    const data = await fetcher.get(`/bench2/raw/${id}/results.json`);
+    const data: Benchmark = await fetcher.get(`/bench2/raw/${id}/results.json`);
     return {id: id, data};
   });
 }
@@ -89,10 +153,16 @@ export async function getEntry(id) {
 export async function getGitTags() {
   const url =
     'https://api.github.com/repos/objectcomputing/OpenDDS/tags?per_page=100';
-  const aggregatedFetch = async (url, data = []) => {
+  const aggregatedFetch = async (url: string, data: GitHubTag[] = []) => {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(response.message);
-    const next = await response.json();
+
+    if (!response.ok) {
+      const {message} = await response
+        .json()
+        .catch(() => ({message: 'Something went wrong'}));
+      throw new Error(message);
+    }
+    const next = <GitHubTag[]>await response.json();
     const aggregate = [...data, ...next];
 
     const links = extractLinks(response.headers.get('Link'));
@@ -109,19 +179,23 @@ export async function getGitTags() {
 //----------------------------------------------------------------
 // Underlying Fetcher utility
 //------------------------------------------------------------
-const responseHandler = async response => {
+const responseHandler = async (response: Response) => {
   try {
-    if (!response.ok) throw new Error(await response.text());
+    if (!response.ok) {
+      const json = await response.json();
+      throw new Error(json.message || 'Something Went Wrong');
+    }
     return response.json();
   } catch (error) {
     throw new Error(error.message);
   }
 };
 
-const withBaseUrl = url => `${BASE_URL}${('/' + url).replace('//', '/')}`;
+const withBaseUrl = (url: string) =>
+  `${BASE_URL}${('/' + url).replace('//', '/')}`;
 
 const fetcher = {
-  get: url => fetch(withBaseUrl(url)).then(responseHandler)
+  get: (url: string) => fetch(withBaseUrl(url)).then(responseHandler)
 };
 
 //----------------------------------------------------------------
@@ -131,13 +205,13 @@ const fetcher = {
 const LINKS_MATCHER = /<?([^>]*)>(.*)/;
 const LINKS_REL_MATCHER = /\s*(.+)\s*=\s*"?([^"]+)"?/;
 
-function getRelKey(acc, p) {
+function getRelKey(acc: Record<string, string>, p: string) {
   const m = p.match(LINKS_REL_MATCHER);
   if (m) acc[m[1]] = m[2];
   return acc;
 }
 
-function parseLink(string) {
+function parseLink(string: string): Record<string, string> | null {
   try {
     const matches = string.match(LINKS_MATCHER);
     const url = matches[1];
@@ -150,7 +224,7 @@ function parseLink(string) {
   }
 }
 
-export function extractLinks(links = '') {
+export function extractLinks(links = ''): Record<string, string> {
   if (typeof links !== 'string') {
     return {};
   }

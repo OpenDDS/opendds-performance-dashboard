@@ -1,11 +1,12 @@
-<script>
+<script lang="ts">
   import {onMount} from 'svelte';
   import OpenDDSLogo from './components/OpenDDSLogo.svelte';
   import {
     dataStore,
     getGitTags,
     getStatProperties,
-    getRunIndex
+    getRunIndex,
+    errorStore
   } from './utility/data-loader';
   import {deriveSelectOptionsFromData} from './AppForm/form-data-helpers';
   import AppForm from './AppForm/AppForm.svelte';
@@ -17,26 +18,27 @@
     DEFAULT_STAT_NAME,
     DEFAULT_SERVER_COUNT
   } from './AppForm/form-data-helpers';
-  import AppChart from './AppCharting/AppChart.svelte';
 
+  import AppChart from './AppCharting/AppChart.svelte';
+  import AppErrorView from './AppErrorView.svelte';
   import AppTimestampsPicker from './AppTimestamps/AppTimestampsPicker.svelte';
 
   import {
     configureEmbedding,
     getValidatedInitialData,
-    getInitialData,
     updateBrowserHistory
   } from './AppSharing/share-data';
   import AppSharing from './AppSharing/AppSharing.svelte';
+  import type {FormConfiguration, FormSelectOptions} from './types';
 
-  const initialData = getInitialData(window.location.search);
+  export let initialData = {};
   const {isEmbedded} = configureEmbedding(initialData);
 
   // The segment of data based on
   // The selected timestamps / $collectedData
   let benchmarks = {};
 
-  let form = {
+  let form: FormConfiguration = {
     scenario: DEFAULT_SCENARIO,
     statName: DEFAULT_STAT_NAME,
     plotType: DEFAULT_PLOT_TYPE,
@@ -49,11 +51,11 @@
   };
 
   // Chart Related Properties
-  let selectOptions = {
+  let selectOptions: FormSelectOptions = {
     scenarios: [],
     allPlotTypes: [],
     statNames: [],
-    serverCountMap: {scenario: []}
+    serverCountMap: {[form.scenario]: []}
   };
 
   let selectingTimestamps = false;
@@ -68,12 +70,12 @@
   $: serverCount = form.serverCount;
   $: serverCountMap = selectOptions.serverCountMap;
   $: selectedTimestamps = form.selectedTimestamps;
-  $: isReady = $dataStore && statProperties;
+  $: isReady = $dataStore && statProperties && timestamps.length;
 
   //-------------------------------------------------------------------------------
   // Observed
   //--------------------------------------------------------------------
-  $: {
+  $: if (isReady) {
     loadBenchmarks(selectedTimestamps);
   }
 
@@ -109,8 +111,13 @@
   //-------------------------------------------------------------------------------
   async function initialize() {
     try {
-      statProperties = await getStatProperties();
-      timestamps = await loadTimestamps();
+      const [loadedstats, loadedtimestamps] = await Promise.all([
+        getStatProperties(),
+        loadTimestamps()
+      ]);
+
+      statProperties = loadedstats;
+      timestamps = loadedtimestamps;
       const {error, validated} = getValidatedInitialData({
         initialData,
         timestamps,
@@ -118,18 +125,22 @@
       });
       form = {...form, ...validated};
       if (error) throw new Error(error);
-    } catch (ex) {
-      onError(ex);
+    } catch (error) {
+      onError(error);
     }
   }
 
-  function onError(error) {
-    alert(error.message);
+  function onError(error: Error) {
+    errorStore.onError(error);
   }
 
   async function loadBenchmarks(ids = []) {
-    const results = await dataStore.loadBenchmarks(ids);
-    selectOptions = deriveSelectOptionsFromData(results);
+    try {
+      const {results} = await dataStore.loadBenchmarks(ids);
+      selectOptions = deriveSelectOptionsFromData(results);
+    } catch (error) {
+      onError(error);
+    }
   }
 
   async function loadTimestamps() {
@@ -173,7 +184,8 @@
         <a
           href="https://opendds.org"
           alt="Go to the OpenDDS website"
-          class="panel">
+          class="panel"
+        >
           <OpenDDSLogo />
         </a>
       </div>
@@ -184,7 +196,8 @@
           <AppSharing />
           <button
             type="button"
-            on:click={() => (selectingTimestamps = !selectingTimestamps)}>
+            on:click={() => (selectingTimestamps = !selectingTimestamps)}
+          >
             {selectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
           </button>
         </div>
@@ -200,7 +213,8 @@
       on:change={({detail}) => {
         form.selectedTimestamps = detail;
       }}
-      on:close={() => (selectingTimestamps = false)} />
+      on:close={() => (selectingTimestamps = false)}
+    />
   {:else}
     {#if !isEmbedded}
       <div class="row">
@@ -208,7 +222,9 @@
       </div>
     {/if}
 
-    <AppChart {benchmarks} {form} {statProperties} {timestamps} />
+    <AppChart {benchmarks} {form} {statProperties} {timestamps}>
+      <AppErrorView slot="accessory" />
+    </AppChart>
   {/if}
 </main>
 

@@ -6,7 +6,7 @@ export const CACHE_ONE_HOUR = CACHE_ONE_MIN * 60;
 export const CACHE_ONE_DAY = CACHE_ONE_HOUR * 24;
 export const CACHE_ONE_WEEK = CACHE_ONE_DAY * 7;
 
-function setOrClear(key, data, tried = false) {
+function setOrClear<T>(key: string, data: T, tried = false) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
@@ -22,26 +22,50 @@ function setOrClear(key, data, tried = false) {
   }
 }
 
-class ExpiringEntity {
-  constructor({data, createdAt}) {
+type ExpiringEntityType<T> = {
+  data: T;
+  createdAt: number;
+  __is_expiring_storage_record: boolean;
+};
+
+class ExpiringEntity<T> implements ExpiringEntityType<T> {
+  data: T;
+  createdAt: number;
+  __is_expiring_storage_record: boolean;
+
+  constructor({data, createdAt}: {data: T; createdAt: number}) {
     this.data = data;
     this.createdAt = createdAt;
     this.__is_expiring_storage_record = true;
   }
 
-  static make(data) {
+  static make<T>(data: T) {
     const createdAt = Date.now();
     return new ExpiringEntity({data, createdAt});
   }
 
-  static isExpired({createdAt, __is_expiring_storage_record}, ttl) {
+  static isExpired(
+    {createdAt, __is_expiring_storage_record}: Partial<ExpiringEntity<any>>,
+    ttl: number
+  ): boolean {
     if (__is_expiring_storage_record !== true) return true;
     if (ttl === undefined || createdAt === undefined) return true;
     return Date.now() > createdAt + ttl;
   }
 }
 
-export const Cache = {
+type CacheCallback<T> = () => Promise<T>;
+
+interface CacheInterface {
+  cache: <T>(key: string, callback: CacheCallback<T>) => Promise<T>;
+  expiring: <T>(
+    ttl: number,
+    key: string,
+    callback: CacheCallback<T>
+  ) => Promise<T>;
+}
+
+export const Cache: CacheInterface = {
   /**
    * Get locally cahced data, or fetch and cache.
    *
@@ -49,11 +73,11 @@ export const Cache = {
    * @param {Function<Object>} callback callback returning promise that results in data to cache.
    * @returns
    */
-  cache: async (key, callback) => {
+  cache: async <T>(key: string, callback: CacheCallback<T>) => {
     if (enabled) {
       try {
         const existing = localStorage.getItem(key);
-        if (existing) return JSON.parse(existing);
+        if (existing) return <T>JSON.parse(existing);
       } catch (error) {
         console.warn('Error checking expriing storage', error.message);
       }
@@ -73,26 +97,28 @@ export const Cache = {
    * @param {Function<Object>} callback callback returning promise that results in data to cache.
    * @returns
    */
-  expiring: async (ttl = CACHE_ONE_HOUR, key, callback) => {
+  expiring: async <T>(
+    ttl = CACHE_ONE_HOUR,
+    key: string,
+    callback: CacheCallback<T>
+  ) => {
     if (enabled) {
       const existing = localStorage.getItem(key);
       if (existing) {
         try {
           const entity = JSON.parse(existing);
           if (!ExpiringEntity.isExpired(entity, ttl)) {
-            return entity.data;
+            return <T>entity.data;
           }
         } catch (error) {
           console.warn('Error checking expiring storage', error.message);
         }
       }
     }
-
     const data = await callback();
     if (enabled) {
-      setOrClear(key, ExpiringEntity.make(data, ttl));
+      setOrClear(key, ExpiringEntity.make<T>(data));
     }
-
     return data;
   }
 };
