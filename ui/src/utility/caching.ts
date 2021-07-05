@@ -1,4 +1,8 @@
 let enabled = true;
+
+//----------------------------------------------------------------
+// Cache Durations
+//------------------------------------------------------------
 export const CACHE_ONE_MIN = 1000 * 60;
 export const CACHE_TEN_MIN = CACHE_ONE_MIN * 10;
 export const CACHE_THIRTY_MIN = CACHE_ONE_MIN * 30;
@@ -6,7 +10,24 @@ export const CACHE_ONE_HOUR = CACHE_ONE_MIN * 60;
 export const CACHE_ONE_DAY = CACHE_ONE_HOUR * 24;
 export const CACHE_ONE_WEEK = CACHE_ONE_DAY * 7;
 
-function setOrClear<T>(key: string, data: T, tried = false) {
+//----------------------------------------------------------------
+// Related Types
+//------------------------------------------------------------
+type CacheCallback<T> = () => Promise<T>;
+type ExpiringEntityType<T> = {
+  data: T;
+  createdAt: number;
+  __is_expiring_storage_record: boolean;
+};
+
+/**
+ * Set the cache value.  If the local storage has been filled up due
+ * to legacy stale data, clear all of it.
+ * @param key the cache key
+ * @param data the data to be cached
+ * @param tried wheter clearing has already been tried
+ */
+function setOrClear<T>(key: string, data: T, tried = false): void {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
@@ -21,12 +42,6 @@ function setOrClear<T>(key: string, data: T, tried = false) {
     throw error;
   }
 }
-
-type ExpiringEntityType<T> = {
-  data: T;
-  createdAt: number;
-  __is_expiring_storage_record: boolean;
-};
 
 class ExpiringEntity<T> implements ExpiringEntityType<T> {
   data: T;
@@ -53,8 +68,6 @@ class ExpiringEntity<T> implements ExpiringEntityType<T> {
     return Date.now() > createdAt + ttl;
   }
 }
-
-type CacheCallback<T> = () => Promise<T>;
 
 interface CacheInterface {
   cache: <T>(key: string, callback: CacheCallback<T>) => Promise<T>;

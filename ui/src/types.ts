@@ -23,8 +23,11 @@ export type GitSha = string;
 export type BuildHash = string;
 
 export type Scenario = string;
+
 export type StatName = string;
+
 export type PlotType = string;
+
 export type ChartType = 'by size' | 'by timestamp';
 
 export type FormConfiguration = {

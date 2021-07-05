@@ -12,10 +12,9 @@
     change: BenchmarkIdentifier[];
     close: undefined;
   };
+  const dispatch = createEventDispatcher<DispatcherEvents>();
 
   let useLatest = !isNaN(latest);
-
-  const dispatch = createEventDispatcher<DispatcherEvents>();
 
   let recentCount = Math.min(
     MAX_TIMESTAMPS,
@@ -46,10 +45,7 @@
     dispatch('change', selected);
   }
 
-  const onRowPressed = (timestamp: TimestampViewModel) => {
-    useLatest = false;
-    updateIndex(timestamp.key, !selected.includes(timestamp.key));
-  };
+  const onClose = () => dispatch('close');
 
   function updateIndex(key: BenchmarkIdentifier, checked: boolean) {
     if (checked) selected.push(key);
@@ -59,9 +55,10 @@
     dispatch('change', selected);
   }
 
-  function onUncheckAll() {
-    dispatch('change', []);
-  }
+  const onRowPressed = (timestamp: TimestampViewModel) => {
+    useLatest = false;
+    updateIndex(timestamp.key, !selected.includes(timestamp.key));
+  };
 
   function onSelectAll() {
     const targets = timestamps.map(t => t.key);
@@ -76,7 +73,9 @@
     dispatch('change', change);
   }
 
-  const onClose = () => dispatch('close');
+  function onUncheckAll() {
+    dispatch('change', []);
+  }
 </script>
 
 <h2>Select the timestamps to plot.</h2>

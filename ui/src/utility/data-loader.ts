@@ -179,6 +179,10 @@ export async function getGitTags() {
 //----------------------------------------------------------------
 // Underlying Fetcher utility
 //------------------------------------------------------------
+const fetcher = {
+  get: (url: string) => fetch(withBaseUrl(url)).then(responseHandler)
+};
+
 const responseHandler = async (response: Response) => {
   try {
     if (!response.ok) {
@@ -193,10 +197,6 @@ const responseHandler = async (response: Response) => {
 
 const withBaseUrl = (url: string) =>
   `${BASE_URL}${('/' + url).replace('//', '/')}`;
-
-const fetcher = {
-  get: (url: string) => fetch(withBaseUrl(url)).then(responseHandler)
-};
 
 //----------------------------------------------------------------
 // Git Hub Aggregation Helpers
