@@ -17,9 +17,9 @@
     getAxisYLabel,
     getAxisXLabel,
     getAxisYMin,
-    getYAxisType,
+    getAxisYType,
     getLegendTitle,
-    getTimeStampXAxisType,
+    getAxisXTimeStampType,
     DEFAULT_CHART_HEIGHT
   } from './chart-layout-helpers';
   import type {
@@ -30,6 +30,7 @@
     StatProperties,
     TimestampViewModel
   } from '../types';
+  import type {Primitive} from 'c3';
 
   type ErrorEntry = {
     key: BenchmarkIdentifier;
@@ -59,13 +60,13 @@
   let axisConfigurations = axisFactory();
 
   // Axis Configuration
-  $: axisConfigurations[BY_TIMESTAMP].x.type = getTimeStampXAxisType(form);
+  $: axisConfigurations[BY_TIMESTAMP].x.type = getAxisXTimeStampType(form);
   $: axisConfigurations[BY_TIMESTAMP].x.tick.fit = form.useTimeSeries;
   $: axis = axisConfigurations[chartType];
 
   // X and Y Label
   $: if (chartData && axis && isReady) {
-    axis.y.type = getYAxisType(form);
+    axis.y.type = getAxisYType(form);
     axis.y.min = getAxisYMin(form, chartData);
     if (typeof axis.y.label !== 'string') {
       axis.y.label.text = getAxisYLabel(form, {statProperties});
@@ -174,29 +175,32 @@
     }
   }
 
+  function styleMissingPointIfFound(
+    timestamp: string,
+    value: Primitive,
+    index: number
+  ): void {
+    if (value !== MISSING_VALUE) return;
+    const g = document.querySelector('.c3-circles-' + timestamp);
+    if (!g) return;
+
+    const circle = <SVGElement>g.querySelector('.c3-circle-' + (index - 1));
+    if (!circle) return;
+
+    circle.style.stroke = 'orange';
+    circle.style.strokeWidth = '4';
+  }
+
   function styleMissingPoints() {
     // console.log('App.svelte styleMissingPoints: data =', data);
     const {columns} = chartData;
+
     for (const column of columns) {
       const [timestamp] = column;
-      column.forEach((value, index) => {
-        if (value === MISSING_VALUE) {
-          // console.log(
-          //   'App.svelte x: timestamp =',
-          //   timestamp,
-          //   ', index =',
-          //   index
-          // );
-          const g = document.querySelector('.c3-circles-' + timestamp);
-          if (!g) return;
-          const circle = <SVGElement>(
-            g.querySelector('.c3-circle-' + (index - 1))
-          );
-          if (!circle) return;
-          circle.style.stroke = 'orange';
-          circle.style.strokeWidth = '4';
-        }
-      });
+      for (let index = 0; index < column.length; index++) {
+        const value = column[index];
+        styleMissingPointIfFound(timestamp, value, index);
+      }
     }
   }
 

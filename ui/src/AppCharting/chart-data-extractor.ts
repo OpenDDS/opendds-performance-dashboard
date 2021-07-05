@@ -1,4 +1,4 @@
-import type {Data, Primitive, PrimitiveArray} from 'c3';
+import type {Data, PrimitiveArray} from 'c3';
 import type {
   BenchmarkIdentifier,
   Benchmarks,
@@ -14,14 +14,20 @@ export const BY_TIMESTAMP: ChartType = 'by timestamp';
 
 /**
  * An Array of strings or numbers used in C3 Charts
+ * @link C3 Types https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/c3/index.d.ts
  */
 export type ChartingArray = [string, ...PrimitiveArray];
 
 /**
  * An Array of Arrays of string | numbers use in C3 Charts
+ * @link C3 Types https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/c3/index.d.ts
  */
 export type ChartingColumns = Array<ChartingArray>;
 
+/**
+ * Chart Data Strucutre for C3 Charts
+ * @link C3 Types https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/c3/index.d.ts
+ */
 export type ChartFactoryData = Data;
 
 export type ChartFactoryCallback = (
@@ -58,19 +64,6 @@ export function chartDataFactory(type: ChartType) {
     const data = await fn(collectedData, timestamps, opts);
     return mutating_assignNames(data);
   };
-}
-
-export function mutating_assignNames(data: Data): Data {
-  data.names = {};
-  for (const column of data.columns) {
-    const name = <string>column[0];
-    if (name.includes('_')) data.names[name] = classNameToDateTime(name);
-  }
-  return data;
-}
-
-export function isFanScenario(scenario: Scenario): boolean {
-  return (scenario || '').startsWith('fan_');
 }
 
 export async function getChartDataBySize(
@@ -159,6 +152,25 @@ export async function getChartDataByTimestamp(
   return {...data, columns, xFormat};
 }
 
+export function getDataNames(
+  collectedData: Benchmarks,
+  {scenario, serverCount}: Pick<FormConfiguration, 'scenario' | 'serverCount'>
+): string[] {
+  const isFan = isFanScenario(scenario);
+  const dataNames = new Set<string>();
+  for (const timestampObj of Object.values(collectedData)) {
+    const scenarioObj = timestampObj[scenario];
+    if (scenarioObj) {
+      for (const dataName of Object.keys(scenarioObj)) {
+        if (!isFan || dataName.endsWith('_' + serverCount)) {
+          dataNames.add(isFan ? dataName.split('_')[0] : dataName);
+        }
+      }
+    }
+  }
+  return [...dataNames].sort((n1, n2) => Number(n1) - Number(n2));
+}
+
 export function getSizes(
   collectedData: Benchmarks,
   {scenario, serverCount}: Pick<FormConfiguration, 'scenario' | 'serverCount'>
@@ -180,21 +192,18 @@ export function getSizes(
   return [...sizes].sort((n1, n2) => Number(n1) - Number(n2));
 }
 
-export function getDataNames(
-  collectedData: Benchmarks,
-  {scenario, serverCount}: Pick<FormConfiguration, 'scenario' | 'serverCount'>
-): string[] {
-  const isFan = isFanScenario(scenario);
-  const dataNames = new Set<string>();
-  for (const timestampObj of Object.values(collectedData)) {
-    const scenarioObj = timestampObj[scenario];
-    if (scenarioObj) {
-      for (const dataName of Object.keys(scenarioObj)) {
-        if (!isFan || dataName.endsWith('_' + serverCount)) {
-          dataNames.add(isFan ? dataName.split('_')[0] : dataName);
-        }
-      }
-    }
+export function isFanScenario(scenario: Scenario): boolean {
+  return (scenario || '').startsWith('fan_');
+}
+
+//----------------------------------------------------------------
+// Internals
+//------------------------------------------------------------
+function mutating_assignNames(data: Data): Data {
+  data.names = {};
+  for (const column of data.columns) {
+    const name = <string>column[0];
+    if (name.includes('_')) data.names[name] = classNameToDateTime(name);
   }
-  return [...dataNames].sort((n1, n2) => Number(n1) - Number(n2));
+  return data;
 }

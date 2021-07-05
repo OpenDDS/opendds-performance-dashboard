@@ -61,16 +61,6 @@ export const axisFactory = () => ({
 //----------------------------------------------------------------------------
 // Pure Functions For Chart Data
 //----------------------------------------------------------------------------
-
-export function getAxisYLabel(
-  {plotType, statName}: FormConfiguration,
-  {statProperties}: HasStatPropertiesOptions
-) {
-  if (!plotType) return '';
-  const unit = statProperties[plotType].units;
-  return [statName, unit].filter(i => i).join(' ');
-}
-
 export function getAxisXLabel(
   {chartType}: FormConfiguration,
   {hasNodes}: HasNodesOptions
@@ -82,15 +72,20 @@ export function getAxisXLabel(
     : 'payload size in bytes';
 }
 
-export const getLegendTitle = (
-  {chartType}: FormConfiguration,
-  {hasNodes}: HasNodesOptions
-) =>
-  chartType === BY_SIZE
-    ? 'Timestamp'
-    : hasNodes
-    ? 'Node Count'
-    : 'Payload Bytes';
+export function getAxisXTimeStampType({
+  useTimeSeries
+}: HasUseTimeSeriesOptions): XAxisType {
+  return useTimeSeries ? 'timeseries' : 'category';
+}
+
+export function getAxisYLabel(
+  {plotType, statName}: FormConfiguration,
+  {statProperties}: HasStatPropertiesOptions
+) {
+  if (!plotType) return '';
+  const unit = statProperties[plotType].units;
+  return [statName, unit].filter(i => i).join(' ');
+}
 
 export function getAxisYMin(
   {useLogScale}: HasLogScaleOptions,
@@ -112,13 +107,17 @@ export function getAxisYMin(
   return minY;
 }
 
-export function getYAxisType({useLogScale}: HasLogScaleOptions): YAxisType {
+export function getAxisYType({useLogScale}: HasLogScaleOptions): YAxisType {
   if (useLogScale) return 'log';
   return 'linear';
 }
 
-export function getTimeStampXAxisType({
-  useTimeSeries
-}: HasUseTimeSeriesOptions): XAxisType {
-  return useTimeSeries ? 'timeseries' : 'category';
-}
+export const getLegendTitle = (
+  {chartType}: FormConfiguration,
+  {hasNodes}: HasNodesOptions
+) =>
+  chartType === BY_SIZE
+    ? 'Timestamp'
+    : hasNodes
+    ? 'Node Count'
+    : 'Payload Bytes';
