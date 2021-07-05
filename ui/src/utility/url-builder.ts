@@ -10,6 +10,19 @@
 const ARRAY_SYMBOLIZER = '[]';
 
 /**
+ * Decode Value and cast if approperiate
+ * @param value
+ * @returns
+ */
+function decodeValue(value: string) {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  const numVal = new Number(value).valueOf();
+  if (!isNaN(numVal)) return numVal;
+  return decodeURIComponent(value);
+}
+
+/**
  * Convert an object to a url encoded query string
  * @param {Object} The object to conver
  * @returns
@@ -60,11 +73,4 @@ export function queryToObject(query: string = '') {
       }
       return acc;
     }, {});
-}
-
-function decodeValue(value) {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  if (!isNaN(value)) return new Number(value).valueOf();
-  return decodeURIComponent(value);
 }
