@@ -1,8 +1,12 @@
 import {objectToQuery, queryToObject} from '../utility/url-builder';
-import {IFrameShareLink} from './generators/IFrameShareLink';
-import {WebsiteShareLink} from './generators/WebsiteShareLink';
+import {ShareLinkGeneratorIFrame} from './generators/ShareLinkIFrame';
+import {ShareLinkGeneratorWebsite} from './generators/ShareLinkWebsite';
 import {MAX_TIMESTAMPS} from '../AppTimestamps/timestamp-helpers';
-import type {ShareLink, ShareLinkOptions} from './generators/ShareLink';
+import type {
+  Sharable,
+  ShareLinkGenerator,
+  ShareLinkOptions
+} from './generators/ShareLink';
 import type {FormConfiguration, TimestampViewModel} from '../types';
 
 export type InitialDataValidationConfig = {
@@ -23,7 +27,17 @@ export type ValidationResults = {
   error?: string;
 };
 
-const linkGenerators: typeof ShareLink[] = [WebsiteShareLink, IFrameShareLink];
+//----------------------------------------------------------------
+// Share Links
+//------------------------------------------------------------
+/**
+ * The array of Share Link Generators to display
+ */
+const linkGenerators: ShareLinkGenerator[] = [
+  ShareLinkGeneratorWebsite,
+  ShareLinkGeneratorIFrame
+];
+
 /**
  * Generate an Array of Share Links based on the available drivers
  * @param {String} url the url to share
@@ -33,7 +47,7 @@ const linkGenerators: typeof ShareLink[] = [WebsiteShareLink, IFrameShareLink];
 export function generateShareLinks(
   url: string,
   options: ShareLinkOptions = {}
-): ShareLink[] {
+): Sharable[] {
   return linkGenerators.map(generator => generator.generate(url, options));
 }
 
@@ -59,21 +73,6 @@ export function configureEmbedding(opts: ShareLinkOptions) {
 }
 
 /**
- * Update the browser URL based on the form data
- */
-export function updateBrowserHistory(
-  formData: FormConfiguration,
-  updateUrl: boolean = true
-): void {
-  const sharable = {...formData}; // Make a copy
-  if (sharable.latest) {
-    delete sharable.selectedTimestamps;
-  }
-  const query = objectToQuery(sharable);
-  updateUrl && window.history.replaceState('', '', query);
-}
-
-/**
  * Extract the initial share data based on a query string
  * @param query query string
  * @returns
@@ -83,7 +82,11 @@ export const getInitialData = (
 ): Partial<FormConfiguration> => queryToObject(query);
 
 /**
- * Get Validated Data
+ * Return a set of validated data, and any errors collected during validation.
+ *
+ * @note This is split of from getInitialData in order for
+ *       Additional data points to be loaded that determine
+ *       what are valid data points.
  */
 export function getValidatedInitialData({
   initialData = {},
@@ -117,6 +120,8 @@ export function getValidatedInitialData({
     timestamps.filter((_, idx) => idx > start).map(t => t.key);
 
   const requestedTimestampsExist = () => {
+    console.log({timestamps, it: initialData.selectedTimestamps});
+
     if (!Array.isArray(initialData.selectedTimestamps)) return false;
     return initialData.selectedTimestamps.every(key =>
       timestamps.find(ts => ts.key === key)
@@ -160,4 +165,19 @@ export function getValidatedInitialData({
       }, {})
     }
   };
+}
+
+/**
+ * Update the browser URL based on the form data
+ */
+export function updateBrowserHistory(
+  formData: FormConfiguration,
+  updateUrl: boolean = true
+): void {
+  const sharable = {...formData}; // Make a copy
+  if (sharable.latest) {
+    delete sharable.selectedTimestamps;
+  }
+  const query = objectToQuery(sharable);
+  updateUrl && window.history.replaceState('', '', query);
 }
