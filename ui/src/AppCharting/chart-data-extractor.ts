@@ -6,8 +6,8 @@ import type {
   FormConfiguration,
   PlotStatistic,
   Scenario,
-  SizeRecord,
-  SizeRecordEntry,
+  ScenarioSizeRecords,
+  PlotTypeRecords,
   TimestampViewModel
 } from '../types';
 
@@ -34,7 +34,7 @@ export type ChartingColumns = Array<ChartingArray>;
 export type ChartFactoryData = Data;
 
 export type ChartFactoryCallback = (
-  collectedData: Benchmarks,
+  benchmarkMap: Benchmarks,
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
 ) => Promise<Data>;
@@ -55,23 +55,22 @@ export function classNameToDateTime(text: string): string {
   return date + ' ' + newTime;
 }
 
-export function chartDataFactory(type: ChartType) {
+export function chartDataFactory(type: ChartType): ChartFactoryCallback {
   const fn = FUNCTION_MAP[type];
   if (!fn) throw new Error(`Chart data for ${type} is not currently supported`);
 
   return async (
-    collectedData: Benchmarks,
+    benchmarkMap: Benchmarks,
     timestamps: TimestampViewModel[],
     opts: FormConfiguration
-  ) => {
-    const data = await fn(collectedData, timestamps, opts);
+  ): Promise<Data> => {
+    const data = await fn(benchmarkMap, timestamps, opts);
     return mutating_assignNames(data);
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function getChartDataBySize(
-  collectedData: Benchmarks,
+  benchmarkMap: Benchmarks,
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
 ): Promise<Data> {
@@ -79,9 +78,9 @@ export async function getChartDataBySize(
   const isFan = isFanScenario(scenario);
   const data: Data = {columns: [], x: 'x', names: {}};
 
-  if (!scenario || !statName || !plotType) return data;
+  if (!scenario || !statName || !plotType) return Promise.resolve(data);
 
-  const sizes = getSizes(collectedData, {scenario, serverCount});
+  const sizes = getSizeKeys(benchmarkMap, {scenario, serverCount});
   const arr: ChartingArray = ['x', ...sizes];
   const columns: ChartingColumns = [arr];
 
@@ -90,14 +89,16 @@ export async function getChartDataBySize(
 
     for (const size of sizes) {
       let value: number = MISSING_VALUE;
-      const key = isFan ? `${size}_${serverCount}` : size;
-      const dataPoint = collectedData[timestamp.key];
-      const sizeRecord: SizeRecord | boolean = dataPoint && dataPoint[scenario];
-      if (sizeRecord) {
-        const sizeRecordEntry: SizeRecordEntry = sizeRecord[key];
-        if (sizeRecordEntry) {
-          const stats: PlotStatistic = sizeRecordEntry[plotType];
-          if (stats && stats[statName]) value = stats[statName];
+      const sizeKey = isFan ? `${size}_${serverCount}` : size;
+      const benchmark = benchmarkMap[timestamp.key];
+      const scenarioSizeRecords: ScenarioSizeRecords | boolean =
+        benchmark && benchmark[scenario];
+      if (scenarioSizeRecords) {
+        const plotTypeRecords: PlotTypeRecords = scenarioSizeRecords[sizeKey];
+        if (plotTypeRecords) {
+          const plotStatistic: PlotStatistic = plotTypeRecords[plotType];
+          if (plotStatistic && plotStatistic[statName])
+            value = plotStatistic[statName];
         }
       }
 
@@ -106,19 +107,18 @@ export async function getChartDataBySize(
     columns.push(column);
   }
 
-  return {...data, columns};
+  return Promise.resolve({...data, columns});
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function getChartDataByTimestamp(
-  collectedData: Benchmarks,
+  benchmarkMap: Benchmarks,
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
 ): Promise<Data> {
   const {scenario, serverCount, plotType, statName} = opts;
   const data: Data = {columns: [], x: 'x', names: {}};
 
-  if (!scenario || !statName || !plotType) return data;
+  if (!scenario || !statName || !plotType) return Promise.resolve(data);
   const isFan: boolean = isFanScenario(scenario);
   // Load Data For Selected TimeStamps
 
@@ -128,7 +128,7 @@ export async function getChartDataByTimestamp(
   const arr: ChartingArray = ['x', ...xValues];
   const columns: ChartingColumns = [arr];
 
-  const dataNames: string[] = getDataNames(collectedData, {
+  const dataNames: string[] = getDataNames(benchmarkMap, {
     scenario,
     serverCount
   });
@@ -138,14 +138,14 @@ export async function getChartDataByTimestamp(
 
     for (const timestamp of timestamps) {
       let value = 0;
-      const dataPoint = collectedData[timestamp.key];
-      const dataForName = dataPoint && dataPoint[scenario];
-      if (dataPoint) {
-        const obj =
-          dataForName[isFan ? `${dataName}_${serverCount}` : dataName];
-        if (obj) {
-          const stats = obj[plotType];
-          if (stats) value = stats[statName];
+      const benchmark = benchmarkMap[timestamp.key];
+      const scenarioSizeRecords = benchmark && benchmark[scenario];
+      if (benchmark) {
+        const plotTypeRecords =
+          scenarioSizeRecords[isFan ? `${dataName}_${serverCount}` : dataName];
+        if (plotTypeRecords) {
+          const plotStatisctics = plotTypeRecords[plotType];
+          if (plotStatisctics) value = plotStatisctics[statName];
         }
       }
       column.push(value);
@@ -155,19 +155,19 @@ export async function getChartDataByTimestamp(
   }
 
   const xFormat = '%Y-%m-%d %H:%M:%S'; // date format
-  return {...data, columns, xFormat};
+  return Promise.resolve({...data, columns, xFormat});
 }
 
 export function getDataNames(
-  collectedData: Benchmarks,
+  benchmarkMap: Benchmarks,
   {scenario, serverCount}: Pick<FormConfiguration, 'scenario' | 'serverCount'>
 ): string[] {
   const isFan = isFanScenario(scenario);
   const dataNames = new Set<string>();
-  for (const timestampObj of Object.values(collectedData)) {
-    const scenarioObj = timestampObj[scenario];
-    if (scenarioObj) {
-      for (const dataName of Object.keys(scenarioObj)) {
+  for (const benchmark of Object.values(benchmarkMap)) {
+    const scenarioSizeRecords = benchmark[scenario];
+    if (scenarioSizeRecords) {
+      for (const dataName of Object.keys(scenarioSizeRecords)) {
         if (!isFan || dataName.endsWith(`_${serverCount}`)) {
           dataNames.add(isFan ? dataName.split('_')[0] : dataName);
         }
@@ -177,17 +177,17 @@ export function getDataNames(
   return [...dataNames].sort((n1, n2) => Number(n1) - Number(n2));
 }
 
-export function getSizes(
-  collectedData: Benchmarks,
+export function getSizeKeys(
+  benchmarkMap: Benchmarks,
   {scenario, serverCount}: Pick<FormConfiguration, 'scenario' | 'serverCount'>
-): (string | number)[] {
+): string[] {
   const isFan = isFanScenario(scenario);
   const sizes = new Set<string>();
 
-  for (const timestampObj of Object.values(collectedData)) {
-    const scenarioObj = timestampObj[scenario];
-    if (scenarioObj) {
-      for (const scenarioSize of Object.keys(scenarioObj)) {
+  for (const benchmark of Object.values(benchmarkMap)) {
+    const scenarioSizeRecords = benchmark[scenario];
+    if (scenarioSizeRecords) {
+      for (const scenarioSize of Object.keys(scenarioSizeRecords)) {
         if (!isFan || scenarioSize.endsWith(`_${serverCount}`)) {
           sizes.add(isFan ? scenarioSize.split('_')[0] : scenarioSize);
         }

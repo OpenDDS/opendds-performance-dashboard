@@ -91,13 +91,16 @@ export type RunIndex = Array<Run>;
 
 export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 
-export type Benchmark = Record<Scenario, SizeRecord>;
+export type Benchmark = Record<Scenario, ScenarioSizeRecords>;
 
 export type IgnoredStatistics = 'Errors' | 'Max Discovery Time Delta';
 
-export type SizeRecord = Record<ScenarioSizeIdentifier, SizeRecordEntry>;
+export type ScenarioSizeRecords = Record<
+  ScenarioSizeIdentifier,
+  PlotTypeRecords
+>;
 
-export type SizeRecordEntry = Record<
+export type PlotTypeRecords = Record<
   PlotType | IgnoredStatistics,
   PlotStatistic
 >;

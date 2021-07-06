@@ -30,7 +30,6 @@
   } from './AppSharing/share-data';
   import AppSharing from './AppSharing/AppSharing.svelte';
   import type {
-    BenchmarkIdentifier,
     FormConfiguration,
     FormSelectOptions,
     GitHubTag,
