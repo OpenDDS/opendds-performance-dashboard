@@ -4,7 +4,10 @@ import type {
   Benchmarks,
   ChartType,
   FormConfiguration,
+  PlotStatistic,
   Scenario,
+  SizeRecord,
+  SizeRecordEntry,
   TimestampViewModel
 } from '../types';
 
@@ -66,6 +69,7 @@ export function chartDataFactory(type: ChartType) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function getChartDataBySize(
   collectedData: Benchmarks,
   timestamps: TimestampViewModel[],
@@ -73,7 +77,7 @@ export async function getChartDataBySize(
 ): Promise<Data> {
   const {scenario, serverCount, plotType, statName} = opts;
   const isFan = isFanScenario(scenario);
-  let data: Data = {columns: [], x: 'x', names: {}};
+  const data: Data = {columns: [], x: 'x', names: {}};
 
   if (!scenario || !statName || !plotType) return data;
 
@@ -83,16 +87,17 @@ export async function getChartDataBySize(
 
   for (const timestamp of timestamps) {
     const column: ChartingArray = [classNameFromBenchmarkKey(timestamp.key)];
+
     for (const size of sizes) {
       let value: number = MISSING_VALUE;
-      const key = isFan ? size + '_' + serverCount : size;
+      const key = isFan ? `${size}_${serverCount}` : size;
       const dataPoint = collectedData[timestamp.key];
-      let obj = dataPoint && dataPoint[scenario];
-      if (obj) {
-        let objVal = obj[key];
-        if (objVal) {
-          const stats = objVal[plotType];
-          if (stats) value = stats[statName];
+      const sizeRecord: SizeRecord | boolean = dataPoint && dataPoint[scenario];
+      if (sizeRecord) {
+        const sizeRecordEntry: SizeRecordEntry = sizeRecord[key];
+        if (sizeRecordEntry) {
+          const stats: PlotStatistic = sizeRecordEntry[plotType];
+          if (stats && stats[statName]) value = stats[statName];
         }
       }
 
@@ -104,13 +109,14 @@ export async function getChartDataBySize(
   return {...data, columns};
 }
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function getChartDataByTimestamp(
   collectedData: Benchmarks,
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
 ): Promise<Data> {
   const {scenario, serverCount, plotType, statName} = opts;
-  let data: Data = {columns: [], x: 'x', names: {}};
+  const data: Data = {columns: [], x: 'x', names: {}};
 
   if (!scenario || !statName || !plotType) return data;
   const isFan: boolean = isFanScenario(scenario);
@@ -136,7 +142,7 @@ export async function getChartDataByTimestamp(
       const dataForName = dataPoint && dataPoint[scenario];
       if (dataPoint) {
         const obj =
-          dataForName[isFan ? dataName + '_' + serverCount : dataName];
+          dataForName[isFan ? `${dataName}_${serverCount}` : dataName];
         if (obj) {
           const stats = obj[plotType];
           if (stats) value = stats[statName];
@@ -162,7 +168,7 @@ export function getDataNames(
     const scenarioObj = timestampObj[scenario];
     if (scenarioObj) {
       for (const dataName of Object.keys(scenarioObj)) {
-        if (!isFan || dataName.endsWith('_' + serverCount)) {
+        if (!isFan || dataName.endsWith(`_${serverCount}`)) {
           dataNames.add(isFan ? dataName.split('_')[0] : dataName);
         }
       }
@@ -182,7 +188,7 @@ export function getSizes(
     const scenarioObj = timestampObj[scenario];
     if (scenarioObj) {
       for (const scenarioSize of Object.keys(scenarioObj)) {
-        if (!isFan || scenarioSize.endsWith('_' + serverCount)) {
+        if (!isFan || scenarioSize.endsWith(`_${serverCount}`)) {
           sizes.add(isFan ? scenarioSize.split('_')[0] : scenarioSize);
         }
       }
@@ -202,7 +208,7 @@ export function isFanScenario(scenario: Scenario): boolean {
 function mutating_assignNames(data: Data): Data {
   data.names = {};
   for (const column of data.columns) {
-    const name = <string>column[0];
+    const name = column[0];
     if (name.includes('_')) data.names[name] = classNameToDateTime(name);
   }
   return data;

@@ -22,11 +22,33 @@ export type GitSha = string;
  */
 export type BuildHash = string;
 
-export type Scenario = string;
+export type Scenario =
+  | 'disco'
+  | 'echo_rtps'
+  | 'echo_tcp'
+  | 'fan_rtps'
+  | 'fan_tcp'
+  | 'showtime_mixed';
 
-export type StatName = string;
+export type PlotType =
+  | 'Discovery Time Delta'
+  | 'Cpu Utilization'
+  | 'Memory Utilization'
+  | 'Virtual Memory Utilization'
+  | 'Latency'
+  | 'Jitter'
+  | 'Round Trip Latency'
+  | 'Round Trip Jitter';
 
-export type PlotType = string;
+export type StatName =
+  | 'count'
+  | 'min'
+  | 'max'
+  | 'mean'
+  | 'stdev'
+  | 'median'
+  | 'madev'
+  | 'overflow';
 
 export type ChartType = 'by size' | 'by timestamp';
 
@@ -41,6 +63,7 @@ export type FormConfiguration = {
   selectedTimestamps?: Array<BenchmarkIdentifier>;
   latest?: number;
 };
+export type FormConfigurationKeys = keyof FormConfiguration;
 
 export type FormSelectOptions = {
   scenarios: Array<Scenario>;
@@ -65,27 +88,20 @@ export type Run = {
 
 export type RunIndex = Array<Run>;
 
-export type PlotStatKeys =
-  | 'count'
-  | 'min'
-  | 'max'
-  | 'mean'
-  | 'stdev'
-  | 'median'
-  | 'madev'
-  | 'overflow';
-export type SizeRecordKeys = 'Errors' | 'Max Discovery Time Delta';
-
-export type PlotStatistic = Record<PlotStatKeys, number>;
-export type PlotEntries = Record<PlotType, PlotStatistic>;
-
-export type SizeRecordEntry = Record<PlotStatKeys | SizeRecordKeys, number>;
-
-export type SizeRecord = Record<ScenarioSizeIdentifier, SizeRecordEntry>;
+export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 
 export type Benchmark = Record<Scenario, SizeRecord>;
 
-export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
+export type IgnoredStatistics = 'Errors' | 'Max Discovery Time Delta';
+
+export type SizeRecord = Record<ScenarioSizeIdentifier, SizeRecordEntry>;
+
+export type SizeRecordEntry = Record<
+  PlotType | IgnoredStatistics,
+  PlotStatistic
+>;
+
+export type PlotStatistic = Record<StatName, number>;
 
 export type GitHubTag = {
   name: string;

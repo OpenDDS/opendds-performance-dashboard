@@ -98,21 +98,21 @@ export const dataStore = {
  * @deprecated Use the incremental loader
  */
 export async function getAllScraped(): Promise<Benchmarks> {
-  return fetcher.get('/bench2/scrape_output.json');
+  return fetcher.get<Benchmarks>('/bench2/scrape_output.json');
 }
 
 /**
  * Get the Stat Properties
  */
 export async function getStatProperties(): Promise<StatProperties> {
-  return fetcher.get('/bench2/stat_properties.json');
+  return fetcher.get<StatProperties>('/bench2/stat_properties.json');
 }
 
 /**
  * Get List of runs with relevant
  */
 export async function getRunIndex(): Promise<RunIndex> {
-  return fetcher.get('/bench2/run_index.json');
+  return fetcher.get<RunIndex>('/bench2/run_index.json');
 }
 
 /**
@@ -122,7 +122,9 @@ export async function getEntries(
   ids: BenchmarkIdentifier[] = []
 ): Promise<BenchmarkEntriesResponse> {
   const data = await Promise.all(
-    ids.map<Promise<BenchmarkEntry | Error>>(i => getEntry(i).catch(e => e))
+    ids.map<Promise<BenchmarkEntry | Error>>(i =>
+      getEntry(i).catch(e => <Error>e)
+    )
   );
 
   const collector: BenchmarkEntriesResponse = {
@@ -150,16 +152,19 @@ export async function getEntry(
  * Load GitHub Tags for the OpenDDS Repo
  * @returns Promise<Array>
  */
-export async function getGitTags() {
+export async function getGitTags(): Promise<GitHubTag[]> {
   const url =
     'https://api.github.com/repos/objectcomputing/OpenDDS/tags?per_page=100';
-  const aggregatedFetch = async (url: string, data: GitHubTag[] = []) => {
+  const aggregatedFetch = async (
+    url: string,
+    data: GitHubTag[] = []
+  ): Promise<GitHubTag[]> => {
     const response = await fetch(url);
 
     if (!response.ok) {
-      const {message} = await response
-        .json()
-        .catch(() => ({message: 'Something went wrong'}));
+      const {message} = <{message: string}>(
+        await response.json().catch(() => ({message: 'Something went wrong'}))
+      );
       throw new Error(message);
     }
     const next = <GitHubTag[]>await response.json();
@@ -180,20 +185,23 @@ export async function getGitTags() {
 // Underlying Fetcher utility
 //------------------------------------------------------------
 const fetcher = {
-  get: (url: string) => fetch(withBaseUrl(url)).then(responseHandler)
-};
-
-const responseHandler = async (response: Response) => {
-  try {
-    if (!response.ok) {
-      const json = await response.json();
-      throw new Error(json.message || 'Something Went Wrong');
-    }
-    return response.json();
-  } catch (error) {
-    throw new Error(error.message);
+  async get<T>(url: string): Promise<T> {
+    const response = await fetch(withBaseUrl(url));
+    return responseHandler(response);
   }
 };
+
+async function responseHandler<T>(response: Response) {
+  try {
+    if (!response.ok) {
+      const json = (await response.json()) as {message: string};
+      throw new Error(json.message || 'Something Went Wrong');
+    }
+    return <T>await response.json();
+  } catch (error) {
+    throw new Error((<Error>error).message);
+  }
+}
 
 const withBaseUrl = (url: string) =>
   `${BASE_URL}${('/' + url).replace('//', '/')}`;
@@ -206,14 +214,14 @@ const LINKS_MATCHER = /<?([^>]*)>(.*)/;
 const LINKS_REL_MATCHER = /\s*(.+)\s*=\s*"?([^"]+)"?/;
 
 function getRelKey(acc: Record<string, string>, p: string) {
-  const m = p.match(LINKS_REL_MATCHER);
+  const m = LINKS_REL_MATCHER.exec(p);
   if (m) acc[m[1]] = m[2];
   return acc;
 }
 
 function parseLink(string: string): Record<string, string> | null {
   try {
-    const matches = string.match(LINKS_MATCHER);
+    const matches = LINKS_MATCHER.exec(string);
     const url = matches[1];
     const parts = matches[2].split(';');
     const link = parts.reduce(getRelKey, {});

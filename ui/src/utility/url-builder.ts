@@ -27,18 +27,18 @@ function decodeValue(value: string) {
  * @param {Object} The object to conver
  * @returns
  */
-export function objectToQuery(object: Record<string, any> = {}) {
+export function objectToQuery(object: Record<string, unknown> = {}): string {
   return (
     '?' +
     Object.entries(object)
-      .reduce((acc, [key, value]) => {
+      .reduce((acc, [key, value]): string[] => {
         if (value !== undefined && value !== null) {
           if (Array.isArray(value)) {
             value.forEach(value =>
               acc.push(`${key}${ARRAY_SYMBOLIZER}=${encodeURIComponent(value)}`)
             );
           } else {
-            acc.push(`${key}=${encodeURIComponent(value)}`);
+            acc.push(`${key}=${encodeURIComponent(value.toString())}`);
           }
         }
         return acc;
@@ -47,12 +47,17 @@ export function objectToQuery(object: Record<string, any> = {}) {
   );
 }
 
+type Primitive = string | number | boolean;
+type PrimitiveArray = Array<string | number | boolean>;
+
 /**
  * Convert a Query string to an Object
  * @param query The Query String
  * @returns
  */
-export function queryToObject(query: string = '') {
+export function queryToObject(
+  query = ''
+): Record<string, Primitive | PrimitiveArray> {
   if (typeof query !== 'string' || !query.includes('=')) {
     return {};
   }
@@ -67,10 +72,10 @@ export function queryToObject(query: string = '') {
         if (!Array.isArray(acc[cleanKey])) {
           acc[cleanKey] = [];
         }
-        acc[cleanKey].push(deserialized);
+        (<PrimitiveArray>acc[cleanKey]).push(deserialized);
       } else {
         acc[key] = deserialized;
       }
       return acc;
-    }, {});
+    }, <Record<string, Primitive | PrimitiveArray>>{});
 }

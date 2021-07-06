@@ -2,7 +2,13 @@
   import Select from '../components/Select.svelte';
   import {BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
   import {CHART_TYPES, DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
-  import type {FormConfiguration, FormSelectOptions, PlotType} from '../types';
+  import type {
+    FormConfiguration,
+    FormSelectOptions,
+    PlotType,
+    Scenario,
+    StatName
+  } from '../types';
 
   export let options: FormSelectOptions;
   export let form: FormConfiguration;
@@ -28,8 +34,8 @@
   }
 
   function scenarioChanged(event: Event) {
-    form.scenario = (<HTMLInputElement>event.target).value;
-    if (form.statName === MDTD) form.statName = DEFAULT_STAT_NAME;
+    form.scenario = <Scenario>(<HTMLInputElement>event.target).value;
+    if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
   }
 </script>
 

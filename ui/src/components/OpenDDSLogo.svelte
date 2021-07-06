@@ -1,6 +1,7 @@
 <script lang="ts">
   import {onMount} from 'svelte';
   import {draw} from 'svelte/transition';
+  import type {TransitionConfig} from 'svelte/transition';
 
   let visible = false;
   onMount(() => {
@@ -9,10 +10,11 @@
 
   let pending = -1;
   $: ready = visible && pending === 0;
-  const onComplete = () => {
+  const onComplete = (): void => {
     pending--;
   };
-  const makeDrawConfig = () => {
+
+  const makeDrawConfig = (): TransitionConfig => {
     pending = Math.max(1, pending + 1);
     return {delay: Math.random() * 200, duration: 2000};
   };

@@ -7,7 +7,11 @@ import type {
   ShareLinkGenerator,
   ShareLinkOptions
 } from './generators/ShareLink';
-import type {FormConfiguration, TimestampViewModel} from '../types';
+import type {
+  FormConfiguration,
+  FormConfigurationKeys,
+  TimestampViewModel
+} from '../types';
 
 export type InitialDataValidationConfig = {
   initialData: Partial<FormConfiguration>;
@@ -56,7 +60,9 @@ export function generateShareLinks(
  * @param  opts configuration options
  * @returns Configuration information
  */
-export function configureEmbedding(opts: ShareLinkOptions) {
+export function configureEmbedding(
+  opts: ShareLinkOptions
+): {isEmbedded: boolean} {
   const {embed, text_color} = opts;
   const isEmbedded = embed === 'iframe';
   if (embed === 'iframe') {
@@ -93,7 +99,7 @@ export function getValidatedInitialData({
   timestamps = [],
   defaultCount = 2
 }: InitialDataValidationConfig): ValidationResults {
-  const required = [
+  const required: FormConfigurationKeys[] = [
     'scenario',
     'plotType',
     'statName',
@@ -103,7 +109,7 @@ export function getValidatedInitialData({
     'selectedTimestamps'
   ];
 
-  const optional = ['serverCount', 'latest'];
+  const optional: FormConfigurationKeys[] = ['serverCount', 'latest'];
 
   if (initialData.latest && !isNaN(initialData.latest)) {
     const latest = Math.min(initialData.latest, MAX_TIMESTAMPS);
@@ -112,7 +118,9 @@ export function getValidatedInitialData({
       .map(t => t.key);
   }
 
-  const keys = Object.keys(initialData).filter(key => required.includes(key));
+  const keys = Object.keys(initialData).filter((key: FormConfigurationKeys) =>
+    required.includes(key)
+  );
 
   const start = timestamps.length - defaultCount;
 
@@ -120,8 +128,6 @@ export function getValidatedInitialData({
     timestamps.filter((_, idx) => idx > start).map(t => t.key);
 
   const requestedTimestampsExist = () => {
-    console.log({timestamps, it: initialData.selectedTimestamps});
-
     if (!Array.isArray(initialData.selectedTimestamps)) return false;
     return initialData.selectedTimestamps.every(key =>
       timestamps.find(ts => ts.key === key)
@@ -155,14 +161,19 @@ export function getValidatedInitialData({
     );
   }
 
+  const collector: Partial<FormConfiguration> = {};
+
   return {
     error: null,
     validated: {
-      ...[...keys, ...optional].reduce((acc, key) => {
-        const value = initialData[key];
-        if (value) acc[key] = value;
-        return acc;
-      }, {})
+      ...[...keys, ...optional].reduce(
+        (acc: Record<string, unknown>, key: FormConfigurationKeys) => {
+          const value = initialData[key];
+          if (value) acc[key] = value;
+          return acc;
+        },
+        collector
+      )
     }
   };
 }
@@ -172,7 +183,7 @@ export function getValidatedInitialData({
  */
 export function updateBrowserHistory(
   formData: FormConfiguration,
-  updateUrl: boolean = true
+  updateUrl = true
 ): void {
   const sharable = {...formData}; // Make a copy
   if (sharable.latest) {

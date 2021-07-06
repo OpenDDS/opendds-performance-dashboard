@@ -1,4 +1,4 @@
-let enabled = true;
+const enabled = true;
 
 //----------------------------------------------------------------
 // Cache Durations
@@ -33,8 +33,8 @@ function setOrClear<T>(key: string, data: T, tried = false): void {
   } catch (error) {
     if (
       !tried &&
-      error.QUOTA_EXCEEDED_ERR &&
-      error.code === error.QUOTA_EXCEEDED_ERR
+      (<DOMException>error).QUOTA_EXCEEDED_ERR &&
+      (<DOMException>error).code === (<DOMException>error).QUOTA_EXCEEDED_ERR
     ) {
       localStorage.clear();
       return setOrClear(key, data, true);
@@ -92,7 +92,7 @@ export const Cache: CacheInterface = {
         const existing = localStorage.getItem(key);
         if (existing) return <T>JSON.parse(existing);
       } catch (error) {
-        console.warn('Error checking expriing storage', error.message);
+        console.warn('Error checking expriing storage', error);
       }
     }
 
@@ -119,12 +119,12 @@ export const Cache: CacheInterface = {
       const existing = localStorage.getItem(key);
       if (existing) {
         try {
-          const entity = JSON.parse(existing);
-          if (!ExpiringEntity.isExpired(entity, ttl)) {
-            return <T>entity.data;
+          const entity = <{data?: T}>JSON.parse(existing);
+          if (!ExpiringEntity.isExpired(entity, ttl) && entity.data) {
+            return entity.data;
           }
         } catch (error) {
-          console.warn('Error checking expiring storage', error.message);
+          console.warn('Error checking expiring storage', error);
         }
       }
     }

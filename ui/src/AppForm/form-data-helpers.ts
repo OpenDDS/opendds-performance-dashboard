@@ -2,8 +2,10 @@ import {BY_SIZE, BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
 import type {
   BenchmarkIdentifier,
   Benchmarks,
+  FormSelectOptions,
   PlotType,
   Scenario,
+  IgnoredStatistics,
   StatName
 } from '../types';
 export const MDTD = 'Max Discovery Time Delta';
@@ -15,9 +17,11 @@ export const DEFAULT_SCENARIO = 'fan_rtps';
 export const DEFAULT_STAT_NAME = 'mean';
 export const DEFAULT_SERVER_COUNT = 16;
 
-export function deriveSelectOptionsFromData(benchmarks: Benchmarks) {
+export function deriveSelectOptionsFromData(
+  benchmarks: Benchmarks
+): FormSelectOptions {
   const uniqueScenarios = new Set<Scenario>();
-  const uniquePlotTypes = new Set<PlotType>();
+  const uniquePlotTypes = new Set<PlotType | IgnoredStatistics>();
   const uniqueStatNames = new Set<StatName>();
   const uniqueServerCounts = new Map<BenchmarkIdentifier, Set<number>>();
 
@@ -34,24 +38,26 @@ export function deriveSelectOptionsFromData(benchmarks: Benchmarks) {
 
   benchmarkEntries.forEach(timestampObj => {
     for (const [scenario, scenarioObj] of Object.entries(timestampObj)) {
-      uniqueScenarios.add(scenario);
+      uniqueScenarios.add(<Scenario>scenario);
 
-      for (const [scenarioSize, sizeObj] of Object.entries(scenarioObj)) {
-        updateServerCount(scenario, scenarioSize.split('_')[1]);
+      for (const [size, sizeEntry] of Object.entries(scenarioObj)) {
+        updateServerCount(<Scenario>scenario, size.split('_')[1]);
 
-        for (const [plotType, plotTypeObj] of Object.entries(sizeObj)) {
-          uniquePlotTypes.add(plotType);
+        for (const [plotType, plotTypeObj] of Object.entries(sizeEntry)) {
+          uniquePlotTypes.add(<PlotType>plotType);
 
           for (const statName of Object.keys(plotTypeObj)) {
-            uniqueStatNames.add(statName);
+            uniqueStatNames.add(<StatName>statName);
           }
         }
       }
     }
   });
 
+  // Cleanup and remove size records from plot type entries
   uniquePlotTypes.delete('Errors');
   uniquePlotTypes.delete(MDTD);
+  const allPlotTypes = <PlotType[]>[...uniquePlotTypes].sort();
 
   const serverCountMap = Object.entries(
     Object.fromEntries(uniqueServerCounts)
@@ -62,8 +68,8 @@ export function deriveSelectOptionsFromData(benchmarks: Benchmarks) {
 
   return {
     scenarios: [...uniqueScenarios].sort(),
-    allPlotTypes: [...uniquePlotTypes].sort(),
+    allPlotTypes,
     statNames: [...uniqueStatNames].sort(),
-    serverCountMap
+    serverCountMap: <Record<Scenario, Array<number>>>serverCountMap
   };
 }

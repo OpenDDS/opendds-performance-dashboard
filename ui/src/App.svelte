@@ -29,7 +29,7 @@
     updateBrowserHistory
   } from './AppSharing/share-data';
   import AppSharing from './AppSharing/AppSharing.svelte';
-  import type {FormConfiguration, FormSelectOptions} from './types';
+  import type {FormConfiguration, FormSelectOptions, Scenario} from './types';
 
   export let initialData = {};
   const {isEmbedded} = configureEmbedding(initialData);
@@ -55,10 +55,11 @@
     scenarios: [],
     allPlotTypes: [],
     statNames: [],
-    serverCountMap: {[form.scenario]: []}
+    serverCountMap: <Record<Scenario, number[]>>{[form.scenario]: []}
   };
 
   let selectingTimestamps = false;
+  let selectedTimestamps = [];
   let serverCounts = [];
   let statProperties;
   let timestamps = [];
@@ -69,18 +70,35 @@
   $: scenario = form.scenario;
   $: serverCount = form.serverCount;
   $: serverCountMap = selectOptions.serverCountMap;
-  $: selectedTimestamps = form.selectedTimestamps;
-  $: isReady = $dataStore && statProperties && timestamps.length;
 
+  $: isReady = statProperties && timestamps.length > 0;
+
+  $: {
+    // form.selectedTimestamps = selectedTimestamps;
+  }
   //-------------------------------------------------------------------------------
   // Observed
   //--------------------------------------------------------------------
+  $: {
+    console.log({isReady});
+  }
+
+  $: {
+    console.log({selectedTimestamps});
+  }
+
   $: if (isReady) {
     loadBenchmarks(selectedTimestamps);
   }
 
   $: {
-    updateBrowserHistory(form, !isEmbedded);
+    updateBrowserHistory(
+      {
+        ...form,
+        ...selectedTimestamps
+      },
+      !isEmbedded
+    );
   }
 
   // We'll only re-render the chart once the
@@ -124,6 +142,7 @@
         defaultCount: DEFAULT_RECENT_COUNT
       });
       form = {...form, ...validated};
+      selectedTimestamps = form.selectedTimestamps;
       if (error) throw new Error(error);
     } catch (error) {
       onError(error);
@@ -211,7 +230,7 @@
       bind:latest={form.latest}
       selected={selectedTimestamps}
       on:change={({detail}) => {
-        form.selectedTimestamps = detail;
+        selectedTimestamps = detail;
       }}
       on:close={() => (selectingTimestamps = false)}
     />

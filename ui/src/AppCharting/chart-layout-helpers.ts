@@ -4,7 +4,7 @@ import type {
   YAxisConfiguration,
   YAxisType
 } from 'c3';
-import type {FormConfiguration, StatProperties} from '../types';
+import type {ChartType, FormConfiguration, StatProperties} from '../types';
 import {BY_SIZE, BY_TIMESTAMP, ChartFactoryData} from './chart-data-extractor';
 
 type HasStatPropertiesOptions = {statProperties: StatProperties};
@@ -30,33 +30,40 @@ export const yAxis: YAxisConfiguration = {
   type: 'linear'
 };
 
-export const axisFactory = () => ({
-  [BY_SIZE]: {
-    x: <XAxisConfiguration>{
-      label: {
-        position: 'outer-left'
+type AxisFactoryEntry = Record<
+  ChartType,
+  {x: XAxisConfiguration; y: YAxisConfiguration}
+>;
+
+export function axisFactory(): AxisFactoryEntry {
+  return {
+    'by size': {
+      x: <XAxisConfiguration>{
+        label: {
+          position: 'outer-left'
+        },
+        type: 'category'
       },
-      type: 'category'
+      y: yAxis
     },
-    y: yAxis
-  },
-  [BY_TIMESTAMP]: {
-    x: <XAxisConfiguration>{
-      label: {
-        position: 'outer-left',
-        text: 'Timestamp'
+    'by timestamp': {
+      x: <XAxisConfiguration>{
+        label: {
+          position: 'outer-left',
+          text: 'Timestamp'
+        },
+        //type: 'category',
+        tick: {
+          culling: false,
+          fit: false,
+          format: '%Y-%m-%d %H:%M:%S', // display format
+          rotate: -90
+        }
       },
-      //type: 'category',
-      tick: {
-        culling: false,
-        fit: false,
-        format: '%Y-%m-%d %H:%M:%S', // display format
-        rotate: -90
-      }
-    },
-    y: yAxis
-  }
-});
+      y: yAxis
+    }
+  };
+}
 
 //----------------------------------------------------------------------------
 // Pure Functions For Chart Data
@@ -64,7 +71,7 @@ export const axisFactory = () => ({
 export function getAxisXLabel(
   {chartType}: FormConfiguration,
   {hasNodes}: HasNodesOptions
-) {
+): string {
   return chartType === BY_TIMESTAMP
     ? 'timestamp'
     : hasNodes
@@ -81,7 +88,7 @@ export function getAxisXTimeStampType({
 export function getAxisYLabel(
   {plotType, statName}: FormConfiguration,
   {statProperties}: HasStatPropertiesOptions
-) {
+): string {
   if (!plotType) return '';
   const unit = statProperties[plotType].units;
   return [statName, unit].filter(i => i).join(' ');
@@ -115,7 +122,7 @@ export function getAxisYType({useLogScale}: HasLogScaleOptions): YAxisType {
 export const getLegendTitle = (
   {chartType}: FormConfiguration,
   {hasNodes}: HasNodesOptions
-) =>
+): string =>
   chartType === BY_SIZE
     ? 'Timestamp'
     : hasNodes
