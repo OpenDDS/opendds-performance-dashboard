@@ -8,13 +8,23 @@ import type {
   ShareLinkOptions
 } from './generators/ShareLink';
 import type {
+  BenchmarkIdentifier,
   FormConfiguration,
   FormConfigurationKeys,
+  SelectedTimestamps,
   TimestampViewModel
 } from '../types';
 
+/**
+ * The shape of initial data parsed from Query
+ * This is a union of the form and the selected timestamps
+ */
+export type InitialData = Partial<FormConfiguration> & {
+  selectedTimestamps?: BenchmarkIdentifier[];
+};
+
 export type InitialDataValidationConfig = {
-  initialData: Partial<FormConfiguration>;
+  initialData: InitialData;
   timestamps: TimestampViewModel[];
   defaultCount: number;
 };
@@ -24,6 +34,11 @@ export type ValidationResults = {
    * Any valid piece of form data.
    */
   validated: Partial<FormConfiguration>;
+
+  /**
+   * The Selected Timestamps
+   */
+  selected: BenchmarkIdentifier[];
 
   /**
    * The Message, if any, of the error
@@ -85,7 +100,8 @@ export function configureEmbedding(
  */
 export const getInitialData = (
   query: string = window.location.search
-): Partial<FormConfiguration> => queryToObject(query);
+): Partial<FormConfiguration & {selectedTimestamps: SelectedTimestamps}> =>
+  queryToObject(query);
 
 /**
  * Return a set of validated data, and any errors collected during validation.
@@ -99,47 +115,69 @@ export function getValidatedInitialData({
   timestamps = [],
   defaultCount = 2
 }: InitialDataValidationConfig): ValidationResults {
+  /**
+   * Function to Grab the fallback selected timestamps
+   */
+  const defaultSelected = (): BenchmarkIdentifier[] => {
+    const start = timestamps.length - defaultCount;
+    return timestamps.filter((_, idx) => idx > start).map(t => t.key);
+  };
+
+  /**
+   * Function to determine if ALL requested timestamps exists
+   */
+  const requestedTimestampsExist = (): boolean => {
+    if (!Array.isArray(selectedTimestamps)) return false;
+    return selectedTimestamps.every(key =>
+      timestamps.find(ts => ts.key === key)
+    );
+  };
+
+  /**
+   * Utility function to return an error response
+   * @param message the error message
+   * @param validated any configuraiton that has passed validation
+   */
+  const onError = (
+    message: string | null,
+    validated: Partial<FormConfiguration> = {}
+  ) => {
+    return {
+      error: message,
+      selected: defaultSelected(),
+      validated
+    };
+  };
+
+  /** Required Form Keys, if any are missing the entire thing is in error */
   const required: FormConfigurationKeys[] = [
     'scenario',
     'plotType',
     'statName',
     'chartType',
     'useTimeSeries',
-    'useLogScale',
-    'selectedTimestamps'
+    'useLogScale'
   ];
 
+  /**
+   * Optional keys
+   */
   const optional: FormConfigurationKeys[] = ['serverCount', 'latest'];
 
-  if (initialData.latest && !isNaN(initialData.latest)) {
-    const latest = Math.min(initialData.latest, MAX_TIMESTAMPS);
-    initialData.selectedTimestamps = timestamps
+  // spread out timestamps from form configuration
+  /* eslint-disable-next-line prefer-const */
+  let {selectedTimestamps, ...unvalidated} = initialData;
+
+  if (unvalidated.latest && !isNaN(unvalidated.latest)) {
+    const latest = Math.min(unvalidated.latest, MAX_TIMESTAMPS);
+    selectedTimestamps = timestamps
       .slice(timestamps.length - latest, timestamps.length)
       .map(t => t.key);
   }
 
-  const keys = Object.keys(initialData).filter((key: FormConfigurationKeys) =>
+  const keys = Object.keys(unvalidated).filter((key: FormConfigurationKeys) =>
     required.includes(key)
   );
-
-  const start = timestamps.length - defaultCount;
-
-  const maybeSelected = () =>
-    timestamps.filter((_, idx) => idx > start).map(t => t.key);
-
-  const requestedTimestampsExist = () => {
-    if (!Array.isArray(initialData.selectedTimestamps)) return false;
-    return initialData.selectedTimestamps.every(key =>
-      timestamps.find(ts => ts.key === key)
-    );
-  };
-
-  const onError = (message: string | null) => {
-    return {
-      error: message,
-      validated: {selectedTimestamps: maybeSelected()}
-    };
-  };
 
   if (!keys.length) {
     return onError(null);
@@ -155,26 +193,34 @@ export function getValidatedInitialData({
     );
   }
 
-  if (!requestedTimestampsExist()) {
+  const collector: Partial<FormConfiguration> = {};
+  const validated = [...keys, ...optional].reduce(
+    (acc: Record<string, unknown>, key: FormConfigurationKeys) => {
+      const value = unvalidated[key];
+      if (value) acc[key] = value;
+      return acc;
+    },
+    collector
+  );
+
+  if (!selectedTimestamps.length) {
     return onError(
-      `Some of the requested benchmarks are not longer available, resetting to the latest ${defaultCount} benchmarks.`
+      `No benchmarks were requests in the suplied link. resetting to the latest ${defaultCount} benchmarks.`,
+      validated
     );
   }
 
-  const collector: Partial<FormConfiguration> = {};
+  if (!requestedTimestampsExist()) {
+    return onError(
+      `Some of the requested benchmarks are not longer available, resetting to the latest ${defaultCount} benchmarks.`,
+      validated
+    );
+  }
 
   return {
     error: null,
-    validated: {
-      ...[...keys, ...optional].reduce(
-        (acc: Record<string, unknown>, key: FormConfigurationKeys) => {
-          const value = initialData[key];
-          if (value) acc[key] = value;
-          return acc;
-        },
-        collector
-      )
-    }
+    selected: selectedTimestamps,
+    validated
   };
 }
 
@@ -183,11 +229,12 @@ export function getValidatedInitialData({
  */
 export function updateBrowserHistory(
   formData: FormConfiguration,
+  selectedTimestamps: BenchmarkIdentifier[],
   updateUrl = true
 ): void {
-  const sharable = {...formData}; // Make a copy
-  if (sharable.latest) {
-    delete sharable.selectedTimestamps;
+  const sharable: InitialData = {...formData}; // Make a copy
+  if (!sharable.latest) {
+    sharable.selectedTimestamps = selectedTimestamps;
   }
   const query = objectToQuery(sharable);
   updateUrl && window.history.replaceState('', '', query);

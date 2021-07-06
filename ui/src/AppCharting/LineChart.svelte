@@ -11,8 +11,7 @@
   const CHART_SELECTOR = '#' + CHART_ID;
 
   const LEGEND_TILE_WIDTH = 55;
-
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<{rendered: void}>();
 
   $: if (data.columns.length) {
     // Allow the rest of the UI to update

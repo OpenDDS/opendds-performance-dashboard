@@ -40,6 +40,7 @@
   };
 
   export let form: FormConfiguration;
+  export let selectedTimestamps: BenchmarkIdentifier[];
 
   export let benchmarks: Benchmarks = {};
   export let timestamps: TimestampViewModel[] = [];
@@ -78,7 +79,7 @@
 
   $: if (isReady) {
     const selected = timestamps.filter(({key}) => {
-      return form.selectedTimestamps.indexOf(key) !== -1;
+      return selectedTimestamps.indexOf(key) !== -1;
     });
 
     const factory = chartDataFactory(chartType);
@@ -113,7 +114,7 @@
             const id = [scenario, timestamp].join('|');
             errors.set(id, {
               key: timestamp,
-              scenario,
+              scenario: <Scenario>scenario,
               dateTime,
               size
             });
@@ -130,7 +131,7 @@
     )
       return;
 
-    const selectedSet = new Set(form.selectedTimestamps);
+    const selectedSet = new Set(selectedTimestamps);
 
     const bySize = chartType === BY_SIZE;
 

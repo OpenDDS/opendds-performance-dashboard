@@ -29,7 +29,18 @@
     updateBrowserHistory
   } from './AppSharing/share-data';
   import AppSharing from './AppSharing/AppSharing.svelte';
-  import type {FormConfiguration, FormSelectOptions, Scenario} from './types';
+  import type {
+    BenchmarkIdentifier,
+    FormConfiguration,
+    FormSelectOptions,
+    GitHubTag,
+    Run,
+    RunIndex,
+    Scenario,
+    SelectedTimestamps,
+    StatProperties,
+    TimestampViewModel
+  } from './types';
 
   export let initialData = {};
   const {isEmbedded} = configureEmbedding(initialData);
@@ -46,7 +57,6 @@
     chartType: DEFAULT_CHART_TYPE,
     useTimeSeries: false,
     useLogScale: false,
-    selectedTimestamps: [],
     latest: undefined
   };
 
@@ -58,11 +68,12 @@
     serverCountMap: <Record<Scenario, number[]>>{[form.scenario]: []}
   };
 
-  let selectingTimestamps = false;
-  let selectedTimestamps = [];
+  let isSelectingTimestamps = false;
+  let selectedTimestamps: SelectedTimestamps = [];
+
   let serverCounts = [];
-  let statProperties;
-  let timestamps = [];
+  let statProperties: StatProperties;
+  let timestamps: TimestampViewModel[] = [];
 
   //-------------------------------------------------------------------------------
   // Computed
@@ -73,37 +84,17 @@
 
   $: isReady = statProperties && timestamps.length > 0;
 
-  $: {
-    // form.selectedTimestamps = selectedTimestamps;
-  }
-  //-------------------------------------------------------------------------------
-  // Observed
-  //--------------------------------------------------------------------
-  $: {
-    console.log({isReady});
-  }
-
-  $: {
-    console.log({selectedTimestamps});
-  }
-
   $: if (isReady) {
     loadBenchmarks(selectedTimestamps);
   }
 
   $: {
-    updateBrowserHistory(
-      {
-        ...form,
-        ...selectedTimestamps
-      },
-      !isEmbedded
-    );
+    updateBrowserHistory(form, selectedTimestamps, !isEmbedded);
   }
 
   // We'll only re-render the chart once the
   // timestamp picker is closed.
-  $: if (!selectingTimestamps) {
+  $: if (!isSelectingTimestamps) {
     benchmarks = Object.entries($dataStore).reduce((acc, [key, dataSet]) => {
       if (selectedTimestamps.includes(key)) {
         acc[key] = dataSet;
@@ -136,13 +127,14 @@
 
       statProperties = loadedstats;
       timestamps = loadedtimestamps;
-      const {error, validated} = getValidatedInitialData({
+      const {error, selected, validated} = getValidatedInitialData({
         initialData,
         timestamps,
         defaultCount: DEFAULT_RECENT_COUNT
       });
       form = {...form, ...validated};
-      selectedTimestamps = form.selectedTimestamps;
+      selectedTimestamps = selected;
+
       if (error) throw new Error(error);
     } catch (error) {
       onError(error);
@@ -169,15 +161,19 @@
     return viewModelMapper(timestamps);
   }
 
-  const timeStampViewModelFactory = ({gitHubTags}) => {
+  const timeStampViewModelFactory = ({
+    gitHubTags
+  }: {
+    gitHubTags: GitHubTag[];
+  }) => {
     const keyedTags = gitHubTags.reduce((acc, tag) => {
       acc[tag.commit.sha] = tag;
       return acc;
     }, {});
 
-    return function map(timestamps) {
-      return timestamps.map(
-        ({key, commit, date: dateTime, hash, errors: errorCount}) => {
+    return function map(timestamps: RunIndex) {
+      return timestamps.map<TimestampViewModel>(
+        ({key, commit, date: dateTime, hash, errors: errorCount}: Run) => {
           const [date, timePlus] = dateTime.split('T');
           const [time] = timePlus.split('+');
           return {
@@ -215,16 +211,16 @@
           <AppSharing />
           <button
             type="button"
-            on:click={() => (selectingTimestamps = !selectingTimestamps)}
+            on:click={() => (isSelectingTimestamps = !isSelectingTimestamps)}
           >
-            {selectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
+            {isSelectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
           </button>
         </div>
       </div>
     </header>
   {/if}
 
-  {#if selectingTimestamps}
+  {#if isSelectingTimestamps}
     <AppTimestampsPicker
       {timestamps}
       bind:latest={form.latest}
@@ -232,7 +228,7 @@
       on:change={({detail}) => {
         selectedTimestamps = detail;
       }}
-      on:close={() => (selectingTimestamps = false)}
+      on:close={() => (isSelectingTimestamps = false)}
     />
   {:else}
     {#if !isEmbedded}
@@ -241,7 +237,13 @@
       </div>
     {/if}
 
-    <AppChart {benchmarks} {form} {statProperties} {timestamps}>
+    <AppChart
+      {benchmarks}
+      {form}
+      {selectedTimestamps}
+      {statProperties}
+      {timestamps}
+    >
       <AppErrorView slot="accessory" />
     </AppChart>
   {/if}

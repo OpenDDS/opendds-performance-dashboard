@@ -52,6 +52,7 @@ export type StatName =
 
 export type ChartType = 'by size' | 'by timestamp';
 
+export type SelectedTimestamps = Array<BenchmarkIdentifier>;
 export type FormConfiguration = {
   scenario: Scenario;
   statName: StatName;
@@ -60,9 +61,9 @@ export type FormConfiguration = {
   serverCount: number;
   useTimeSeries: boolean;
   useLogScale: boolean;
-  selectedTimestamps?: Array<BenchmarkIdentifier>;
   latest?: number;
 };
+
 export type FormConfigurationKeys = keyof FormConfiguration;
 
 export type FormSelectOptions = {
@@ -105,7 +106,10 @@ export type PlotStatistic = Record<StatName, number>;
 
 export type GitHubTag = {
   name: string;
-  commit: string;
+  commit: {
+    sha: string;
+    url: string;
+  };
 };
 
 export type TimestampViewModel = Omit<Run, 'errors'> & {
