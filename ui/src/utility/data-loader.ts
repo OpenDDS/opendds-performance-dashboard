@@ -40,7 +40,6 @@ export type BenchmarkEntriesResponse = {
 
 /**
  * Get The Full Scrape Data all at once
- * @deprecated Use the incremental loader
  */
 export async function getAllScraped(): Promise<Benchmarks> {
   return fetcher.get<Benchmarks>("/bench2/scrape_output.json");

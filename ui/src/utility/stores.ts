@@ -42,7 +42,7 @@ export const dataStore = {
   /**
    * Load All Benchmarks at once
    * @returns {Promise<Benchmarks>}
-   * @deprecated use incremental loading
+   * @deprecated use loadBenchmarks(ids) for incremental loading
    */
   loadAll: async (): Promise<Benchmarks> => {
     const results = await getAllScraped();
