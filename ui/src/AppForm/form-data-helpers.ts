@@ -1,6 +1,5 @@
 import {BY_SIZE, BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
 import type {
-  BenchmarkIdentifier,
   Benchmarks,
   FormSelectOptions,
   PlotType,
@@ -23,7 +22,7 @@ export function deriveSelectOptionsFromData(
   const uniqueScenarios = new Set<Scenario>();
   const uniquePlotTypes = new Set<PlotType | IgnoredStatistics>();
   const uniqueStatNames = new Set<StatName>();
-  const uniqueServerCounts = new Map<BenchmarkIdentifier, Set<number>>();
+  const uniqueServerCounts = new Map<Scenario, Set<number>>();
 
   const benchmarkEntries = Object.values(benchmarks);
 
@@ -32,7 +31,8 @@ export function deriveSelectOptionsFromData(
       uniqueServerCounts.set(scenario, new Set());
     }
     if (count) {
-      uniqueServerCounts.get(scenario).add(parseInt(count.toString()));
+      const counts = uniqueServerCounts.get(scenario);
+      if (counts) counts.add(parseInt(count.toString()));
     }
   }
 
@@ -59,17 +59,19 @@ export function deriveSelectOptionsFromData(
   uniquePlotTypes.delete(MDTD);
   const allPlotTypes = <PlotType[]>[...uniquePlotTypes].sort();
 
+  const collector: Record<string, number[]> = {};
+
   const serverCountMap = Object.entries(
     Object.fromEntries(uniqueServerCounts)
   ).reduce((acc, [key, counts]) => {
     acc[key] = [...counts].sort();
     return acc;
-  }, {});
+  }, collector);
 
   return {
     scenarios: [...uniqueScenarios].sort(),
     allPlotTypes,
     statNames: [...uniqueStatNames].sort(),
-    serverCountMap: <Record<Scenario, Array<number>>>serverCountMap
+    serverCountMap: <Record<Scenario, number[]>>serverCountMap
   };
 }

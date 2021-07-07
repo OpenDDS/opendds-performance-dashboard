@@ -1,34 +1,34 @@
 <script lang="ts">
-  import * as c3 from 'c3';
-  import {createEventDispatcher} from 'svelte';
+  import { AxesOptions, Data, generate } from "c3";
+  import { createEventDispatcher } from "svelte";
 
-  export let axis;
-  export let data;
-  export let legendTitle;
-  export let height;
+  export let axis: AxesOptions;
+  export let data: Data;
+  export let legendTitle: string;
+  export let height: number;
 
-  const CHART_ID = 'open-dds-chart';
-  const CHART_SELECTOR = '#' + CHART_ID;
+  const CHART_ID = "open-dds-chart";
+  const CHART_SELECTOR = "#" + CHART_ID;
 
   const LEGEND_TILE_WIDTH = 55;
-  const dispatch = createEventDispatcher<{rendered: void}>();
+  const dispatch = createEventDispatcher<{ rendered: void }>();
 
   $: if (data.columns.length) {
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     setTimeout(() => {
-      c3.generate({
+      generate({
         axis,
         bindto: CHART_SELECTOR,
         data,
         legend: {
           item: {
-            tile: {width: LEGEND_TILE_WIDTH}
+            tile: { width: LEGEND_TILE_WIDTH },
           },
-          position: 'right'
+          position: "right",
         },
         onrendered: onRendered,
-        size: {height: height}
+        size: { height: height },
         // zoom: {enabled: true}
       });
     });
@@ -36,7 +36,7 @@
 
   function onRendered() {
     addLegendTitle();
-    dispatch('rendered');
+    dispatch("rendered");
   }
 
   function addLegendTitle() {
@@ -45,26 +45,26 @@
     if (!chart) return;
 
     // If there are no legend items then no title is needed.
-    const firstLegendItem = chart.querySelector('.c3-legend-item');
+    const firstLegendItem = chart.querySelector(".c3-legend-item");
     if (!firstLegendItem) return;
 
     // Get the relative position of the first legend item.
     const itemText = <SVGElement>firstLegendItem.firstChild;
-    const legendX: string = itemText.getAttribute('x');
-    const legendY: string = itemText.getAttribute('y');
+    const legendX: string = itemText.getAttribute("x");
+    const legendY: string = itemText.getAttribute("y");
 
     // Get the SVG group element that contains the legend.
     const legendContainer = firstLegendItem.parentElement;
 
     // If we don't already have a text element for the title,
     // create it and insert it before the legend container.
-    let legendTitleText = chart.querySelector('.legend-title');
+    let legendTitleText = chart.querySelector(".legend-title");
     if (!legendTitleText) {
       legendTitleText = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'text'
+        "http://www.w3.org/2000/svg",
+        "text"
       );
-      legendTitleText.setAttribute('class', 'legend-title');
+      legendTitleText.setAttribute("class", "legend-title");
       legendContainer.parentElement.insertBefore(
         legendTitleText,
         legendContainer
@@ -74,13 +74,13 @@
     // Set the text and position of the legend title.
     legendTitleText.textContent = legendTitle;
     legendTitleText.setAttribute(
-      'x',
+      "x",
       (Number(legendX).valueOf() - LEGEND_TILE_WIDTH - 6).toString()
     );
-    legendTitleText.setAttribute('y', (Number(legendY) - 20).toString());
+    legendTitleText.setAttribute("y", (Number(legendY) - 20).toString());
     legendTitleText.setAttribute(
-      'transform',
-      legendContainer.getAttribute('transform')
+      "transform",
+      legendContainer.getAttribute("transform")
     );
   }
 </script>

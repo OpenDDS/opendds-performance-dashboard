@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {errorStore} from './utility/data-loader';
+  import { errorStore } from "./utility/stores";
 
   export let error: Error | null = null;
   $: hasError = error !== null || $errorStore.length;

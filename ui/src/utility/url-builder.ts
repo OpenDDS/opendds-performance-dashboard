@@ -9,12 +9,16 @@
  */
 const ARRAY_SYMBOLIZER = '[]';
 
+type EncodableValue = string | number | boolean;
+type EncodableArray = EncodableValue[];
+type EncodableType = EncodableValue | EncodableArray;
+
 /**
  * Decode Value and cast if approperiate
  * @param value
  * @returns
  */
-function decodeValue(value: string) {
+function decodeValue(value: string): EncodableValue {
   if (value === 'true') return true;
   if (value === 'false') return false;
   const numVal = new Number(value).valueOf();
@@ -27,22 +31,24 @@ function decodeValue(value: string) {
  * @param {Object} The object to conver
  * @returns
  */
-export function objectToQuery(object: Record<string, unknown> = {}): string {
+export function objectToQuery(
+  object: Record<string, EncodableType> = {}
+): string {
   return (
     '?' +
     Object.entries(object)
-      .reduce((acc, [key, value]): string[] => {
+      .reduce((acc, [key, value]: [string, EncodableType]): string[] => {
         if (value !== undefined && value !== null) {
           if (Array.isArray(value)) {
             value.forEach(value =>
               acc.push(`${key}${ARRAY_SYMBOLIZER}=${encodeURIComponent(value)}`)
             );
           } else {
-            acc.push(`${key}=${encodeURIComponent(value.toString())}`);
+            acc.push(`${key}=${encodeURIComponent(value)}`);
           }
         }
         return acc;
-      }, [])
+      }, <string[]>[])
       .join('&')
   );
 }

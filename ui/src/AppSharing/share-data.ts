@@ -1,19 +1,18 @@
-import {objectToQuery, queryToObject} from '../utility/url-builder';
-import {ShareLinkGeneratorIFrame} from './generators/ShareLinkIFrame';
-import {ShareLinkGeneratorWebsite} from './generators/ShareLinkWebsite';
-import {MAX_TIMESTAMPS} from '../AppTimestamps/timestamp-helpers';
+import { objectToQuery, queryToObject } from "../utility/url-builder";
+import { ShareLinkGeneratorIFrame } from "./generators/ShareLinkIFrame";
+import { ShareLinkGeneratorWebsite } from "./generators/ShareLinkWebsite";
+import { MAX_TIMESTAMPS } from "../AppTimestamps/timestamp-helpers";
 import type {
   Sharable,
   ShareLinkGenerator,
-  ShareLinkOptions
-} from './generators/ShareLink';
+  ShareLinkOptions,
+} from "./generators/ShareLink";
 import type {
   BenchmarkIdentifier,
   FormConfiguration,
   FormConfigurationKeys,
-  SelectedTimestamps,
-  TimestampViewModel
-} from '../types';
+  TimestampViewModel,
+} from "../types";
 
 /**
  * The shape of initial data parsed from Query
@@ -54,7 +53,7 @@ export type ValidationResults = {
  */
 const linkGenerators: ShareLinkGenerator[] = [
   ShareLinkGeneratorWebsite,
-  ShareLinkGeneratorIFrame
+  ShareLinkGeneratorIFrame,
 ];
 
 /**
@@ -67,7 +66,7 @@ export function generateShareLinks(
   url: string,
   options: ShareLinkOptions = {}
 ): Sharable[] {
-  return linkGenerators.map(generator => generator.generate(url, options));
+  return linkGenerators.map((generator) => generator.generate(url, options));
 }
 
 /**
@@ -75,21 +74,21 @@ export function generateShareLinks(
  * @param  opts configuration options
  * @returns Configuration information
  */
-export function configureEmbedding(
-  opts: ShareLinkOptions
-): {isEmbedded: boolean} {
-  const {embed, text_color} = opts;
-  const isEmbedded = embed === 'iframe';
-  if (embed === 'iframe') {
-    document.body.classList.remove('stylized');
-    document.body.classList.add('embedded');
-    document.body.style.setProperty('--bg-color', 'transparent');
+export function configureEmbedding(opts: ShareLinkOptions): {
+  isEmbedded: boolean;
+} {
+  const { embed, text_color } = opts;
+  const isEmbedded = embed === "iframe";
+  if (embed === "iframe") {
+    document.body.classList.remove("stylized");
+    document.body.classList.add("embedded");
+    document.body.style.setProperty("--bg-color", "transparent");
   }
   if (text_color) {
-    document.body.style.setProperty('--text-color', text_color);
+    document.body.style.setProperty("--text-color", text_color);
   }
   return {
-    isEmbedded
+    isEmbedded,
   };
 }
 
@@ -100,8 +99,7 @@ export function configureEmbedding(
  */
 export const getInitialData = (
   query: string = window.location.search
-): Partial<FormConfiguration & {selectedTimestamps: SelectedTimestamps}> =>
-  queryToObject(query);
+): InitialData => queryToObject(query);
 
 /**
  * Return a set of validated data, and any errors collected during validation.
@@ -113,14 +111,14 @@ export const getInitialData = (
 export function getValidatedInitialData({
   initialData = {},
   timestamps = [],
-  defaultCount = 2
+  defaultCount = 2,
 }: InitialDataValidationConfig): ValidationResults {
   /**
    * Function to Grab the fallback selected timestamps
    */
   const defaultSelected = (): BenchmarkIdentifier[] => {
     const start = timestamps.length - defaultCount;
-    return timestamps.filter((_, idx) => idx > start).map(t => t.key);
+    return timestamps.filter((_, idx) => idx > start).map((t) => t.key);
   };
 
   /**
@@ -128,8 +126,8 @@ export function getValidatedInitialData({
    */
   const requestedTimestampsExist = (): boolean => {
     if (!Array.isArray(selectedTimestamps)) return false;
-    return selectedTimestamps.every(key =>
-      timestamps.find(ts => ts.key === key)
+    return selectedTimestamps.every((key) =>
+      timestamps.find((ts) => ts.key === key)
     );
   };
 
@@ -145,34 +143,34 @@ export function getValidatedInitialData({
     return {
       error: message,
       selected: defaultSelected(),
-      validated
+      validated,
     };
   };
 
   /** Required Form Keys, if any are missing the entire thing is in error */
   const required: FormConfigurationKeys[] = [
-    'scenario',
-    'plotType',
-    'statName',
-    'chartType',
-    'useTimeSeries',
-    'useLogScale'
+    "scenario",
+    "plotType",
+    "statName",
+    "chartType",
+    "useTimeSeries",
+    "useLogScale",
   ];
 
   /**
    * Optional keys
    */
-  const optional: FormConfigurationKeys[] = ['serverCount', 'latest'];
+  const optional: FormConfigurationKeys[] = ["serverCount", "latest"];
 
   // spread out timestamps from form configuration
   /* eslint-disable-next-line prefer-const */
-  let {selectedTimestamps, ...unvalidated} = initialData;
+  let { selectedTimestamps, ...unvalidated } = initialData;
 
   if (unvalidated.latest && !isNaN(unvalidated.latest)) {
     const latest = Math.min(unvalidated.latest, MAX_TIMESTAMPS);
     selectedTimestamps = timestamps
       .slice(timestamps.length - latest, timestamps.length)
-      .map(t => t.key);
+      .map((t) => t.key);
   }
 
   const keys = Object.keys(unvalidated).filter((key: FormConfigurationKeys) =>
@@ -183,7 +181,7 @@ export function getValidatedInitialData({
     return onError(null);
   }
 
-  const missing = required.filter(i => {
+  const missing = required.filter((i) => {
     return !keys.includes(i);
   });
 
@@ -203,7 +201,7 @@ export function getValidatedInitialData({
     collector
   );
 
-  if (!selectedTimestamps.length) {
+  if (!selectedTimestamps || !selectedTimestamps.length) {
     return onError(
       `No benchmarks were requests in the suplied link. resetting to the latest ${defaultCount} benchmarks.`,
       validated
@@ -220,7 +218,7 @@ export function getValidatedInitialData({
   return {
     error: null,
     selected: selectedTimestamps,
-    validated
+    validated,
   };
 }
 
@@ -232,10 +230,10 @@ export function updateBrowserHistory(
   selectedTimestamps: BenchmarkIdentifier[],
   updateUrl = true
 ): void {
-  const sharable: InitialData = {...formData}; // Make a copy
+  const sharable: InitialData = { ...formData }; // Make a copy
   if (!sharable.latest) {
     sharable.selectedTimestamps = selectedTimestamps;
   }
   const query = objectToQuery(sharable);
-  updateUrl && window.history.replaceState('', '', query);
+  updateUrl && window.history.replaceState("", "", query);
 }

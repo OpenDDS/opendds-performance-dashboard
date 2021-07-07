@@ -1,3 +1,7 @@
+export type AppError = Error & {
+  key?: string;
+};
+
 /**
  * Unique Identifier representing a combination of Timestamp + Commit Sha + Hash
  * @example "2021-05-28T15:55:19+0000_e0c97e5cd262226fb20ac6cfb5bb4daf888dcaf6_65002d3e2b3e6efa6949dc6e4b4effc8"
@@ -23,34 +27,34 @@ export type GitSha = string;
 export type BuildHash = string;
 
 export type Scenario =
-  | 'disco'
-  | 'echo_rtps'
-  | 'echo_tcp'
-  | 'fan_rtps'
-  | 'fan_tcp'
-  | 'showtime_mixed';
+  | "disco"
+  | "echo_rtps"
+  | "echo_tcp"
+  | "fan_rtps"
+  | "fan_tcp"
+  | "showtime_mixed";
 
 export type PlotType =
-  | 'Discovery Time Delta'
-  | 'Cpu Utilization'
-  | 'Memory Utilization'
-  | 'Virtual Memory Utilization'
-  | 'Latency'
-  | 'Jitter'
-  | 'Round Trip Latency'
-  | 'Round Trip Jitter';
+  | "Discovery Time Delta"
+  | "Cpu Utilization"
+  | "Memory Utilization"
+  | "Virtual Memory Utilization"
+  | "Latency"
+  | "Jitter"
+  | "Round Trip Latency"
+  | "Round Trip Jitter";
 
 export type StatName =
-  | 'count'
-  | 'min'
-  | 'max'
-  | 'mean'
-  | 'stdev'
-  | 'median'
-  | 'madev'
-  | 'overflow';
+  | "count"
+  | "min"
+  | "max"
+  | "mean"
+  | "stdev"
+  | "median"
+  | "madev"
+  | "overflow";
 
-export type ChartType = 'by size' | 'by timestamp';
+export type ChartType = "by size" | "by timestamp";
 
 export type SelectedTimestamps = Array<BenchmarkIdentifier>;
 export type FormConfiguration = {
@@ -93,7 +97,7 @@ export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 
 export type Benchmark = Record<Scenario, ScenarioSizeRecords>;
 
-export type IgnoredStatistics = 'Errors' | 'Max Discovery Time Delta';
+export type IgnoredStatistics = "Errors" | "Max Discovery Time Delta";
 
 export type ScenarioSizeRecords = Record<
   ScenarioSizeIdentifier,
@@ -115,7 +119,7 @@ export type GitHubTag = {
   };
 };
 
-export type TimestampViewModel = Omit<Run, 'errors'> & {
+export type TimestampViewModel = Omit<Run, "errors"> & {
   date: string;
   time: string;
   dateTime: string;

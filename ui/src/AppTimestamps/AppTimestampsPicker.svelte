@@ -1,8 +1,9 @@
 <script lang="ts">
-  import {createEventDispatcher} from 'svelte';
-  import TimestampTableRow from './TimestampTableRow.svelte';
-  import {MAX_TIMESTAMPS, MIN_TIMESTAMPS} from './timestamp-helpers';
-  import type {BenchmarkIdentifier, TimestampViewModel} from '../types';
+  import { createEventDispatcher } from "svelte";
+  import TimestampTableRow from "./TimestampTableRow.svelte";
+  import { MAX_TIMESTAMPS, MIN_TIMESTAMPS } from "./timestamp-helpers";
+  import type { BenchmarkIdentifier, TimestampViewModel } from "../types";
+  import { errorStore } from "../utility/stores";
 
   export let timestamps: TimestampViewModel[];
   export let selected: BenchmarkIdentifier[] = [];
@@ -30,8 +31,12 @@
     }
   }
 
-  function handleChange(event) {
-    let {value} = event.target;
+  $: loadErrors = $errorStore.map((e) => e.key);
+
+  function handleChange(
+    event: Event & { currentTarget: EventTarget & HTMLInputElement }
+  ) {
+    let value = Number(event.currentTarget.value).valueOf();
     if (value < MIN_TIMESTAMPS) value = MIN_TIMESTAMPS;
     if (value > MAX_TIMESTAMPS) value = MAX_TIMESTAMPS;
     recentCount = value;
@@ -41,18 +46,19 @@
       .filter((_, index) => {
         return index >= firstSelectedIndex;
       })
-      .map(t => t.key);
-    dispatch('change', selected);
+      .map((t) => t.key);
+    dispatch("change", selected);
   }
 
-  const onClose = () => dispatch('close');
+  const onClose = () => dispatch("close");
 
   function updateIndex(key: BenchmarkIdentifier, checked: boolean) {
     if (checked) selected.push(key);
     else {
-      selected = selected.filter(sKey => sKey !== key);
+      errorStore.remove(key);
+      selected = selected.filter((sKey) => sKey !== key);
     }
-    dispatch('change', selected);
+    dispatch("change", selected);
   }
 
   const onRowPressed = (timestamp: TimestampViewModel) => {
@@ -61,20 +67,20 @@
   };
 
   function onSelectAll() {
-    const targets = timestamps.map(t => t.key);
+    const targets = timestamps.map((t) => t.key);
     let idx = targets.length - MAX_TIMESTAMPS;
     if (selected.length) {
       idx = Math.min(
-        targets.findIndex(t => t === selected[0]),
+        targets.findIndex((t) => t === selected[0]),
         targets.length - MAX_TIMESTAMPS
       );
     }
     const change = targets.slice(idx, idx + MAX_TIMESTAMPS);
-    dispatch('change', change);
+    dispatch("change", change);
   }
 
   function onUncheckAll() {
-    dispatch('change', []);
+    dispatch("change", []);
   }
 </script>
 
@@ -132,6 +138,7 @@
       {#each [...timestamps].reverse() as timestamp (timestamp.key)}
         <TimestampTableRow
           {timestamp}
+          hasError={loadErrors.includes(timestamp.key)}
           selected={selected.includes(timestamp.key)}
           {maxSelected}
           on:click={() => onRowPressed(timestamp)}

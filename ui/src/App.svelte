@@ -1,35 +1,35 @@
 <script lang="ts">
-  import {onMount} from 'svelte';
-  import OpenDDSLogo from './components/OpenDDSLogo.svelte';
+  import { onMount } from "svelte";
+  import OpenDDSLogo from "./components/OpenDDSLogo.svelte";
+  import { dataStore, errorStore } from "./utility/stores";
   import {
-    dataStore,
     getGitTags,
     getStatProperties,
     getRunIndex,
-    errorStore
-  } from './utility/data-loader';
-  import {deriveSelectOptionsFromData} from './AppForm/form-data-helpers';
-  import AppForm from './AppForm/AppForm.svelte';
+  } from "./utility/data-loader";
+  import { deriveSelectOptionsFromData } from "./AppForm/form-data-helpers";
+  import AppForm from "./AppForm/AppForm.svelte";
   import {
     DEFAULT_CHART_TYPE,
     DEFAULT_PLOT_TYPE,
     DEFAULT_RECENT_COUNT,
     DEFAULT_SCENARIO,
     DEFAULT_STAT_NAME,
-    DEFAULT_SERVER_COUNT
-  } from './AppForm/form-data-helpers';
+    DEFAULT_SERVER_COUNT,
+  } from "./AppForm/form-data-helpers";
 
-  import AppChart from './AppCharting/AppChart.svelte';
-  import AppErrorView from './AppErrorView.svelte';
-  import AppTimestampsPicker from './AppTimestamps/AppTimestampsPicker.svelte';
+  import AppChart from "./AppCharting/AppChart.svelte";
+  import AppErrorView from "./AppErrorView.svelte";
+  import AppTimestampsPicker from "./AppTimestamps/AppTimestampsPicker.svelte";
 
   import {
     configureEmbedding,
     getValidatedInitialData,
-    updateBrowserHistory
-  } from './AppSharing/share-data';
-  import AppSharing from './AppSharing/AppSharing.svelte';
+    updateBrowserHistory,
+  } from "./AppSharing/share-data";
+  import AppSharing from "./AppSharing/AppSharing.svelte";
   import type {
+    Benchmarks,
     FormConfiguration,
     FormSelectOptions,
     GitHubTag,
@@ -38,15 +38,15 @@
     Scenario,
     SelectedTimestamps,
     StatProperties,
-    TimestampViewModel
-  } from './types';
+    TimestampViewModel,
+  } from "./types";
 
   export let initialData = {};
-  const {isEmbedded} = configureEmbedding(initialData);
+  const { isEmbedded } = configureEmbedding(initialData);
 
   // The segment of data based on
   // The selected timestamps / $collectedData
-  let benchmarks = {};
+  let benchmarks: Benchmarks = {};
 
   let form: FormConfiguration = {
     scenario: DEFAULT_SCENARIO,
@@ -56,7 +56,7 @@
     chartType: DEFAULT_CHART_TYPE,
     useTimeSeries: false,
     useLogScale: false,
-    latest: undefined
+    latest: undefined,
   };
 
   // Chart Related Properties
@@ -64,7 +64,7 @@
     scenarios: [],
     allPlotTypes: [],
     statNames: [],
-    serverCountMap: <Record<Scenario, number[]>>{[form.scenario]: []}
+    serverCountMap: <Record<Scenario, number[]>>{ [form.scenario]: [] },
   };
 
   let isSelectingTimestamps = false;
@@ -121,17 +121,17 @@
     try {
       const [loadedstats, loadedtimestamps] = await Promise.all([
         getStatProperties(),
-        loadTimestamps()
+        loadTimestamps(),
       ]);
 
       statProperties = loadedstats;
       timestamps = loadedtimestamps;
-      const {error, selected, validated} = getValidatedInitialData({
+      const { error, selected, validated } = getValidatedInitialData({
         initialData,
         timestamps,
-        defaultCount: DEFAULT_RECENT_COUNT
+        defaultCount: DEFAULT_RECENT_COUNT,
       });
-      form = {...form, ...validated};
+      form = { ...form, ...validated };
       selectedTimestamps = selected;
 
       if (error) throw new Error(error);
@@ -146,7 +146,7 @@
 
   async function loadBenchmarks(ids = []) {
     try {
-      const {results} = await dataStore.loadBenchmarks(ids);
+      const { results } = await dataStore.loadBenchmarks(ids);
       selectOptions = deriveSelectOptionsFromData(results);
     } catch (error) {
       onError(error);
@@ -156,12 +156,12 @@
   async function loadTimestamps() {
     const timestamps = await getRunIndex();
     const gitHubTags = await getGitTags();
-    const viewModelMapper = timeStampViewModelFactory({gitHubTags});
+    const viewModelMapper = timeStampViewModelFactory({ gitHubTags });
     return viewModelMapper(timestamps);
   }
 
   const timeStampViewModelFactory = ({
-    gitHubTags
+    gitHubTags,
   }: {
     gitHubTags: GitHubTag[];
   }) => {
@@ -172,18 +172,18 @@
 
     return function map(timestamps: RunIndex) {
       return timestamps.map<TimestampViewModel>(
-        ({key, commit, date: dateTime, hash, errors: errorCount}: Run) => {
-          const [date, timePlus] = dateTime.split('T');
-          const [time] = timePlus.split('+');
+        ({ key, commit, date: dateTime, hash, errors: errorCount }: Run) => {
+          const [date, timePlus] = dateTime.split("T");
+          const [time] = timePlus.split("+");
           return {
             key,
             date,
             time,
-            dateTime: date + ' ' + time,
+            dateTime: date + " " + time,
             errorCount,
             commit,
             hash,
-            tag: keyedTags[commit]
+            tag: keyedTags[commit],
           };
         }
       );
@@ -212,7 +212,7 @@
             type="button"
             on:click={() => (isSelectingTimestamps = !isSelectingTimestamps)}
           >
-            {isSelectingTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
+            {isSelectingTimestamps ? "Hide Timestamps" : "Show Timestamps"}
           </button>
         </div>
       </div>
@@ -224,7 +224,7 @@
       {timestamps}
       bind:latest={form.latest}
       selected={selectedTimestamps}
-      on:change={({detail}) => {
+      on:change={({ detail }) => {
         selectedTimestamps = detail;
       }}
       on:close={() => (isSelectingTimestamps = false)}

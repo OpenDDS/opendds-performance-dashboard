@@ -46,7 +46,11 @@ const FUNCTION_MAP: Record<ChartType, ChartFactoryCallback> = {
 
 export function classNameFromBenchmarkKey(key: BenchmarkIdentifier): string {
   const [date] = key.split('_');
-  return date.split('+')[0].replaceAll('T', '_').replaceAll(':', '-');
+  const split = date.split('+');
+  if (!split.length) return '';
+  const first: string = split[0];
+
+  return first.replaceAll('T', '_').replaceAll(':', '-');
 }
 
 export function classNameToDateTime(text: string): string {
@@ -69,7 +73,7 @@ export function chartDataFactory(type: ChartType): ChartFactoryCallback {
   };
 }
 
-export async function getChartDataBySize(
+export function getChartDataBySize(
   benchmarkMap: Benchmarks,
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
@@ -110,7 +114,7 @@ export async function getChartDataBySize(
   return Promise.resolve({...data, columns});
 }
 
-export async function getChartDataByTimestamp(
+export function getChartDataByTimestamp(
   benchmarkMap: Benchmarks,
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
@@ -207,6 +211,7 @@ export function isFanScenario(scenario: Scenario): boolean {
 //------------------------------------------------------------
 function mutating_assignNames(data: Data): Data {
   data.names = {};
+  if (!data.columns) return data;
   for (const column of data.columns) {
     const name = column[0];
     if (name.includes('_')) data.names[name] = classNameToDateTime(name);
