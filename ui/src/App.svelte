@@ -1,5 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
+
+  import "./assets/global.css";
+  import "./assets/stylized.css";
+
   import OpenDDSLogo from "./components/OpenDDSLogo.svelte";
   import { dataStore, errorStore } from "./utility/stores";
   import {

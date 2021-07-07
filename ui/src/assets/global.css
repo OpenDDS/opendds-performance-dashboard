@@ -3,7 +3,8 @@ body {
   --oci-blue: #744040ef;
   --oci-orange-rgb: 254, 182, 114;
   --oci-orange: rgb(var(--oci-orange-rgb));
-  --open-dds-red: #71150e;
+  --open-dds-red-rgb: 113, 21, 14;
+  --open-dds-red: rgb(var(--open-dds-red-rgb));
   --open-dds-red-alt: #931914;
   --open-dds-gray: #a2a0a0;
   --open-dds-blue: #255aa8;
