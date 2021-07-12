@@ -7,14 +7,15 @@ import type {
   IgnoredStatistics,
   StatName
 } from '../types';
-export const MDTD = 'Max Discovery Time Delta';
+
 export const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
 export const DEFAULT_CHART_TYPE = BY_SIZE;
 export const DEFAULT_PLOT_TYPE = 'Round Trip Latency';
 export const DEFAULT_RECENT_COUNT = 5;
 export const DEFAULT_SCENARIO = 'fan_rtps';
-export const DEFAULT_STAT_NAME = 'mean';
 export const DEFAULT_SERVER_COUNT = 16;
+export const DEFAULT_STAT_NAME = 'mean';
+export const MDTD = 'Max Discovery Time Delta';
 
 export function deriveSelectOptionsFromData(
   benchmarks: Benchmarks

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TimestampViewModel } from "../types";
+  import type {TimestampViewModel} from '../types';
 
   export let timestamp: TimestampViewModel;
   export let selected: boolean;
@@ -9,9 +9,9 @@
   $: disabled = maxSelected && !selected;
 
   const GITHUB_COMMIT_URL =
-    "https://github.com/objectcomputing/OpenDDS/commit/";
+    'https://github.com/objectcomputing/OpenDDS/commit/';
   const GITHUB_TAG_URL =
-    "https://github.com/objectcomputing/OpenDDS/releases/tag/";
+    'https://github.com/objectcomputing/OpenDDS/releases/tag/';
 </script>
 
 <tr class:selected class:disabled class:error={hasError} on:click>
@@ -36,21 +36,20 @@
       >
     {/if}
   </td>
-  <td class="hash">{timestamp.hash ? timestamp.hash : ""}</td>
+  <td class="hash">{timestamp.hash ? timestamp.hash : ''}</td>
   <td class="error-count">
-    {timestamp.errorCount ? timestamp.errorCount : ""}
+    {timestamp.errorCount ? timestamp.errorCount : ''}
   </td>
 </tr>
 
 <style>
-  input[type="checkbox"] {
+  .error-count {
+    color: red;
+  }
+  input[type='checkbox'] {
     --size: 1rem;
     height: var(--size);
     width: var(--size);
-  }
-
-  .error-count {
-    color: red;
   }
 
   tr {
@@ -63,19 +62,22 @@
   }
 
   tr::after {
-    transition: all 1s ease;
     background-color: transparent;
+    transition: all 1s ease;
   }
 
   tr.error.selected::after {
-    z-index: 1;
-    content: var(--message, "An error occurred loading this data set");
-    position: absolute;
+    align-items: center;
+    background-color: rgba(133, 8, 8, 0.8);
+    bottom: 0;
+    color: white;
+    content: var(--message, 'An error occurred loading this data set');
     display: flex;
     justify-content: center;
-    align-items: center;
-    inset: 0;
-    color: white;
-    background-color: rgba(133, 8, 8, 0.8);
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 1;
   }
 </style>

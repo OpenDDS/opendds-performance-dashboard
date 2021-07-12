@@ -90,8 +90,8 @@
   }
 
   form :global(select) {
-    width: 100%;
     min-width: 10rem;
+    width: 100%;
   }
   form {
     display: flex;

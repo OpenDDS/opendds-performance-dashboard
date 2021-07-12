@@ -5,13 +5,28 @@
   import type {ShareLinkOptions} from './generators/ShareLink';
   import {generateShareLinks} from './share-data';
 
-  let shareLinks = [];
-  let visible = false;
+  //----------------------------------------------------------------
+  // Const
+  //------------------------------------------------------------
+  const DEFAULT_FADE = {duration: 100};
+  const DELAYED_FADE = {duration: 100, delay: 100};
 
+  //----------------------------------------------------------------
+  // Local State
+  //------------------------------------------------------------
+  let copied: string | boolean = false;
+  let interval = null;
+
+  let shareLinks = [];
   let shareOptions: ShareLinkOptions = {
     text_color: undefined
   };
 
+  let visible = false;
+
+  //----------------------------------------------------------------
+  // Computed
+  //------------------------------------------------------------
   $: if (visible) {
     shareLinks = generateShareLinks(window.location.toString(), shareOptions);
   }
@@ -24,8 +39,9 @@
     }
   }
 
-  let copied: string | boolean = false;
-  let interval = null;
+  //----------------------------------------------------------------
+  // Methods
+  //------------------------------------------------------------
   async function copy(text: string) {
     clearInterval(interval);
     copied = text;
@@ -40,14 +56,14 @@
   <button on:click={() => (visible = true)}>Embed and Share Info</button>
   {#if visible}
     <div
-      in:fade={{duration: 100}}
-      out:fade={{duration: 100, delay: 100}}
+      in:fade={DEFAULT_FADE}
+      out:fade={DELAYED_FADE}
       on:click={() => (visible = false)}
       class="sharing-info_backdrop"
     >
       <div
-        in:fade={{duration: 100, delay: 100}}
-        out:fade={{duration: 100}}
+        in:fade={DELAYED_FADE}
+        out:fade={DEFAULT_FADE}
         on:click|stopPropagation
         class="sharing-info"
         role="dialog"
@@ -65,7 +81,7 @@
               on:click={() => copy(shareLink.code)}>(Copy)</span
             >
             {#if copied === shareLink.code}
-              <span transition:fade={{duration: 100}}>Copied!</span>
+              <span transition:fade={DEFAULT_FADE}>Copied!</span>
             {/if}
           </h4>
           <pre class:truncate={shareLink.truncate}>{shareLink.code}</pre>
@@ -80,61 +96,6 @@
     overflow: hidden;
   }
 
-  .sharing {
-    --code-color: #00ff41;
-    position: relative;
-  }
-  .close {
-    color: var(--code-color);
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 1rem;
-    cursor: pointer;
-  }
-
-  pre {
-    right: 0;
-    left: 0;
-    background-color: transparent;
-    border: 1px solid var(--code-color);
-    color: var(--code-color);
-    padding: 0.5rem 1rem;
-    overflow: scroll;
-    border-radius: 0.4rem;
-    white-space: break-spaces;
-    word-break: break-all;
-  }
-  pre.truncate {
-    white-space: nowrap;
-  }
-
-  .sharing-info {
-    padding: 2rem 1rem;
-    background-color: black;
-    color: var(--code-color);
-    position: fixed;
-    width: 80vw;
-    height: 60vh;
-    border-radius: 1rem;
-    overflow-y: scroll;
-    z-index: 9999;
-  }
-
-  .sharing-info_backdrop {
-    position: fixed;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-
   h4 {
     margin-bottom: 0.4rem;
   }
@@ -145,5 +106,59 @@
 
   h4 span:hover {
     color: green;
+  }
+  pre.truncate {
+    white-space: nowrap;
+  }
+
+  .sharing {
+    --code-color: #00ff41;
+    position: relative;
+  }
+  .sharing .close {
+    color: var(--code-color);
+    cursor: pointer;
+    padding: 1rem;
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
+  .sharing-info {
+    background-color: black;
+    border-radius: 1rem;
+    color: var(--code-color);
+    height: 60vh;
+    overflow-y: scroll;
+    padding: 2rem 1rem;
+    position: fixed;
+    width: 80vw;
+    z-index: 9999;
+  }
+
+  .sharing-info_backdrop {
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    left: 0;
+    position: fixed;
+    right: 0;
+    top: 0;
+  }
+
+  pre {
+    background-color: transparent;
+    border-radius: 0.4rem;
+    border: 1px solid var(--code-color);
+    color: var(--code-color);
+    left: 0;
+    overflow: scroll;
+    padding: 0.5rem 1rem;
+    right: 0;
+    white-space: break-spaces;
+    word-break: break-all;
   }
 </style>

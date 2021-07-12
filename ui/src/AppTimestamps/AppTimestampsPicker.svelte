@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-  import TimestampTableRow from "./TimestampTableRow.svelte";
-  import { MAX_TIMESTAMPS, MIN_TIMESTAMPS } from "./timestamp-helpers";
-  import type { BenchmarkIdentifier, TimestampViewModel } from "../types";
-  import { errorStore } from "../utility/stores";
+  import {createEventDispatcher} from 'svelte';
+  import TimestampTableRow from './TimestampTableRow.svelte';
+  import {MAX_TIMESTAMPS, MIN_TIMESTAMPS} from './timestamp-helpers';
+  import type {BenchmarkIdentifier, TimestampViewModel} from '../types';
+  import {errorStore} from '../utility/stores';
 
   export let timestamps: TimestampViewModel[];
   export let selected: BenchmarkIdentifier[] = [];
@@ -31,10 +31,10 @@
     }
   }
 
-  $: loadErrors = $errorStore.map((e) => e.key);
+  $: loadErrors = $errorStore.map(e => e.key);
 
   function handleChange(
-    event: Event & { currentTarget: EventTarget & HTMLInputElement }
+    event: Event & {currentTarget: EventTarget & HTMLInputElement}
   ) {
     let value = Number(event.currentTarget.value).valueOf();
     if (value < MIN_TIMESTAMPS) value = MIN_TIMESTAMPS;
@@ -46,19 +46,19 @@
       .filter((_, index) => {
         return index >= firstSelectedIndex;
       })
-      .map((t) => t.key);
-    dispatch("change", selected);
+      .map(t => t.key);
+    dispatch('change', selected);
   }
 
-  const onClose = () => dispatch("close");
+  const onClose = () => dispatch('close');
 
   function updateIndex(key: BenchmarkIdentifier, checked: boolean) {
     if (checked) selected.push(key);
     else {
       errorStore.remove(key);
-      selected = selected.filter((sKey) => sKey !== key);
+      selected = selected.filter(sKey => sKey !== key);
     }
-    dispatch("change", selected);
+    dispatch('change', selected);
   }
 
   const onRowPressed = (timestamp: TimestampViewModel) => {
@@ -67,20 +67,20 @@
   };
 
   function onSelectAll() {
-    const targets = timestamps.map((t) => t.key);
+    const targets = timestamps.map(t => t.key);
     let idx = targets.length - MAX_TIMESTAMPS;
     if (selected.length) {
       idx = Math.min(
-        targets.findIndex((t) => t === selected[0]),
+        targets.findIndex(t => t === selected[0]),
         targets.length - MAX_TIMESTAMPS
       );
     }
     const change = targets.slice(idx, idx + MAX_TIMESTAMPS);
-    dispatch("change", change);
+    dispatch('change', change);
   }
 
   function onUncheckAll() {
-    dispatch("change", []);
+    dispatch('change', []);
   }
 </script>
 
@@ -152,32 +152,23 @@
   label {
     margin-bottom: 0;
   }
-  table {
-    width: 100%;
-  }
-
-  thead {
-    z-index: 1;
-    position: sticky;
-    top: 0;
-  }
 
   .panel {
-    padding: 1rem;
     margin-top: 2rem;
+    padding: 1rem;
   }
 
   .row {
+    align-items: center;
     display: flex;
     justify-content: space-between;
-    align-items: center;
     padding: 0.5rem 0;
   }
 
   .range-wrapper {
+    align-items: center;
     display: flex;
     justify-content: space-between;
-    align-items: center;
   }
   .range-wrapper > * {
     flex: 1;
@@ -188,5 +179,15 @@
   .server-recent-count {
     min-width: 24ch;
     text-align: left;
+  }
+
+  table {
+    width: 100%;
+  }
+
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 </style>

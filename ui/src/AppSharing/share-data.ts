@@ -51,23 +51,11 @@ export type ValidationResults = {
 /**
  * The array of Share Link Generators to display
  */
-const linkGenerators: ShareLinkGenerator[] = [
+const LINK_GENERATORS: ShareLinkGenerator[] = [
   ShareLinkGeneratorWebsite,
   ShareLinkGeneratorIFrame,
 ];
 
-/**
- * Generate an Array of Share Links based on the available drivers
- * @param {String} url the url to share
- * @param {*} options additional configuration options
- * @returns {Array} Array of ShareLink entities
- */
-export function generateShareLinks(
-  url: string,
-  options: ShareLinkOptions = {}
-): Sharable[] {
-  return linkGenerators.map((generator) => generator.generate(url, options));
-}
 
 /**
  * Update the site to update the style to accomidate iFrame embedding
@@ -90,6 +78,19 @@ export function configureEmbedding(opts: ShareLinkOptions): {
   return {
     isEmbedded,
   };
+}
+
+/**
+ * Generate an Array of Share Links based on the available drivers
+ * @param {String} url the url to share
+ * @param {*} options additional configuration options
+ * @returns {Array} Array of ShareLink entities
+ */
+ export function generateShareLinks(
+  url: string,
+  options: ShareLinkOptions = {}
+): Sharable[] {
+  return LINK_GENERATORS.map((generator) => generator.generate(url, options));
 }
 
 /**

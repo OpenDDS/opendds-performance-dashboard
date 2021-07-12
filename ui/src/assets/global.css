@@ -20,10 +20,20 @@ body {
   --button-bg-hover: var(--open-dds-red-alt);
 }
 
+a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+body.embedded {
+  --bg-color: transparent;
+  overflow-y: hidden;
 }
 
 button,
@@ -40,8 +50,8 @@ button {
   font-weight: bold;
 }
 
-select,
-button {
+button,
+select {
   background-color: var(--button-bg);
   color: var(--button-text-color);
   font-size: 1rem;
@@ -49,16 +59,17 @@ button {
   white-space: nowrap;
 }
 
-select:hover,
+button:focus,
 button:hover,
 select:focus,
-button:focus {
+select:hover {
   background-color: var(--button-bg-hover);
   color: var(--bg-color);
 }
 
-select:hover,
-button:hover {
+button:hover,
+select:hover
+ {
   background-color: var(--text-color);
 }
 
@@ -78,6 +89,10 @@ table {
   border-collapse: collapse;
 }
 
+tbody tr {
+  border-bottom: solid grey 1px;
+}
+
 td,
 th {
   padding: 0.3rem;
@@ -86,30 +101,19 @@ th {
 td {
   border: none;
 }
-tbody tr {
-  border-bottom: solid grey 1px;
-}
+
 th {
   background-color: var(--bg-color);
   color: var(--text-color);
 }
 
-a {
-  color: var(--link-color);
-  text-decoration: none;
-}
 
 .panel {
-  border: 2px solid darkgray;
   background-color: white;
+  border: 2px solid darkgray;
 }
 
 .disabled {
-  pointer-events: none;
   opacity: 0.5;
-}
-
-body.embedded {
-  overflow-y: hidden;
-  --bg-color: transparent;
+  pointer-events: none;
 }

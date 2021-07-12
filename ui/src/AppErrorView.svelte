@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { errorStore } from "./utility/stores";
+  import {errorStore} from './utility/stores';
 
   export let error: Error | null = null;
   $: hasError = error !== null || $errorStore.length;
@@ -28,19 +28,19 @@
 
 <style>
   .error {
+    align-items: center;
+    backdrop-filter: blur(6px);
+    bottom: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
-    position: absolute;
-    top: 0;
-    bottom: 0;
     left: 0;
-    right: 0;
     margin: auto;
-    z-index: 2;
     overflow: scroll;
-    backdrop-filter: blur(6px);
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 2;
   }
 
   .error > * {
@@ -53,14 +53,14 @@
   }
 
   ul {
-    overflow-x: scroll;
     max-width: 100%;
+    overflow-x: scroll;
   }
 
   li {
     list-style-type: none;
+    margin-bottom: 1rem;
     max-width: 80ch;
     white-space: pre-wrap;
-    margin-bottom: 1rem;
   }
 </style>

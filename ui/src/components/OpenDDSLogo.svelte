@@ -193,14 +193,14 @@
     margin: 4px 0;
   }
 
-  g.icon path {
+  svg g.icon path {
     fill: transparent;
-    transition: fill 1s ease;
-    transition-delay: 0.4s;
     stroke-width: 4px;
+    transition-delay: 0.4s;
+    transition: fill 1s ease;
   }
 
-  g.title path {
+  svg g.title path {
     fill: #71150e;
   }
 
@@ -237,7 +237,6 @@
     fill: #a2a0a0;
     transition-delay: 0.8s;
   }
-
   .ready .st5.outer-ring {
     transition-delay: 0.9s;
   }
