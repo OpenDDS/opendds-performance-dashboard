@@ -16,7 +16,7 @@
 
   const makeDrawConfig = (): TransitionConfig => {
     pending = Math.max(1, pending + 1);
-    return {delay: Math.random() * 200, duration: 2000};
+    return {delay: Math.random() * 100, duration: 1700};
   };
 </script>
 
@@ -222,22 +222,22 @@
 
   .ready .st9 {
     fill: #551110;
-    transition-delay: 0.3s;
+    transition-delay: 01s;
   }
 
   .ready .st5 {
     fill: #71150e;
-    transition-delay: 0.4s;
+    transition-delay: 0.3s;
   }
   .ready .st6 {
     fill: #931914;
-    transition-delay: 0.6s;
+    transition-delay: 0.5s;
   }
   .ready .st8 {
     fill: #a2a0a0;
-    transition-delay: 0.8s;
+    transition-delay: 0.6s;
   }
   .ready .st5.outer-ring {
-    transition-delay: 0.9s;
+    transition-delay: 0.7s;
   }
 </style>

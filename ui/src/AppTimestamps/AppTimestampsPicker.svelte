@@ -23,13 +23,7 @@
   );
 
   $: maxSelected = selected.length >= MAX_TIMESTAMPS;
-  $: {
-    if (useLatest) {
-      latest = recentCount;
-    } else {
-      latest = undefined;
-    }
-  }
+  $: latest = useLatest ? recentCount : undefined;
 
   $: loadErrors = $errorStore.map(e => e.key);
 

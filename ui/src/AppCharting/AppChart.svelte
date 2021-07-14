@@ -94,9 +94,7 @@
     factory(benchmarks, selected, form).then(onLoaded).catch(onError);
   }
 
-  $: {
-    deriveDataPointErrors(benchmarks);
-  }
+  $: deriveDataPointErrors(benchmarks);
 
   //----------------------------------------------------------------
   // Event Listeners

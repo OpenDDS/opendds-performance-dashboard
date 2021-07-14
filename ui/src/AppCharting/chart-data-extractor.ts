@@ -44,20 +44,6 @@ const FUNCTION_MAP: Record<ChartType, ChartFactoryCallback> = {
   [BY_SIZE]: getChartDataBySize
 };
 
-export function classNameFromBenchmarkKey(key: BenchmarkIdentifier): string {
-  const [date] = key.split('_');
-  const split = date.split('+');
-  if (!split.length) return '';
-  const first: string = split[0];
-
-  return first.replaceAll('T', '_').replaceAll(':', '-');
-}
-
-export function classNameToDateTime(text: string): string {
-  const [date, time] = text.split('_');
-  const newTime = time.replaceAll('-', ':');
-  return date + ' ' + newTime;
-}
 
 export function chartDataFactory(type: ChartType): ChartFactoryCallback {
   const fn = FUNCTION_MAP[type];
@@ -71,6 +57,21 @@ export function chartDataFactory(type: ChartType): ChartFactoryCallback {
     const data = await fn(benchmarkMap, timestamps, opts);
     return mutating_assignNames(data);
   };
+}
+
+export function classNameFromBenchmarkKey(key: BenchmarkIdentifier): string {
+  const [date] = key.split('_');
+  const split = date.split('+');
+  if (!split.length) return '';
+  const first: string = split[0];
+
+  return first.replaceAll('T', '_').replaceAll(':', '-');
+}
+
+export function classNameToDateTime(text: string): string {
+  const [date, time] = text.split('_');
+  const newTime = time.replaceAll('-', ':');
+  return date + ' ' + newTime;
 }
 
 export function getChartDataBySize(
