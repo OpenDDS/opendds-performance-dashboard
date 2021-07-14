@@ -74,7 +74,7 @@ export function classNameToDateTime(text: string): string {
   return date + ' ' + newTime;
 }
 
-export function getChartDataBySize(
+export async function getChartDataBySize(
   benchmarkMap: Benchmarks,
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
@@ -83,7 +83,7 @@ export function getChartDataBySize(
   const isFan = isFanScenario(scenario);
   const data: Data = {columns: [], x: 'x', names: {}};
 
-  if (!scenario || !statName || !plotType) return Promise.resolve(data);
+  if (!scenario || !statName || !plotType) return data;
 
   const sizes = getSizeKeys(benchmarkMap, {scenario, serverCount});
   const arr: ChartingArray = ['x', ...sizes];
@@ -112,10 +112,10 @@ export function getChartDataBySize(
     columns.push(column);
   }
 
-  return Promise.resolve({...data, columns});
+  return {...data, columns};
 }
 
-export function getChartDataByTimestamp(
+export async function getChartDataByTimestamp(
   benchmarkMap: Benchmarks,
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
@@ -123,7 +123,7 @@ export function getChartDataByTimestamp(
   const {scenario, serverCount, plotType, statName} = opts;
   const data: Data = {columns: [], x: 'x', names: {}};
 
-  if (!scenario || !statName || !plotType) return Promise.resolve(data);
+  if (!scenario || !statName || !plotType) return data;
   const isFan: boolean = isFanScenario(scenario);
   // Load Data For Selected TimeStamps
 
@@ -160,7 +160,7 @@ export function getChartDataByTimestamp(
   }
 
   const xFormat = '%Y-%m-%d %H:%M:%S'; // date format
-  return Promise.resolve({...data, columns, xFormat});
+  return {...data, columns, xFormat};
 }
 
 export function getDataNames(
