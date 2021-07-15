@@ -23,10 +23,10 @@ jobs:
           npm run build
       - name: zip
         run: |
-          cd ui/public
+          cd ui/dist
           zip -r ${{env.NAME}} *
       - name: upload
         uses: actions/upload-artifact@v2
         with:
           name: ${{env.NAME}}
-          path: ui/public/${{env.NAME}}.zip
+          path: ui/dist/${{env.NAME}}.zip
