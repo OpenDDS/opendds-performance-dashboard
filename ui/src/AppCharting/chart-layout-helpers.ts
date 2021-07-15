@@ -90,7 +90,8 @@ export function getAxisYLabel(
   {statProperties}: HasStatPropertiesOptions
 ): string {
   if (!plotType) return '';
-  const unit = statProperties[plotType].units;
+  const plotStatTypes = statProperties[plotType];
+  const unit = plotStatTypes ? plotStatTypes.units : '';
   return [statName, unit].filter(i => i).join(' ');
 }
 

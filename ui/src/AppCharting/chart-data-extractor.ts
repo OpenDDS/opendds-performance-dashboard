@@ -145,7 +145,7 @@ export async function getChartDataByTimestamp(
       let value = 0;
       const benchmark = benchmarkMap[timestamp.key];
       const scenarioSizeRecords = benchmark && benchmark[scenario];
-      if (benchmark) {
+      if (benchmark && scenarioSizeRecords) {
         const plotTypeRecords =
           scenarioSizeRecords[isFan ? `${dataName}_${serverCount}` : dataName];
         if (plotTypeRecords) {
