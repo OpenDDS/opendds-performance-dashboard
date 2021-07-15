@@ -9,9 +9,9 @@ import type {
 } from "../types";
 import { Cache, CACHE_TEN_MIN } from "./caching";
 
-const PRODUCTION = "http://scoreboard.ociweb.com";
-const LOCALHOST = "http://localhost:1919";
-const BASE_URL = location.hostname === "localhost" ? LOCALHOST : PRODUCTION;
+const PRODUCTION = window.location.origin;
+const LOCALHOST = 'http://localhost:1919';
+const BASE_URL = location.hostname === 'localhost' ? LOCALHOST : PRODUCTION;
 
 class AppErrorImpl extends Error implements AppError {
   key?: string;
