@@ -3,8 +3,5 @@
   "bracketSpacing": false,
   "singleQuote": true,
   "svelteSortOrder": "scripts-markup-styles",
-  "trailingComma": "none",
-  "plugins": [
-    "prettier-plugin-svelte"
-  ]
+  "trailingComma": "none"
 }
