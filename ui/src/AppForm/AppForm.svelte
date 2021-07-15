@@ -87,6 +87,8 @@
 <style>
   .row > :global(*) {
     flex: 1;
+    margin-right: 0.5rem;
+    margin-left: 0.5rem;
   }
 
   form :global(select) {
@@ -102,7 +104,8 @@
   form .row {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
   }
   form > div {
     margin-bottom: 1rem;

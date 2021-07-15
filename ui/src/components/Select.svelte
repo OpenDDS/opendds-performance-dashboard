@@ -17,6 +17,7 @@
 <style>
   select {
     padding: 0.5rem;
+    -webkit-appearance: none;
   }
   .label-text {
     margin-bottom: 0.5rem;
