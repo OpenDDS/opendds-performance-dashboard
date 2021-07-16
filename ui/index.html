@@ -6,10 +6,30 @@
 
     <title>OpenDDS Bench Scoreboard</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="/styles/c3.css" />    
+    <link rel="stylesheet" href="/styles/c3.css" />
+    <style>
+      .noscript {
+        display: flex;
+        justify-content: center;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .noscript .panel {
+        border: 1px solid grey;
+        border-radius: 8px;
+        padding: 2rem;
+        margin: auto;
+      }
+    </style>
   </head>
   <body class="stylized">
     <div id="app"></div>
+    <noscript>
+      <div class="noscript">
+        <div class="panel">
+          <p>Viewing OpenDDS charts requires JavaScript</p>
+        </div>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
