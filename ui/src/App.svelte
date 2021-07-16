@@ -74,26 +74,19 @@
   let isSelectingTimestamps = false;
   let selectedTimestamps: SelectedTimestamps = [];
 
-  let serverCounts = [];
   let statProperties: StatProperties;
   let timestamps: TimestampViewModel[] = [];
 
   //-------------------------------------------------------------------------------
   // Computed
   //--------------------------------------------------------------------
-  $: scenario = form.scenario;
-  $: serverCount = form.serverCount;
-  $: serverCountMap = selectOptions.serverCountMap;
-
   $: isReady = statProperties && timestamps.length > 0;
 
   $: if (isReady) {
     loadBenchmarks(selectedTimestamps);
   }
 
-  $: {
-    updateBrowserHistory(form, selectedTimestamps, !isEmbedded);
-  }
+  $: updateBrowserHistory(form, selectedTimestamps, !isEmbedded);
 
   // We'll only re-render the chart once the
   // timestamp picker is closed.
@@ -104,13 +97,6 @@
       }
       return acc;
     }, {});
-  }
-
-  $: if (isReady) {
-    serverCounts = serverCountMap[scenario] || [];
-    if (serverCounts.length && serverCounts.indexOf(serverCount) === -1) {
-      serverCount === serverCounts[0];
-    }
   }
 
   //-------------------------------------------------------------------------------

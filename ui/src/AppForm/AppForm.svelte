@@ -4,6 +4,7 @@
   import {CHART_TYPES, DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
   import type {
     FormConfiguration,
+    FormScenarioOptions,
     FormSelectOptions,
     PlotType,
     Scenario,
@@ -13,9 +14,16 @@
   export let options: FormSelectOptions;
   export let form: FormConfiguration;
 
+  let scenarioOpts: FormScenarioOptions;
+  $: scenarioOpts = options.scenarios[form.scenario] || {
+    serverCounts: []
+  };
+
   let serverCounts: number[] = [];
   $: {
-    serverCounts = options.serverCountMap[form.scenario] || [];
+    serverCounts = Array.isArray(scenarioOpts.serverCounts)
+      ? scenarioOpts.serverCounts
+      : [];
     if (serverCounts.length && serverCounts.indexOf(form.serverCount) === -1) {
       form.serverCount === serverCounts[0];
     }
@@ -45,7 +53,7 @@
       label="Scenario"
       on:blur={scenarioChanged}
       on:change={scenarioChanged}
-      options={options.scenarios}
+      options={Object.keys(options.scenarios)}
       value={form.scenario}
     />
 

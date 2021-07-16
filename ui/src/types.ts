@@ -69,12 +69,14 @@ export type FormConfiguration = {
 };
 
 export type FormConfigurationKeys = keyof FormConfiguration;
+export type FormScenarioOptions = {
+  serverCounts: number[];
+};
 
 export type FormSelectOptions = {
-  scenarios: Array<Scenario>;
+  scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
   allPlotTypes: Array<PlotType>;
   statNames: Array<StatName>;
-  serverCountMap: Record<Scenario, Array<number>>;
 };
 
 export type StatProperty = {
@@ -97,7 +99,7 @@ export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 
 export type Benchmark = Record<Scenario, ScenarioSizeRecords>;
 
-export type IgnoredStatistics = "Errors" | "Max Discovery Time Delta";
+export type IgnoredStatistics = 'Errors' | 'Max Discovery Time Delta';
 
 export type ScenarioSizeRecords = Record<
   ScenarioSizeIdentifier,
@@ -119,7 +121,7 @@ export type GitHubTag = {
   };
 };
 
-export type TimestampViewModel = Omit<Run, "errors"> & {
+export type TimestampViewModel = Omit<Run, 'errors'> & {
   date: string;
   time: string;
   dateTime: string;
