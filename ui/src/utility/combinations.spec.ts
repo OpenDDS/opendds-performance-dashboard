@@ -28,10 +28,10 @@ describe('Explicit Combinations Tets', () => {
 
 describe('Dynamic Combinations Test', () => {
   const input = [
-    [...Array(10)].map((u, i) => i + 100),
-    [...Array(20)].map((u, i) => i + 200),
-    [...Array(40)].map((u, i) => i + 300),
-    [...Array(40)].map((u, i) => i + 400)
+    [...Array(10)].map((_, i) => i + 100),
+    [...Array(20)].map((_, i) => i + 200),
+    [...Array(40)].map((_, i) => i + 300),
+    [...Array(40)].map((_, i) => i + 400)
   ];
   const results = combinations(...input);
 

@@ -39,7 +39,6 @@
     GitHubTag,
     Run,
     RunIndex,
-    Scenario,
     SelectedTimestamps,
     StatProperties,
     TimestampViewModel
@@ -65,10 +64,9 @@
 
   // Chart Related Properties
   let selectOptions: FormSelectOptions = {
-    scenarios: [],
+    scenarios: {[form.scenario]: {serverCounts: []}},
     allPlotTypes: [],
-    statNames: [],
-    serverCountMap: <Record<Scenario, number[]>>{[form.scenario]: []}
+    statNames: []
   };
 
   let isSelectingTimestamps = false;
