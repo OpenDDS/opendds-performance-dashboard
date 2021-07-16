@@ -36,7 +36,7 @@ export function objectToQuery(
 ): string {
   return (
     '?' +
-    Object.entries(object)
+    Object.entries(object || {})
       .reduce((acc, [key, value]: [string, EncodableType]): string[] => {
         if (value !== undefined && value !== null) {
           if (Array.isArray(value)) {
@@ -84,4 +84,40 @@ export function queryToObject(
       }
       return acc;
     }, <Record<string, Primitive | PrimitiveArray>>{});
+}
+
+/**
+ * Resolve the api url based on the current window location
+ * @param location Window Location
+ * @returns
+ */
+export function resolveApiUrl(location: Location): string {
+  const PRODUCTION = `${location.origin}${location.pathname}`;
+  const LOCALHOST_PORT = 1919;
+  const LOCALHOST = `${location.protocol}//${location.hostname}:${LOCALHOST_PORT}${location.pathname}`;
+
+  return trimTrailingSlashes(
+    location.hostname === 'localhost' ? LOCALHOST : PRODUCTION
+  );
+}
+
+/**
+ * Trim trailing slashes off a given url
+ * @example
+ * ```
+ * given http://test.com/
+ * or given http://test.com/////
+ * 
+ * output http://test.com
+ * 
+
+ * ```
+ * @param url The original url string
+ * @returns 
+ */
+export function trimTrailingSlashes(url: string): string {
+  while (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  return url;
 }
