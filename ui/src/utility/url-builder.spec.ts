@@ -89,7 +89,7 @@ describe('Resolves Expected URL', () => {
         origin: 'http://localhost:3000',
         protocol: 'http:',
         hostname: 'localhost',
-        pathname: '/bench2'
+        pathname: '/'
       })
     ).toBe('http://localhost:1919/bench2');
   });

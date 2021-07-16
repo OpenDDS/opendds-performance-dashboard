@@ -94,7 +94,9 @@ export function queryToObject(
 export function resolveApiUrl(location: Location): string {
   const PRODUCTION = `${location.origin}${location.pathname}`;
   const LOCALHOST_PORT = 1919;
-  const LOCALHOST = `${location.protocol}//${location.hostname}:${LOCALHOST_PORT}${location.pathname}`;
+  const LOCALHOST = `${location.protocol}//${
+    location.hostname
+  }:${LOCALHOST_PORT}${trimTrailingSlashes(location.pathname)}/bench2`;
 
   return trimTrailingSlashes(
     location.hostname === 'localhost' ? LOCALHOST : PRODUCTION
