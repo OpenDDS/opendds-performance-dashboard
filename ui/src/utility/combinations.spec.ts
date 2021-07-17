@@ -1,6 +1,6 @@
 import {combinations} from './combinations';
 
-describe('Explicit Combinations Tets', () => {
+describe('Explicit Combinations Test', () => {
   test('Explicit Combinations', () => {
     const results = combinations(
       ['bilbo', 'frodo', 'sam'],
