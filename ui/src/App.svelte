@@ -65,7 +65,7 @@
   // Chart Related Properties
   let selectOptions: FormSelectOptions = {
     scenarios: {[form.scenario]: {serverCounts: []}},
-    allPlotTypes: [],
+    plotTypes: [],
     statNames: []
   };
 

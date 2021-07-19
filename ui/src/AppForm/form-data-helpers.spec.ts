@@ -5,7 +5,7 @@ describe('Form Data Helpers', () => {
   const derived = deriveSelectOptionsFromData(mockBenchmarkMap);
   test('Test derived options are correct', () => {
     expect(derived).toMatchObject({
-      allPlotTypes: [
+      plotTypes: [
         'Cpu Utilization',
         'Discovery Time Delta',
         'Jitter',
@@ -45,8 +45,8 @@ describe('Form Data Helpers', () => {
 describe('Test Mismatches', () => {
   const derived = deriveSelectOptionsFromData(mockBenchmarkMap);
   test('Missing Plot Type', () => {
-    const {allPlotTypes} = derived;
-    expect(allPlotTypes).not.toMatchObject([
+    const {plotTypes} = derived;
+    expect(plotTypes).not.toMatchObject([
       'Cpu Utilization',
       'Discovery Time Delta',
       'Jitter',

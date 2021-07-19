@@ -80,7 +80,7 @@ export type FormScenarioOptions = {
 
 export type FormSelectOptions = {
   scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
-  allPlotTypes: Array<PlotType>;
+  plotTypes: Array<PlotType>;
   statNames: Array<StatName>;
 };
 

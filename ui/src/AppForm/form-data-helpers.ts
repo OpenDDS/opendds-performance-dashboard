@@ -76,7 +76,7 @@ export function deriveSelectOptionsFromData(
       acc[scenario] = {serverCounts};
       return acc;
     }, {} as Record<Scenario, FormScenarioOptions>),
-    allPlotTypes,
+    plotTypes: allPlotTypes,
     statNames: [...uniqueStatNames].sort()
   };
 }
