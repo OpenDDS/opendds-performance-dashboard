@@ -17,10 +17,16 @@ export const mockStatProperites = {
   Jitter: {
     units: 'seconds'
   },
+  Throughput: {
+    units: 'bytes / second'
+  },
   'Round Trip Latency': {
     units: 'seconds'
   },
   'Round Trip Jitter': {
     units: 'seconds'
+  },
+  'Round Trip Throughput': {
+    units: 'bytes / second'
   }
 };

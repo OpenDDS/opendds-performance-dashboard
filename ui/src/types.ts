@@ -27,6 +27,9 @@ export type GitSha = string;
 export type BuildHash = string;
 
 export type Scenario =
+  | 'b1_latency_rtps'
+  | 'b1_latency_tcp'
+  | 'b1_latency_udp'
   | 'disco'
   | 'echo_rtps'
   | 'echo_tcp'
@@ -35,14 +38,16 @@ export type Scenario =
   | 'showtime_mixed';
 
 export type PlotType =
-  | 'Discovery Time Delta'
   | 'Cpu Utilization'
+  | 'Discovery Time Delta'
+  | 'Jitter'
+  | 'Latency'
   | 'Memory Utilization'
   | 'Virtual Memory Utilization'
-  | 'Latency'
-  | 'Jitter'
   | 'Round Trip Latency'
-  | 'Round Trip Jitter';
+  | 'Round Trip Jitter'
+  | 'Round Trip Throughput'
+  | 'Throughput';
 
 export type StatName =
   | 'count'

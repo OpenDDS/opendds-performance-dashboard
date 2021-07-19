@@ -1,17 +1,14 @@
 import {
   getAxisXLabel,
-  getAxisYLabel,
-  getAxisYMin
+  getAxisYConfigurationPartials,
+  getAxisYLabel
 } from './chart-layout-helpers';
 import {mockStatProperites} from '../__mocks__/mock-stat-properties';
-import {mockTimestamp} from '../__mocks__/mock-timestamps';
-import {mockBenchmarkMap} from '../__mocks__/mock-benchmarks';
+
 import {
   formConfigurationTestDescription,
   FORM_CONFIGURATION_COMBINATIONS
 } from '../__mocks__/shared';
-
-import {getChartDataBySize} from './chart-data-extractor';
 
 describe('Chart Layout:', () => {
   FORM_CONFIGURATION_COMBINATIONS.forEach(formConfiguration => {
@@ -23,20 +20,12 @@ describe('Chart Layout:', () => {
       expect(axis).toMatchSnapshot();
     });
 
-    test(`Snapshot Axis Y Min for: ${formConfigurationTestDescription(
+    test(`Snapshot Axis Y Configuration Partials for: ${formConfigurationTestDescription(
       formConfiguration
     )}`, async () => {
-      const {columns} = await getChartDataBySize(
-        mockBenchmarkMap,
-        [mockTimestamp],
-        formConfiguration
-      );
+      const partials = getAxisYConfigurationPartials(formConfiguration);
 
-      const min = getAxisYMin(formConfiguration, {
-        columns
-      });
-
-      expect(min).toMatchSnapshot();
+      expect(partials).toMatchSnapshot();
     });
 
     test(`Snapshot Axis X Label for: ${description}`, async () => {
