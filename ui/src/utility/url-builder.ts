@@ -92,15 +92,19 @@ export function queryToObject(
  * @returns
  */
 export function resolveApiUrl(location: Location): string {
-  const PRODUCTION = `${location.origin}${location.pathname}`;
-  const LOCALHOST_PORT = 1919;
+  const DEV_PROXY_API_PORT = 1919;
+  const LOCALHOST_DEV = ['3000', '5000'];
+
+  function isDev({hostname, port}): boolean {
+    return hostname === 'localhost' && LOCALHOST_DEV.includes(port);
+  }
+
   const LOCALHOST = `${location.protocol}//${
     location.hostname
-  }:${LOCALHOST_PORT}${trimTrailingSlashes(location.pathname)}/bench2`;
+  }:${DEV_PROXY_API_PORT}${trimTrailingSlashes(location.pathname)}/bench2`;
+  const PRODUCTION = `${location.origin}${location.pathname}`;
 
-  return trimTrailingSlashes(
-    location.hostname === 'localhost' ? LOCALHOST : PRODUCTION
-  );
+  return trimTrailingSlashes(isDev(location) ? LOCALHOST : PRODUCTION);
 }
 
 /**

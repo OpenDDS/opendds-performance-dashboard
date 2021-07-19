@@ -75,23 +75,59 @@ describe('Resolves Expected URL', () => {
     hash: '',
     host: '',
     href: '',
-    port: '',
+    port: '80',
     search: '',
     assign: jest.fn(),
     reload: jest.fn(),
     replace: jest.fn()
   };
 
-  test('Resolves localhost', () => {
+  test('Resolves dev localhost', () => {
+    const localhost = {
+      protocol: 'http:',
+      hostname: 'localhost',
+      pathname: '/'
+    };
     expect(
       resolveApiUrl({
         ...locationMock,
+        ...localhost,
         origin: 'http://localhost:3000',
-        protocol: 'http:',
-        hostname: 'localhost',
-        pathname: '/'
+        port: '3000'
       })
     ).toBe('http://localhost:1919/bench2');
+    expect(
+      resolveApiUrl({
+        ...locationMock,
+        ...localhost,
+        origin: 'http://localhost:5000',
+        port: '5000'
+      })
+    ).toBe('http://localhost:1919/bench2');
+  });
+
+  test('Resolves non-dev localhost (proxy server)', () => {
+    expect(
+      resolveApiUrl({
+        ...locationMock,
+        protocol: 'http:',
+        hostname: 'localhost',
+        pathname: '/',
+        origin: 'http://localhost:8080',
+        port: '8080'
+      })
+    ).toBe('http://localhost:8080');
+
+    expect(
+      resolveApiUrl({
+        ...locationMock,
+        protocol: 'http:',
+        hostname: 'localhost',
+        pathname: '/',
+        origin: 'http://localhost:8080/bench2',
+        port: '8080'
+      })
+    ).toBe('http://localhost:8080/bench2');
   });
 
   test('Resolves Production Site', () => {
