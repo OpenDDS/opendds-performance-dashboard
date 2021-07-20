@@ -8,11 +8,13 @@ import {
 const queryObject = {
   hello: 'my friend',
   next: ['one', 'two', 'three'],
-  count: 2
+  count: 2,
+  isTrue: true,
+  isFalse: false
 };
 
 const queryString =
-  '?hello=my%20friend&next[]=one&next[]=two&next[]=three&count=2';
+  '?hello=my%20friend&next[]=one&next[]=two&next[]=three&count=2&isTrue=true&isFalse=false';
 
 describe('Url Builder Tests', () => {
   test('Test Complete Query to Object', () => {
@@ -21,6 +23,19 @@ describe('Url Builder Tests', () => {
 
   test('Test Complete Object to Query', () => {
     expect(objectToQuery(queryObject)).toBe(queryString);
+  });
+
+  test('Test Primitive Deserialization', () => {
+    const {count, isTrue, isFalse} = queryToObject(queryString);
+
+    expect(count).toBe(2);
+    expect(count).not.toBe('2');
+
+    expect(isTrue).toBe(true);
+    expect(isTrue).not.toBe('true');
+
+    expect(isFalse).toBe(false);
+    expect(isFalse).not.toBe('false');
   });
 
   test('Test Empty Query', () => {
