@@ -5,13 +5,12 @@ import type {
   Benchmarks,
   GitHubTag,
   RunIndex,
-  StatProperties,
-} from "../types";
-import { Cache, CACHE_TEN_MIN } from "./caching";
+  StatProperties
+} from '../types';
+import {Cache, CACHE_TEN_MIN} from './caching';
+import {resolveApiUrl} from './url-builder';
 
-const PRODUCTION = window.location.origin;
-const LOCALHOST = 'http://localhost:1919';
-const BASE_URL = location.hostname === 'localhost' ? LOCALHOST : PRODUCTION;
+const BASE_URL = resolveApiUrl(window.location);
 
 class AppErrorImpl extends Error implements AppError {
   key?: string;
@@ -42,21 +41,21 @@ export type BenchmarkEntriesResponse = {
  * Get The Full Scrape Data all at once
  */
 export async function getAllScraped(): Promise<Benchmarks> {
-  return fetcher.get<Benchmarks>("/bench2/scrape_output.json");
+  return fetcher.get<Benchmarks>('/scrape_output.json');
 }
 
 /**
  * Get the Stat Properties
  */
 export async function getStatProperties(): Promise<StatProperties> {
-  return fetcher.get<StatProperties>("/bench2/stat_properties.json");
+  return fetcher.get<StatProperties>('/stat_properties.json');
 }
 
 /**
  * Get List of runs with relevant
  */
 export async function getRunIndex(): Promise<RunIndex> {
-  return fetcher.get<RunIndex>("/bench2/run_index.json");
+  return fetcher.get<RunIndex>('/run_index.json');
 }
 
 /**
@@ -66,14 +65,14 @@ export async function getEntries(
   ids: BenchmarkIdentifier[] = []
 ): Promise<BenchmarkEntriesResponse> {
   const data = await Promise.all(
-    ids.map<Promise<BenchmarkEntry | AppErrorImpl>>((i) =>
-      getEntry(i).catch((e) => AppErrorImpl.make(e, i))
+    ids.map<Promise<BenchmarkEntry | AppErrorImpl>>(i =>
+      getEntry(i).catch(e => AppErrorImpl.make(e, i))
     )
   );
 
   const collector: BenchmarkEntriesResponse = {
     results: [],
-    errors: [],
+    errors: []
   };
 
   return data.reduce((acc, response) => {
@@ -87,8 +86,8 @@ export async function getEntry(
   id: BenchmarkIdentifier
 ): Promise<BenchmarkEntry> {
   return Cache.cache(id, async () => {
-    const data: Benchmark = await fetcher.get(`/bench2/raw/${id}/results.json`);
-    return { id: id, data };
+    const data: Benchmark = await fetcher.get(`/raw/${id}/results.json`);
+    return {id: id, data};
   });
 }
 
@@ -98,7 +97,7 @@ export async function getEntry(
  */
 export async function getGitTags(): Promise<GitHubTag[]> {
   const url =
-    "https://api.github.com/repos/objectcomputing/OpenDDS/tags?per_page=100";
+    'https://api.github.com/repos/objectcomputing/OpenDDS/tags?per_page=100';
   const aggregatedFetch = async (
     url: string,
     data: GitHubTag[] = []
@@ -106,21 +105,21 @@ export async function getGitTags(): Promise<GitHubTag[]> {
     const response = await fetch(url);
 
     if (!response.ok) {
-      const { message } = <{ message: string }>(
-        await response.json().catch(() => ({ message: "Something went wrong" }))
+      const {message} = <{message: string}>(
+        await response.json().catch(() => ({message: 'Something went wrong'}))
       );
       throw new Error(message);
     }
     const next = <GitHubTag[]>await response.json();
     const aggregate = [...data, ...next];
 
-    const links = extractLinks(response.headers.get("Link"));
+    const links = extractLinks(response.headers.get('Link'));
     if (links.next) {
       return aggregatedFetch(links.next, aggregate);
     }
     return aggregate;
   };
-  return Cache.expiring(CACHE_TEN_MIN, "open-dds-github-tags", () =>
+  return Cache.expiring(CACHE_TEN_MIN, 'open-dds-github-tags', () =>
     aggregatedFetch(url, [])
   );
 }
@@ -132,14 +131,14 @@ const fetcher = {
   async get<T>(url: string): Promise<T> {
     const response = await fetch(withBaseUrl(url));
     return responseHandler(response);
-  },
+  }
 };
 
 async function responseHandler<T>(response: Response) {
   try {
     if (!response.ok) {
-      const json = (await response.json()) as { message: string };
-      throw new Error(json.message || "Something Went Wrong");
+      const json = (await response.json()) as {message: string};
+      throw new Error(json.message || 'Something Went Wrong');
     }
     return <T>await response.json();
   } catch (error) {
@@ -148,7 +147,7 @@ async function responseHandler<T>(response: Response) {
 }
 
 const withBaseUrl = (url: string) =>
-  `${BASE_URL}${("/" + url).replace("//", "/")}`;
+  `${BASE_URL}${('/' + url).replace('//', '/')}`;
 
 //----------------------------------------------------------------
 // Git Hub Aggregation Helpers
@@ -167,7 +166,7 @@ function parseLink(string: string): Record<string, string> | null {
   try {
     const matches = LINKS_MATCHER.exec(string);
     const url = matches[1];
-    const parts = matches[2].split(";");
+    const parts = matches[2].split(';');
     const link = parts.reduce(getRelKey, {});
     link.url = url;
     return link;
@@ -176,11 +175,11 @@ function parseLink(string: string): Record<string, string> | null {
   }
 }
 
-export function extractLinks(links = ""): Record<string, string> {
-  if (typeof links !== "string") {
+export function extractLinks(links = ''): Record<string, string> {
+  if (typeof links !== 'string') {
     return {};
   }
-  return links.split(",").reduce((acc, link) => {
+  return links.split(',').reduce((acc, link) => {
     try {
       const val = parseLink(link.trim());
       if (val) {

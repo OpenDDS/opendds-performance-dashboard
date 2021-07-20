@@ -4,8 +4,8 @@
   import {CHART_TYPES, DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
   import type {
     FormConfiguration,
+    FormScenarioOptions,
     FormSelectOptions,
-    PlotType,
     Scenario,
     StatName
   } from '../types';
@@ -13,24 +13,19 @@
   export let options: FormSelectOptions;
   export let form: FormConfiguration;
 
+  let scenarioOpts: FormScenarioOptions;
+  $: scenarioOpts = options.scenarios[form.scenario] || {
+    serverCounts: []
+  };
+
   let serverCounts: number[] = [];
   $: {
-    serverCounts = options.serverCountMap[form.scenario] || [];
+    serverCounts = Array.isArray(scenarioOpts.serverCounts)
+      ? scenarioOpts.serverCounts
+      : [];
     if (serverCounts.length && serverCounts.indexOf(form.serverCount) === -1) {
       form.serverCount === serverCounts[0];
     }
-  }
-
-  let plotTypes: PlotType[] = [];
-  $: {
-    plotTypes = form.scenario.startsWith('showtime_')
-      ? options.allPlotTypes.filter(st => !st.startsWith('Round Trip'))
-      : form.scenario === 'disco'
-      ? options.allPlotTypes.filter(st => !st.includes('Latency'))
-      : options.allPlotTypes;
-
-    if (plotTypes.length && !plotTypes.includes(form.plotType))
-      form.plotType = plotTypes[0];
   }
 
   function scenarioChanged(event: Event) {
@@ -45,7 +40,7 @@
       label="Scenario"
       on:blur={scenarioChanged}
       on:change={scenarioChanged}
-      options={options.scenarios}
+      options={Object.keys(options.scenarios)}
       value={form.scenario}
     />
 
@@ -56,7 +51,11 @@
     />
 
     {#if form.plotType}
-      <Select label="Plot" options={plotTypes} bind:value={form.plotType} />
+      <Select
+        label="Plot"
+        options={options.plotTypes}
+        bind:value={form.plotType}
+      />
     {/if}
 
     <Select

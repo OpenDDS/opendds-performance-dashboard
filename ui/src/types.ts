@@ -27,34 +27,39 @@ export type GitSha = string;
 export type BuildHash = string;
 
 export type Scenario =
-  | "disco"
-  | "echo_rtps"
-  | "echo_tcp"
-  | "fan_rtps"
-  | "fan_tcp"
-  | "showtime_mixed";
+  | 'b1_latency_rtps'
+  | 'b1_latency_tcp'
+  | 'b1_latency_udp'
+  | 'disco'
+  | 'echo_rtps'
+  | 'echo_tcp'
+  | 'fan_rtps'
+  | 'fan_tcp'
+  | 'showtime_mixed';
 
 export type PlotType =
-  | "Discovery Time Delta"
-  | "Cpu Utilization"
-  | "Memory Utilization"
-  | "Virtual Memory Utilization"
-  | "Latency"
-  | "Jitter"
-  | "Round Trip Latency"
-  | "Round Trip Jitter";
+  | 'Cpu Utilization'
+  | 'Discovery Time Delta'
+  | 'Jitter'
+  | 'Latency'
+  | 'Memory Utilization'
+  | 'Virtual Memory Utilization'
+  | 'Round Trip Latency'
+  | 'Round Trip Jitter'
+  | 'Round Trip Throughput'
+  | 'Throughput';
 
 export type StatName =
-  | "count"
-  | "min"
-  | "max"
-  | "mean"
-  | "stdev"
-  | "median"
-  | "madev"
-  | "overflow";
+  | 'count'
+  | 'min'
+  | 'max'
+  | 'mean'
+  | 'stdev'
+  | 'median'
+  | 'madev'
+  | 'overflow';
 
-export type ChartType = "by size" | "by timestamp";
+export type ChartType = 'by size' | 'by timestamp';
 
 export type SelectedTimestamps = Array<BenchmarkIdentifier>;
 export type FormConfiguration = {
@@ -69,12 +74,14 @@ export type FormConfiguration = {
 };
 
 export type FormConfigurationKeys = keyof FormConfiguration;
+export type FormScenarioOptions = {
+  serverCounts: number[];
+};
 
 export type FormSelectOptions = {
-  scenarios: Array<Scenario>;
-  allPlotTypes: Array<PlotType>;
+  scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
+  plotTypes: Array<PlotType>;
   statNames: Array<StatName>;
-  serverCountMap: Record<Scenario, Array<number>>;
 };
 
 export type StatProperty = {
@@ -97,7 +104,7 @@ export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 
 export type Benchmark = Record<Scenario, ScenarioSizeRecords>;
 
-export type IgnoredStatistics = "Errors" | "Max Discovery Time Delta";
+export type IgnoredStatistics = 'Errors' | 'Max Discovery Time Delta';
 
 export type ScenarioSizeRecords = Record<
   ScenarioSizeIdentifier,
@@ -119,7 +126,7 @@ export type GitHubTag = {
   };
 };
 
-export type TimestampViewModel = Omit<Run, "errors"> & {
+export type TimestampViewModel = Omit<Run, 'errors'> & {
   date: string;
   time: string;
   dateTime: string;

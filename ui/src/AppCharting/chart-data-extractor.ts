@@ -44,33 +44,25 @@ const FUNCTION_MAP: Record<ChartType, ChartFactoryCallback> = {
   [BY_SIZE]: getChartDataBySize
 };
 
-
 export function chartDataFactory(type: ChartType): ChartFactoryCallback {
   const fn = FUNCTION_MAP[type];
   if (!fn) throw new Error(`Chart data for ${type} is not currently supported`);
-
-  return async (
-    benchmarkMap: Benchmarks,
-    timestamps: TimestampViewModel[],
-    opts: FormConfiguration
-  ): Promise<Data> => {
-    const data = await fn(benchmarkMap, timestamps, opts);
-    return mutating_assignNames(data);
-  };
+  return fn;
 }
 
 export function classNameFromBenchmarkKey(key: BenchmarkIdentifier): string {
   const [date] = key.split('_');
   const split = date.split('+');
+
   if (!split.length) return '';
   const first: string = split[0];
 
-  return first.replaceAll('T', '_').replaceAll(':', '-');
+  return first.replace(/T/g, '_').replace(/:/g, '-');
 }
 
 export function classNameToDateTime(text: string): string {
   const [date, time] = text.split('_');
-  const newTime = time.replaceAll('-', ':');
+  const newTime = time.replace(/-/g, ':');
   return date + ' ' + newTime;
 }
 
@@ -112,7 +104,7 @@ export async function getChartDataBySize(
     columns.push(column);
   }
 
-  return {...data, columns};
+  return mutating_assignNames({...data, columns});
 }
 
 export async function getChartDataByTimestamp(
@@ -160,7 +152,7 @@ export async function getChartDataByTimestamp(
   }
 
   const xFormat = '%Y-%m-%d %H:%M:%S'; // date format
-  return {...data, columns, xFormat};
+  return mutating_assignNames({...data, columns, xFormat});
 }
 
 export function getDataNames(

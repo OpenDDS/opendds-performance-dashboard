@@ -5,7 +5,8 @@ import type {
   PlotType,
   Scenario,
   IgnoredStatistics,
-  StatName
+  StatName,
+  FormScenarioOptions
 } from '../types';
 
 export const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
@@ -70,9 +71,12 @@ export function deriveSelectOptionsFromData(
   }, collector);
 
   return {
-    scenarios: [...uniqueScenarios].sort(),
-    allPlotTypes,
-    statNames: [...uniqueStatNames].sort(),
-    serverCountMap: <Record<Scenario, number[]>>serverCountMap
+    scenarios: [...uniqueScenarios].sort().reduce((acc, scenario) => {
+      const serverCounts: number[] = serverCountMap[scenario] || [];
+      acc[scenario] = {serverCounts};
+      return acc;
+    }, {} as Record<Scenario, FormScenarioOptions>),
+    plotTypes: allPlotTypes,
+    statNames: [...uniqueStatNames].sort()
   };
 }
