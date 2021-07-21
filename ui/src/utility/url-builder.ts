@@ -99,12 +99,43 @@ export function resolveApiUrl(location: Location): string {
     return hostname === 'localhost' && LOCALHOST_DEV.includes(port);
   }
 
-  const LOCALHOST = `${location.protocol}//${
-    location.hostname
-  }:${DEV_PROXY_API_PORT}${trimTrailingSlashes(location.pathname)}/bench2`;
-  const PRODUCTION = `${location.origin}${location.pathname}`;
+  const cleanedPath = trimTrailingSlashes(
+    stripHtmFilenameFromPath(location.pathname)
+  );
 
-  return trimTrailingSlashes(isDev(location) ? LOCALHOST : PRODUCTION);
+  const LOCALHOST = `${location.protocol}//${location.hostname}:${DEV_PROXY_API_PORT}${cleanedPath}/bench2`;
+  const PRODUCTION = `${location.origin}${cleanedPath}`;
+
+  return isDev(location) ? LOCALHOST : PRODUCTION;
+}
+
+/**
+ * If the path provided is an .html file and not a directory
+ * strip the file name off the end and return the path.
+ *
+ * Note: If the url given ends in a slash it will not
+ * alter that path.
+ *
+ * @example
+ * ```
+ * given: /test/com/index.html
+ * output: /test/com/
+ *
+ * This is offered as a directory
+ * given: /test/com/index.html/
+ * output: /test/com/index.html/
+ * ```
+ *
+ * @param pathname the location path
+ * @returns the cleaned location path
+ */
+export function stripHtmFilenameFromPath(path: string): string {
+  if (!path.endsWith('.html')) return path;
+
+  const parts = path.split('/');
+  parts.pop(); // pop the index.html off the end
+  if (!parts.length && !path.startsWith('/')) return '';
+  return parts.join('/') + '/';
 }
 
 /**
