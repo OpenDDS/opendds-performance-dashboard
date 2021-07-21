@@ -2,6 +2,7 @@ import {
   objectToQuery,
   queryToObject,
   resolveApiUrl,
+  stripHtmFilenameFromPath,
   trimTrailingSlashes
 } from './url-builder';
 
@@ -167,5 +168,34 @@ describe('Resolves Expected URL', () => {
         pathname: '/www-docs/autobuild_logs/bench2/'
       })
     ).toBe('http://beetle.ociweb.com/www-docs/autobuild_logs/bench2');
+  });
+
+  test('Resolves Paths when HTML File is base', () => {
+    expect(
+      resolveApiUrl({
+        ...locationMock,
+        origin: 'http://beetle.ociweb.com',
+        protocol: 'http:',
+        hostname: 'beetle.ociweb.com',
+        pathname: '/www-docs/autobuild_logs/bench2/index.html'
+      })
+    ).toBe('http://beetle.ociweb.com/www-docs/autobuild_logs/bench2');
+  });
+});
+
+describe('Test Path Stripper', () => {
+  const cases = [
+    ['index.html', ''],
+    ['/index.html', '/'],
+    ['/index.html/', '/index.html/'],
+    ['index', 'index'],
+    ['/test/test.html', '/test/'],
+    ['/test/', '/test/']
+  ];
+
+  cases.forEach(([input, expected]) => {
+    test(`Expect ${input} to be ${expected}`, () => {
+      expect(stripHtmFilenameFromPath(input)).toBe(expected);
+    });
   });
 });
