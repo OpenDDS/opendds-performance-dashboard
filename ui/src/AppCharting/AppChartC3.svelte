@@ -64,7 +64,7 @@
 
   $: isReady = benchmarks && statProperties && form && true;
 
-  $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
+  $: hasNodes = scenario.startsWith('disco') || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(form, {hasNodes});
 
   // Axis Configuration
