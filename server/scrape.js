@@ -1,5 +1,5 @@
-const fetch = require('node-fetch');
-const fs = require('fs');
+import {default as fetch} from 'node-fetch';
+import {default as fs} from 'fs';
 
 const BASE_URL = 'http://scoreboard.ociweb.com/bench2/';
 const MDTD = 'Max Discovery Time Delta';
@@ -205,6 +205,4 @@ function getStats(lines, type) {
   return stats;
 }
 
-if (!module.parent) getAllData();
-
-module.exports = {getData};
+export {getData};

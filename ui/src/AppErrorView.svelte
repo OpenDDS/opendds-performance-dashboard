@@ -22,7 +22,7 @@
         <li>{message}</li>
       {/each}
     </ul>
-    <button role="button" on:click={resetErrors}>OK</button>
+    <button on:click={resetErrors}>OK</button>
   </div>
 {/if}
 

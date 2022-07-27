@@ -1,13 +1,16 @@
 // This is only used for running the app locally.
 
-const cors = require('cors');
-const express = require('express');
-const fetch = require('node-fetch');
-const path = require('path');
-const {getData} = require('./scrape');
+import {default as fetch} from 'node-fetch';
+import {default as cors} from 'cors';
+import {default as express} from 'express';
+import {default as path} from 'path';
+import {default as url} from 'url';
+import * as getData from './scrape.js';
 
 const app = express();
 app.use(cors());
+
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 const isDev = process.argv[process.argv.length - 1] === '--dev';
 
