@@ -8,6 +8,8 @@ import {combinations} from '../utility/combinations';
 
 export const SCENARIOS: Scenario[] = [
   'disco',
+  'disco-relay',
+  'disco-repo',
   'echo_rtps',
   'echo_tcp',
   'fan_rtps',

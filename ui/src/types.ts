@@ -31,6 +31,8 @@ export type Scenario =
   | 'b1_latency_tcp'
   | 'b1_latency_udp'
   | 'disco'
+  | 'disco-relay'
+  | 'disco-repo'
   | 'echo_rtps'
   | 'echo_tcp'
   | 'fan_rtps'

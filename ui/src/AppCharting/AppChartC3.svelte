@@ -52,7 +52,7 @@
   //----------------------------------------------------------------
   // Local State
   //------------------------------------------------------------
-  let errors = new Map<BenchmarkIdentifier, ErrorEntry>();
+  let errors = new Map<BenchmarkIdentifier, ErrorEntry[]>();
   let chartData: ChartFactoryData = {columns: [], x: 'x', names: {}};
   let axisConfigurations = axisFactory();
 
@@ -123,12 +123,18 @@
         for (const [size, sizeData] of Object.entries(scenarioData)) {
           if (sizeData.Errors) {
             const id = [scenario, timestamp].join('|');
-            errors.set(id, {
+            const new_error = {
               key: timestamp,
               scenario: <Scenario>scenario,
               dateTime,
               size
-            });
+            };
+            let error_list = errors.get(id);
+            if (error_list) {
+              error_list.push(new_error);
+            } else {
+              errors.set(id, [new_error]);
+            }
           }
         }
       }
@@ -153,8 +159,8 @@
 
     const xLabels = chartData.columns[0].slice(1);
 
-    const active = [...errors.values()].filter(error => {
-      const {scenario: es, key} = error;
+    const active = [...errors.values()].filter(error_list => {
+      const {scenario: es, key} = error_list[0];
       return es === scenario && selectedSet.has(key);
     });
 
@@ -168,26 +174,28 @@
     // .c3-circles-{className}
     // circle
     // where the circle elements are in order by x label.
-    for (const error of active) {
-      const {key, size, dateTime} = error;
-      const timestampAsClassName = classNameFromBenchmarkKey(key);
+    for (const error_list of active) {
+      for (const error of error_list) {
+        const {key, size, dateTime} = error;
+        const timestampAsClassName = classNameFromBenchmarkKey(key);
 
-      const trimmedSize = size.split('_')[0];
-      const formattedDateTime = dateTime.replace('_', ' ');
-      const className = bySize ? timestampAsClassName : trimmedSize;
-      const circleGroup = document.querySelector('.c3-circles-' + className);
+        const trimmedSize = size.split('_')[0];
+        const formattedDateTime = dateTime.replace('_', ' ');
+        const className = bySize ? timestampAsClassName : trimmedSize;
+        const circleGroup = document.querySelector('.c3-circles-' + className);
 
-      if (circleGroup) {
-        const label = bySize ? trimmedSize : formattedDateTime;
-        const index = xLabels.indexOf(label);
-        const circle = <SVGElement>circleGroup.children.item(index);
-        if (circle) {
-          circle.style.stroke = 'red';
-          circle.style.strokeWidth = '4';
+        if (circleGroup) {
+          const label = bySize ? trimmedSize : formattedDateTime;
+          const index = xLabels.indexOf(label);
+          const circle = <SVGElement>circleGroup.children.item(index);
+          if (circle) {
+            circle.style.stroke = 'red';
+            circle.style.strokeWidth = '4';
+          }
+        } else {
+          // This should never happen.
+          console.error('circle group not found');
         }
-      } else {
-        // This should never happen.
-        console.error('circle group not found');
       }
     }
   }
