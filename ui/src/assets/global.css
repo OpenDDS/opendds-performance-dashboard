@@ -68,8 +68,7 @@ select:hover {
 }
 
 button:hover,
-select:hover
- {
+select:hover {
   background-color: var(--text-color);
 }
 
@@ -106,7 +105,6 @@ th {
   background-color: var(--bg-color);
   color: var(--text-color);
 }
-
 
 .panel {
   background-color: white;

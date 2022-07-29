@@ -3,15 +3,13 @@
 }
 
 .stylized button,
-.stylized select
- {
+.stylized select {
   background-color: var(--bg-color);
   border: none;
-  box-shadow: 5px 5px 10px rgba(163, 177, 198, 0.6), 
-             -5px -5px 10px rgba(255, 255, 255, 0.5);
+  box-shadow: 5px 5px 10px rgba(163, 177, 198, 0.6),
+    -5px -5px 10px rgba(255, 255, 255, 0.5);
   color: var(--open-dds-red);
 }
-
 
 .stylized button:focus,
 .stylized button:hover,
@@ -31,12 +29,12 @@
   background-color: var(--bg-color);
   border-radius: 20px;
   border: none;
-  box-shadow: 9px 9px 16px rgba(163, 177, 198, 0.6), 
-             -9px -9px 16px rgba(255, 255, 255, 0.5);
+  box-shadow: 9px 9px 16px rgba(163, 177, 198, 0.6),
+    -9px -9px 16px rgba(255, 255, 255, 0.5);
   padding: 20px 0;
 }
 
 .stylized .pressed {
   box-shadow: inset 6px 6px 10px 0 rgba(0, 0, 0, 0.2),
-              inset -6px -6px 10px 0 rgba(255, 255, 255, 0.5);
+    inset -6px -6px 10px 0 rgba(255, 255, 255, 0.5);
 }

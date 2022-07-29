@@ -64,7 +64,8 @@
 
   $: isReady = benchmarks && statProperties && form && true;
 
-  $: hasNodes = scenario.startsWith('disco') || scenario.startsWith('showtime_');
+  $: hasNodes =
+    scenario.startsWith('disco') || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(form, {hasNodes});
 
   // Axis Configuration
@@ -164,6 +165,15 @@
       return es === scenario && selectedSet.has(key);
     });
 
+    console.log(
+      'selectedSet.size =',
+      selectedSet.size,
+      'and selectedTimestamps.length =',
+      selectedTimestamps.length,
+      'and active.length =',
+      active.length
+    );
+
     // SVG circle elements for points can be found
     // with this series of CSS selectors:
     // .open-dds-chart
@@ -174,8 +184,12 @@
     // .c3-circles-{className}
     // circle
     // where the circle elements are in order by x label.
+    let error_count = 0;
+    let circle_count = 0;
+    let missed_circle_count = 0;
     for (const error_list of active) {
       for (const error of error_list) {
+        error_count++;
         const {key, size, dateTime} = error;
         const timestampAsClassName = classNameFromBenchmarkKey(key);
 
@@ -189,15 +203,29 @@
           const index = xLabels.indexOf(label);
           const circle = <SVGElement>circleGroup.children.item(index);
           if (circle) {
+            circle_count++;
             circle.style.stroke = 'red';
             circle.style.strokeWidth = '4';
+          } else {
+            missed_circle_count++;
           }
         } else {
           // This should never happen.
-          console.error('circle group not found');
+          console.error('circle group not found for className =', className);
         }
       }
     }
+    console.log(
+      'considered',
+      active.length,
+      'error lists,',
+      error_count,
+      'individual errors, and updated',
+      circle_count,
+      'circles, with',
+      missed_circle_count,
+      'misses'
+    );
   }
 
   function styleMissingPointIfFound(

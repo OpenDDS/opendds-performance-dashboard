@@ -1,10 +1,6 @@
-import { writable, get } from "svelte/store";
-import type { AppError, BenchmarkIdentifier, Benchmarks } from "../types";
-import {
-  BenchmarkLoadResponse,
-  getAllScraped,
-  getEntries,
-} from "./data-loader";
+import {writable, get} from 'svelte/store';
+import type {AppError, BenchmarkIdentifier, Benchmarks} from '../types';
+import {BenchmarkLoadResponse, getAllScraped, getEntries} from './data-loader';
 
 const collectedDataStore = writable<Benchmarks>({});
 const collectedDataErrors = writable<AppError[]>([]);
@@ -16,8 +12,8 @@ export const errorStore = {
   },
 
   remove(key: string): void {
-    errorStore.update((store) => {
-      return store.filter((e) => e.key !== key);
+    errorStore.update(store => {
+      return store.filter(e => e.key !== key);
     });
   },
 
@@ -26,12 +22,12 @@ export const errorStore = {
   },
 
   addErrors(errors: AppError[]): void {
-    errorStore.update((store) => {
-      const keys = store.map((e) => e.message);
-      const newErrors = errors.filter((e) => !keys.includes(e.message));
+    errorStore.update(store => {
+      const keys = store.map(e => e.message);
+      const newErrors = errors.filter(e => !keys.includes(e.message));
       return [...store, ...newErrors];
     });
-  },
+  }
 };
 
 /**
@@ -58,14 +54,14 @@ export const dataStore = {
   loadBenchmarks: async (
     ids: BenchmarkIdentifier[] = []
   ): Promise<BenchmarkLoadResponse> => {
-    const { results, errors } = await getEntries(ids);
+    const {results, errors} = await getEntries(ids);
     const data = results.reduce((acc, entry) => {
       acc[entry.id] = entry.data;
       return acc;
     }, {});
-    collectedDataStore.update((existing) => ({
+    collectedDataStore.update(existing => ({
       ...existing,
-      ...data,
+      ...data
     }));
 
     if (errors.length) {
@@ -74,7 +70,7 @@ export const dataStore = {
 
     return {
       results: get(collectedDataStore),
-      errors: errors,
+      errors: errors
     };
-  },
+  }
 };
