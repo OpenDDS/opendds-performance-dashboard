@@ -13,20 +13,24 @@
   const LEGEND_TILE_WIDTH = 55;
   const dispatch = createEventDispatcher<{rendered: void}>();
 
-  $: if (data.columns.length) {
+  $: if (data || key) {
+    console.log('Drawing');
     // Allow the rest of the UI to update
     // without blocking to update the chart.
-    drawChart(data, axis, height, onRendered);
+    drawChart(data, axis, height);
   }
 
+  let chartRef: any = null;
+  let key = Date.now();
+  $: console.log('Current key', key);
   async function drawChart(
     data: Data,
     axis: AxesOptions,
-    height: number,
-    onRendered: () => void
+    height: number
   ): Promise<void> {
-    await tick();
-    generate({
+    chartRef?.destroy();
+    key = Date.now();
+    chartRef = generate({
       axis,
       bindto: CHART_SELECTOR,
       data,
@@ -36,13 +40,19 @@
         },
         position: 'right'
       },
-      onrendered: onRendered,
+      onrendered: () => onRendered(key),
       size: {height: height}
       // zoom: {enabled: true}
     });
   }
 
-  function onRendered(): void {
+  function onRendered(theKey: any): void {
+    console.log({theKey, key});
+    if (theKey !== key) {
+      console.log("There's a different ref in town, skipping");
+      return;
+    }
+    console.log('Dispatching Render');
     addLegendTitle();
     dispatch('rendered');
   }

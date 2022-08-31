@@ -52,7 +52,7 @@
   //----------------------------------------------------------------
   // Local State
   //------------------------------------------------------------
-  let errors = new Map<BenchmarkIdentifier, ErrorEntry[]>();
+  let errors = new Map<BenchmarkIdentifier, ErrorEntry>();
   let chartData: ChartFactoryData = {columns: [], x: 'x', names: {}};
   let axisConfigurations = axisFactory();
 
@@ -64,8 +64,7 @@
 
   $: isReady = benchmarks && statProperties && form && true;
 
-  $: hasNodes =
-    scenario.startsWith('disco') || scenario.startsWith('showtime_');
+  $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(form, {hasNodes});
 
   // Axis Configuration
@@ -116,26 +115,23 @@
   //----------------------------------------------------------------
   // Methods
   //------------------------------------------------------------
+  $: console.log('Benchmarks Rerendered', benchmarks);
+  $: console.log('Chart Data Changed', chartData);
   function deriveDataPointErrors(benchmarks: Benchmarks) {
     errors.clear();
+    console.log('Clearing Errors');
     for (const [timestamp, timeData] of Object.entries(benchmarks)) {
       const dateTime = getTimeKey(timestamp);
       for (const [scenario, scenarioData] of Object.entries(timeData)) {
         for (const [size, sizeData] of Object.entries(scenarioData)) {
           if (sizeData.Errors) {
             const id = [scenario, timestamp].join('|');
-            const new_error = {
+            errors.set(id, {
               key: timestamp,
               scenario: <Scenario>scenario,
               dateTime,
               size
-            };
-            let error_list = errors.get(id);
-            if (error_list) {
-              error_list.push(new_error);
-            } else {
-              errors.set(id, [new_error]);
-            }
+            });
           }
         }
       }
@@ -155,24 +151,14 @@
       return;
 
     const selectedSet = new Set(selectedTimestamps);
-
     const bySize = chartType === BY_SIZE;
 
     const xLabels = chartData.columns[0].slice(1);
 
-    const active = [...errors.values()].filter(error_list => {
-      const {scenario: es, key} = error_list[0];
+    const active = [...errors.values()].filter(error => {
+      const {scenario: es, key} = error;
       return es === scenario && selectedSet.has(key);
     });
-
-    console.log(
-      'selectedSet.size =',
-      selectedSet.size,
-      'and selectedTimestamps.length =',
-      selectedTimestamps.length,
-      'and active.length =',
-      active.length
-    );
 
     // SVG circle elements for points can be found
     // with this series of CSS selectors:
@@ -184,48 +170,31 @@
     // .c3-circles-{className}
     // circle
     // where the circle elements are in order by x label.
-    let error_count = 0;
-    let circle_count = 0;
-    let missed_circle_count = 0;
-    for (const error_list of active) {
-      for (const error of error_list) {
-        error_count++;
-        const {key, size, dateTime} = error;
-        const timestampAsClassName = classNameFromBenchmarkKey(key);
+    for (const error of active) {
+      const {key, size, dateTime} = error;
+      const timestampAsClassName = classNameFromBenchmarkKey(key);
 
-        const trimmedSize = size.split('_')[0];
-        const formattedDateTime = dateTime.replace('_', ' ');
-        const className = bySize ? timestampAsClassName : trimmedSize;
-        const circleGroup = document.querySelector('.c3-circles-' + className);
+      const trimmedSize = size.split('_')[0];
+      const formattedDateTime = dateTime.replace('_', ' ');
+      const className = bySize ? timestampAsClassName : trimmedSize;
+      const circleGroup = document.querySelector('.c3-circles-' + className);
 
-        if (circleGroup) {
-          const label = bySize ? trimmedSize : formattedDateTime;
-          const index = xLabels.indexOf(label);
-          const circle = <SVGElement>circleGroup.children.item(index);
-          if (circle) {
-            circle_count++;
-            circle.style.stroke = 'red';
-            circle.style.strokeWidth = '4';
-          } else {
-            missed_circle_count++;
-          }
-        } else {
-          // This should never happen.
-          console.error('circle group not found for className =', className);
+      if (circleGroup) {
+        const label = bySize ? trimmedSize : formattedDateTime;
+        const index = xLabels.indexOf(label);
+        const circle = <SVGElement>circleGroup.children.item(index);
+        if (circle) {
+          circle.style.stroke = 'red';
+          circle.style.strokeWidth = '4';
         }
+      } else {
+        // This should never happen.
+        console.error('SSET', selectedSet);
+        console.error('EXPORTED SSET', selectedTimestamps);
+        console.error('ACTIVEERR', active);
+        console.error('circle group not found', className);
       }
     }
-    console.log(
-      'considered',
-      active.length,
-      'error lists,',
-      error_count,
-      'individual errors, and updated',
-      circle_count,
-      'circles, with',
-      missed_circle_count,
-      'misses'
-    );
   }
 
   function styleMissingPointIfFound(
