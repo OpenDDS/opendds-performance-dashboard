@@ -52,7 +52,7 @@
   //----------------------------------------------------------------
   // Local State
   //------------------------------------------------------------
-  let errors = new Map<BenchmarkIdentifier, ErrorEntry>();
+  let errors = new Map<BenchmarkIdentifier, ErrorEntry[]>();
   let chartData: ChartFactoryData = {columns: [], x: 'x', names: {}};
   let axisConfigurations = axisFactory();
 
@@ -64,7 +64,8 @@
 
   $: isReady = benchmarks && statProperties && form && true;
 
-  $: hasNodes = scenario === 'disco' || scenario.startsWith('showtime_');
+  $: hasNodes =
+    scenario.startsWith('disco') || scenario.startsWith('showtime_');
   $: legendTitle = getLegendTitle(form, {hasNodes});
 
   // Axis Configuration
@@ -115,8 +116,8 @@
   //----------------------------------------------------------------
   // Methods
   //------------------------------------------------------------
-  $: console.log('Benchmarks Rerendered', benchmarks);
-  $: console.log('Chart Data Changed', chartData);
+  // $: console.log('Benchmarks Rerendered', benchmarks);
+  // $: console.log('Chart Data Changed', chartData);
   function deriveDataPointErrors(benchmarks: Benchmarks) {
     errors.clear();
     console.log('Clearing Errors');
@@ -126,12 +127,17 @@
         for (const [size, sizeData] of Object.entries(scenarioData)) {
           if (sizeData.Errors) {
             const id = [scenario, timestamp].join('|');
-            errors.set(id, {
+            const new_error = {
               key: timestamp,
               scenario: <Scenario>scenario,
               dateTime,
               size
-            });
+            };
+            if (errors.has(id)) {
+              errors.get(id).push(new_error);
+            } else {
+              errors.set(id, [new_error]);
+            }
           }
         }
       }
@@ -156,7 +162,8 @@
     const xLabels = chartData.columns[0].slice(1);
 
     const active = [...errors.values()].filter(error => {
-      const {scenario: es, key} = error;
+      if (!error.length) return false;
+      const {scenario: es, key} = error[0];
       return es === scenario && selectedSet.has(key);
     });
 
@@ -171,7 +178,7 @@
     // circle
     // where the circle elements are in order by x label.
     for (const error of active) {
-      const {key, size, dateTime} = error;
+      const {key, size, dateTime} = error[0];
       const timestampAsClassName = classNameFromBenchmarkKey(key);
 
       const trimmedSize = size.split('_')[0];
@@ -189,10 +196,10 @@
         }
       } else {
         // This should never happen.
-        console.error('SSET', selectedSet);
-        console.error('EXPORTED SSET', selectedTimestamps);
-        console.error('ACTIVEERR', active);
-        console.error('circle group not found', className);
+        // console.error('SSET', selectedSet);
+        // console.error('EXPORTED SSET', selectedTimestamps);
+        // console.error('ACTIVEERR', active);
+        console.error('circle group not found', className, key);
       }
     }
   }
@@ -230,12 +237,16 @@
     styleDataPointErrors();
     styleMissingPoints();
   }
+
+  $: redrawKey = chartType || chartData || axis || Date.now();
 </script>
 
-<LineChart
-  {axis}
-  data={chartData}
-  height={DEFAULT_CHART_HEIGHT}
-  {legendTitle}
-  on:rendered={styleSpecialPoints}
-/>
+{#key redrawKey}
+  <LineChart
+    {axis}
+    data={chartData}
+    height={DEFAULT_CHART_HEIGHT}
+    {legendTitle}
+    on:rendered={styleSpecialPoints}
+  />
+{/key}
