@@ -177,31 +177,48 @@
     // .c3-circles-{className}
     // circle
     // where the circle elements are in order by x label.
-    for (const error of active) {
-      const {key, size, dateTime} = error[0];
-      const timestampAsClassName = classNameFromBenchmarkKey(key);
+    let error_count = 0;
+    let circle_count = 0;
+    let missed_circle_count = 0;
+    for (const error_list of active) {
+      for (const error of error_list) {
+        error_count++;
+        const {key, size, dateTime} = error;
+        const timestampAsClassName = classNameFromBenchmarkKey(key);
 
-      const trimmedSize = size.split('_')[0];
-      const formattedDateTime = dateTime.replace('_', ' ');
-      const className = bySize ? timestampAsClassName : trimmedSize;
-      const circleGroup = document.querySelector('.c3-circles-' + className);
+        const trimmedSize = size.split('_')[0];
+        const formattedDateTime = dateTime.replace('_', ' ');
+        const className = bySize ? timestampAsClassName : trimmedSize;
+        const circleGroup = document.querySelector('.c3-circles-' + className);
 
-      if (circleGroup) {
-        const label = bySize ? trimmedSize : formattedDateTime;
-        const index = xLabels.indexOf(label);
-        const circle = <SVGElement>circleGroup.children.item(index);
-        if (circle) {
-          circle.style.stroke = 'red';
-          circle.style.strokeWidth = '4';
+        if (circleGroup) {
+          const label = bySize ? trimmedSize : formattedDateTime;
+          const index = xLabels.indexOf(label);
+          const circle = <SVGElement>circleGroup.children.item(index);
+          if (circle) {
+            circle_count++;
+            circle.style.stroke = 'red';
+            circle.style.strokeWidth = '4';
+          } else {
+            missed_circle_count++;
+          }
+        } else {
+          // This should never happen.
+          console.error('circle group not found for className =', className);
         }
-      } else {
-        // This should never happen.
-        // console.error('SSET', selectedSet);
-        // console.error('EXPORTED SSET', selectedTimestamps);
-        // console.error('ACTIVEERR', active);
-        console.error('circle group not found', className, key);
       }
     }
+    console.log(
+      'considered',
+      active.length,
+      'error lists,',
+      error_count,
+      'individual errors, and updated',
+      circle_count,
+      'circles, with',
+      missed_circle_count,
+      'misses'
+    );
   }
 
   function styleMissingPointIfFound(
