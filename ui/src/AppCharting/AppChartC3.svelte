@@ -120,7 +120,7 @@
   // $: console.log('Chart Data Changed', chartData);
   function deriveDataPointErrors(benchmarks: Benchmarks) {
     errors.clear();
-    console.log('Clearing Errors');
+    // console.log('Clearing Errors');
     for (const [timestamp, timeData] of Object.entries(benchmarks)) {
       const dateTime = getTimeKey(timestamp);
       for (const [scenario, scenarioData] of Object.entries(timeData)) {
