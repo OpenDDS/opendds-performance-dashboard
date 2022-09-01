@@ -251,8 +251,11 @@
   }
 
   function styleSpecialPoints() {
-    styleDataPointErrors();
-    styleMissingPoints();
+    // Microtask Hack.
+    setTimeout(() => {
+      styleDataPointErrors();
+      styleMissingPoints();
+    }, 0);
   }
 
   $: redrawKey = chartType || chartData || axis || Date.now();
