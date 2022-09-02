@@ -1,6 +1,6 @@
 <script lang="ts">
   import {AxesOptions, Data, generate} from 'c3';
-  import {createEventDispatcher, tick} from 'svelte';
+  import {createEventDispatcher, onDestroy} from 'svelte';
 
   export let axis: AxesOptions;
   export let data: Data;
@@ -13,20 +13,29 @@
   const LEGEND_TILE_WIDTH = 55;
   const dispatch = createEventDispatcher<{rendered: void}>();
 
-  $: if (data.columns.length) {
+  $: if (data || key) {
+    // console.debug('Drawing');
     // Allow the rest of the UI to update
     // without blocking to update the chart.
-    drawChart(data, axis, height, onRendered);
+    drawChart(data, axis, height);
   }
+
+  let key = Date.now();
+  let chartRef: any = null;
+  onDestroy(() => {
+    console.debug('Destroying Chart');
+    chartRef?.destroy();
+  });
 
   async function drawChart(
     data: Data,
     axis: AxesOptions,
-    height: number,
-    onRendered: () => void
+    height: number
   ): Promise<void> {
-    await tick();
-    generate({
+    chartRef?.destroy();
+    const theKey = Date.now();
+    key = theKey;
+    chartRef = generate({
       axis,
       bindto: CHART_SELECTOR,
       data,
@@ -36,13 +45,18 @@
         },
         position: 'right'
       },
-      onrendered: onRendered,
+      oninit: () => onRendered(theKey),
       size: {height: height}
       // zoom: {enabled: true}
     });
   }
 
-  function onRendered(): void {
+  function onRendered(theKey: any): void {
+    if (theKey !== key) {
+      console.debug("There's a different ref in town, skipping", theKey, key);
+      return;
+    }
+    // console.debug('Dispatching Render', key, theKey);
     addLegendTitle();
     dispatch('rendered');
   }

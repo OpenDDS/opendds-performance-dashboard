@@ -116,8 +116,11 @@
   //----------------------------------------------------------------
   // Methods
   //------------------------------------------------------------
+  // $: console.log('Benchmarks Rerendered', benchmarks);
+  // $: console.log('Chart Data Changed', chartData);
   function deriveDataPointErrors(benchmarks: Benchmarks) {
     errors.clear();
+    // console.log('Clearing Errors');
     for (const [timestamp, timeData] of Object.entries(benchmarks)) {
       const dateTime = getTimeKey(timestamp);
       for (const [scenario, scenarioData] of Object.entries(timeData)) {
@@ -130,9 +133,8 @@
               dateTime,
               size
             };
-            let error_list = errors.get(id);
-            if (error_list) {
-              error_list.push(new_error);
+            if (errors.has(id)) {
+              errors.get(id).push(new_error);
             } else {
               errors.set(id, [new_error]);
             }
@@ -155,24 +157,15 @@
       return;
 
     const selectedSet = new Set(selectedTimestamps);
-
     const bySize = chartType === BY_SIZE;
 
     const xLabels = chartData.columns[0].slice(1);
 
-    const active = [...errors.values()].filter(error_list => {
-      const {scenario: es, key} = error_list[0];
+    const active = [...errors.values()].filter(error => {
+      if (!error.length) return false;
+      const {scenario: es, key} = error[0];
       return es === scenario && selectedSet.has(key);
     });
-
-    console.log(
-      'selectedSet.size =',
-      selectedSet.size,
-      'and selectedTimestamps.length =',
-      selectedTimestamps.length,
-      'and active.length =',
-      active.length
-    );
 
     // SVG circle elements for points can be found
     // with this series of CSS selectors:
@@ -258,15 +251,22 @@
   }
 
   function styleSpecialPoints() {
-    styleDataPointErrors();
-    styleMissingPoints();
+    // Microtask Hack.
+    setTimeout(() => {
+      styleDataPointErrors();
+      styleMissingPoints();
+    }, 0);
   }
+
+  $: redrawKey = chartType || chartData || axis || Date.now();
 </script>
 
-<LineChart
-  {axis}
-  data={chartData}
-  height={DEFAULT_CHART_HEIGHT}
-  {legendTitle}
-  on:rendered={styleSpecialPoints}
-/>
+{#key redrawKey}
+  <LineChart
+    {axis}
+    data={chartData}
+    height={DEFAULT_CHART_HEIGHT}
+    {legendTitle}
+    on:rendered={styleSpecialPoints}
+  />
+{/key}
