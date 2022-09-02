@@ -1,28 +1,34 @@
-name: build and zip web UI
+name: Build and zip web UI
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
       NAME: opendds-bench-scoreboard
     steps:
-      - uses: actions/checkout@v2
-      - name: setup Node.js
-        uses: actions/setup-node@v1
+      - name: Checkout opendds-bench-scoreboard
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: 12.x
-      - name: install
+      - name: Install UI
         run: |
           cd ui
           npm ci
-      - name: build
+      - name: Build UI
         run: |
           cd ui
           npm run build
-      - name: upload
-        uses: actions/upload-artifact@v2
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
         with:
           name: ${{env.NAME}}
           path: ui/dist
