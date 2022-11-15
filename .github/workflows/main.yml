@@ -11,9 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      NAME: opendds-bench-scoreboard
+      NAME: opendds-performance-dashboard
     steps:
-      - name: Checkout opendds-bench-scoreboard
+      - name: Checkout opendds-performance-dashboard
         uses: actions/checkout@v3
       - name: Setup Node.js
         uses: actions/setup-node@v3
