@@ -1,6 +1,7 @@
 {
-  "name": "opendds-bench-scoreboard",
+  "name": "opendds-performance-dashboard",
   "version": "0.2.0",
+  "description": "OpenDSS Performance Dashboard UI",
   "scripts": {
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
@@ -19,7 +20,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/oci-labs/opendds-bench-scoreboard.git"
+    "url": "https://github.com/OpenDDS/opendds-performance-dashboard.git"
   },
   "license": "ISC",
   "devDependencies": {

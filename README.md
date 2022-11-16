@@ -1,4 +1,4 @@
-# opendds-bench-scoreboard
+# opendds-performance-dashboard
 
 If running locally (on localhost),
 start the REST server that is required to get past CORS issues:

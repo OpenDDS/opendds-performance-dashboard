@@ -193,7 +193,7 @@
       </div>
 
       <div class="right">
-        <h1 class="title">Bench Scoreboard</h1>
+        <h1 class="title">Bench Performance Dashboard</h1>
         <div class="buttons">
           <AppSharing />
           <button

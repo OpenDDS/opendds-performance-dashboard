@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "OpenDSS Scoreboard server",
+  "description": "OpenDSS Performance Dashboard Server",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -19,7 +19,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/oci-labs/opendds-bench-scoreboard.git"
+    "url": "https://github.com/OpenDDS/opendds-performance-dashboard.git"
   },
   "license": "ISC",
   "dependencies": {
