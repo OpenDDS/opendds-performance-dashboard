@@ -188,7 +188,7 @@
   </svg>
 {/if}
 
-<style type="text/css">
+<style lang="css">
   svg {
     margin: 4px 0;
   }

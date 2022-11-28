@@ -6,10 +6,9 @@ import type {
   FormConfiguration,
   PlotStatistic,
   Scenario,
-  ScenarioSizeRecords,
-  PlotTypeRecords,
   TimestampViewModel
 } from '../types';
+import {configParamMap, sizeParamMap} from '../utility/param-map';
 
 export const MISSING_VALUE = -0.0000001;
 export const BY_SIZE: ChartType = 'by size';
@@ -72,10 +71,11 @@ export async function getChartDataBySize(
   opts: FormConfiguration
 ): Promise<Data> {
   const {scenario, serverCount, plotType, statName} = opts;
-  const isFan = isFanScenario(scenario);
   const data: Data = {columns: [], x: 'x', names: {}};
 
   if (!scenario || !statName || !plotType) return data;
+
+  const isFan = isFanScenario(scenario);
 
   const sizes = getSizeKeys(benchmarkMap, {scenario, serverCount});
   const arr: ChartingArray = ['x', ...sizes];
@@ -86,19 +86,38 @@ export async function getChartDataBySize(
 
     for (const size of sizes) {
       let value: number = MISSING_VALUE;
-      const sizeKey = isFan ? `${size}_${serverCount}` : size;
       const benchmark = benchmarkMap[timestamp.key];
-      const scenarioSizeRecords: ScenarioSizeRecords | boolean =
-        benchmark && benchmark[scenario];
-      if (scenarioSizeRecords) {
-        const plotTypeRecords: PlotTypeRecords = scenarioSizeRecords[sizeKey];
-        if (plotTypeRecords) {
-          const plotStatistic: PlotStatistic = plotTypeRecords[plotType];
-          if (plotStatistic && plotStatistic[statName])
-            value = plotStatistic[statName];
+      if (benchmark) {
+        for (const [, sData] of Object.entries(benchmark).filter(
+          ([key]) => key != 'run_parameters'
+        )) {
+          const sParams = sData['scenario_parameters'];
+          if (sParams) {
+            const sBase = sParams['Base'];
+            const sConfig = sParams['Config'];
+            const sName = sConfig
+              ? sBase +
+                '-' +
+                (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+              : sBase;
+            const sServers = sParams['Servers'];
+            const serverMatch =
+              !isFan ||
+              (sServers &&
+                JSON.stringify(sServers) === JSON.stringify(serverCount));
+            const sSize = sParams[sizeParamMap[sBase]];
+            const sizeMatch = sSize && JSON.stringify(sSize) === size;
+            if (sName === scenario && serverMatch && sizeMatch) {
+              const plotStatistic: PlotStatistic = <PlotStatistic>(
+                (<unknown>sData[plotType])
+              );
+              if (plotStatistic && plotStatistic[statName]) {
+                value = plotStatistic[statName];
+              }
+            }
+          }
         }
       }
-
       column.push(value);
     }
     columns.push(column);
@@ -116,8 +135,8 @@ export async function getChartDataByTimestamp(
   const data: Data = {columns: [], x: 'x', names: {}};
 
   if (!scenario || !statName || !plotType) return data;
+
   const isFan: boolean = isFanScenario(scenario);
-  // Load Data For Selected TimeStamps
 
   const xValues: PrimitiveArray = timestamps.map(
     timestamp => timestamp.dateTime
@@ -134,20 +153,42 @@ export async function getChartDataByTimestamp(
     const column: ChartingArray = [dataName];
 
     for (const timestamp of timestamps) {
-      let value = 0;
+      let value: number = MISSING_VALUE;
       const benchmark = benchmarkMap[timestamp.key];
-      const scenarioSizeRecords = benchmark && benchmark[scenario];
-      if (benchmark && scenarioSizeRecords) {
-        const plotTypeRecords =
-          scenarioSizeRecords[isFan ? `${dataName}_${serverCount}` : dataName];
-        if (plotTypeRecords) {
-          const plotStatisctics = plotTypeRecords[plotType];
-          if (plotStatisctics) value = plotStatisctics[statName];
+      if (benchmark) {
+        for (const [, sData] of Object.entries(benchmark).filter(
+          ([key]) => key != 'run_parameters'
+        )) {
+          const sParams = sData['scenario_parameters'];
+          if (sParams) {
+            const sBase = sParams['Base'];
+            const sConfig = sParams['Config'];
+            const sName = sConfig
+              ? sBase +
+                '-' +
+                (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+              : sBase;
+            const sServers = sParams['Servers'];
+            const serverMatch =
+              !isFan ||
+              (sServers &&
+                JSON.stringify(sServers) === JSON.stringify(serverCount));
+            const sSize = sParams[sizeParamMap[sBase]];
+            const sizeMatch = sSize && JSON.stringify(sSize) === dataName;
+            if (sName === scenario && serverMatch && sizeMatch) {
+              const plotStatistic: PlotStatistic = <PlotStatistic>(
+                (<unknown>sData[plotType])
+              );
+              if (plotStatistic && plotStatistic[statName]) {
+                value = plotStatistic[statName];
+              }
+            }
+          }
         }
       }
+
       column.push(value);
     }
-
     columns.push(column);
   }
 
@@ -161,17 +202,33 @@ export function getDataNames(
 ): string[] {
   const isFan = isFanScenario(scenario);
   const dataNames = new Set<string>();
+
   for (const benchmark of Object.values(benchmarkMap)) {
-    const scenarioSizeRecords = benchmark[scenario];
-    if (scenarioSizeRecords) {
-      for (const dataName of Object.keys(scenarioSizeRecords)) {
-        if (!isFan || dataName.endsWith(`_${serverCount}`)) {
-          dataNames.add(isFan ? dataName.split('_')[0] : dataName);
+    for (const [, sData] of Object.entries(benchmark).filter(
+      ([key]) => key != 'run_parameters'
+    )) {
+      const sParams = sData['scenario_parameters'];
+      if (sParams) {
+        const sBase = sParams['Base'];
+        const sConfig = sParams['Config'];
+        const sName = sConfig
+          ? sBase + '-' + (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+          : sBase;
+        const sServers = sParams['Servers'];
+        const serverMatch =
+          !isFan ||
+          (sServers &&
+            JSON.stringify(sServers) === JSON.stringify(serverCount));
+        if (sName === scenario && serverMatch) {
+          dataNames.add(JSON.stringify(sParams[sizeParamMap[sBase]]));
         }
       }
     }
   }
-  return [...dataNames].sort((n1, n2) => Number(n1) - Number(n2));
+
+  const result = [...dataNames].sort((n1, n2) => Number(n1) - Number(n2));
+  //console.log("getDataNames is returning result: ", result);
+  return result;
 }
 
 export function getSizeKeys(
@@ -182,21 +239,35 @@ export function getSizeKeys(
   const sizes = new Set<string>();
 
   for (const benchmark of Object.values(benchmarkMap)) {
-    const scenarioSizeRecords = benchmark[scenario];
-    if (scenarioSizeRecords) {
-      for (const scenarioSize of Object.keys(scenarioSizeRecords)) {
-        if (!isFan || scenarioSize.endsWith(`_${serverCount}`)) {
-          sizes.add(isFan ? scenarioSize.split('_')[0] : scenarioSize);
+    for (const [, sData] of Object.entries(benchmark).filter(
+      ([key]) => key != 'run_parameters'
+    )) {
+      const sParams = sData['scenario_parameters'];
+      if (sParams) {
+        const sBase = sParams['Base'];
+        const sConfig = sParams['Config'];
+        const sName = sConfig
+          ? sBase + '-' + (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+          : sBase;
+        const sServers = sParams['Servers'];
+        const serverMatch =
+          !isFan ||
+          (sServers &&
+            JSON.stringify(sServers) === JSON.stringify(serverCount));
+        if (sName === scenario && serverMatch) {
+          sizes.add(JSON.stringify(sParams[sizeParamMap[sBase]]));
         }
       }
     }
   }
 
-  return [...sizes].sort((n1, n2) => Number(n1) - Number(n2));
+  const result = [...sizes].sort((n1, n2) => Number(n1) - Number(n2));
+  //console.log("getSizeKeys is returning result: ", result);
+  return result;
 }
 
 export function isFanScenario(scenario: Scenario): boolean {
-  return (scenario || '').startsWith('fan_');
+  return (scenario || '').startsWith('fan-');
 }
 
 //----------------------------------------------------------------

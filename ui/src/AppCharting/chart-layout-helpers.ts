@@ -6,7 +6,8 @@ import type {
   YAxisType
 } from 'c3';
 import type {ChartType, FormConfiguration, StatProperties} from '../types';
-import {BY_SIZE, BY_TIMESTAMP, ChartFactoryData} from './chart-data-extractor';
+import type {ChartFactoryData} from './chart-data-extractor';
+import {BY_SIZE, BY_TIMESTAMP} from './chart-data-extractor';
 
 type HasStatPropertiesOptions = {statProperties: StatProperties};
 type HasColumnsOptions = Pick<ChartFactoryData, 'columns'>;

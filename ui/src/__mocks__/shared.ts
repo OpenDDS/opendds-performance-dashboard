@@ -7,13 +7,13 @@ import type {
 import {combinations} from '../utility/combinations';
 
 export const SCENARIOS: Scenario[] = [
-  'disco',
+  'disco-rtps',
   'disco-relay',
   'disco-repo',
-  'echo_rtps',
-  'echo_tcp',
-  'fan_rtps',
-  'fan_tcp',
+  'echo-rtps',
+  'echo-tcp',
+  'fan-rtps',
+  'fan-tcp',
   'showtime_mixed'
 ];
 

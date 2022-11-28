@@ -22,16 +22,16 @@
     <a
       on:click|stopPropagation
       href={GITHUB_COMMIT_URL + timestamp.commit}
-      rel="noopener"
+      rel="noreferrer"
       title={timestamp.commit}
-      target="_blank">{timestamp.commit.substr(0, 7)}</a
+      target="_blank">{timestamp.commit.substring(0, 7)}</a
     >
   </td>
   <td class="hash">
     {#if timestamp.tag}
       <a
         href={`${GITHUB_TAG_URL}${timestamp.tag.name}`}
-        rel="noopener"
+        rel="noreferrer"
         target="_blank">{timestamp.tag.name}</a
       >
     {/if}

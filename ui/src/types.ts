@@ -27,16 +27,16 @@ export type GitSha = string;
 export type BuildHash = string;
 
 export type Scenario =
-  | 'b1_latency_rtps'
-  | 'b1_latency_tcp'
-  | 'b1_latency_udp'
-  | 'disco'
+  | 'b1_latency-rtps'
+  | 'b1_latency-tcp'
+  | 'b1_latency-udp'
+  | 'disco-rtps'
   | 'disco-relay'
   | 'disco-repo'
-  | 'echo_rtps'
-  | 'echo_tcp'
-  | 'fan_rtps'
-  | 'fan_tcp'
+  | 'echo-rtps'
+  | 'echo-tcp'
+  | 'fan-rtps'
+  | 'fan-tcp'
   | 'showtime_mixed';
 
 export type PlotType =
@@ -104,9 +104,17 @@ export type RunIndex = Array<Run>;
 
 export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 
-export type Benchmark = Record<Scenario, ScenarioSizeRecords>;
+export type IgnoredRunMembers = 'run_parameters';
 
-export type IgnoredStatistics = 'Errors' | 'Max Discovery Time Delta';
+export type Benchmark = Record<
+  Scenario | IgnoredRunMembers,
+  ScenarioSizeRecords
+>;
+
+export type IgnoredStatistics =
+  | 'Errors'
+  | 'Max Discovery Time Delta'
+  | 'scenario_parameters';
 
 export type ScenarioSizeRecords = Record<
   ScenarioSizeIdentifier,

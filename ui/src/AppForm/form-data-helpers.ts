@@ -8,12 +8,13 @@ import type {
   StatName,
   FormScenarioOptions
 } from '../types';
+import {configParamMap} from '../utility/param-map';
 
 export const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
 export const DEFAULT_CHART_TYPE = BY_SIZE;
 export const DEFAULT_PLOT_TYPE = 'Discovery Time Delta';
 export const DEFAULT_RECENT_COUNT = 5;
-export const DEFAULT_SCENARIO = 'disco';
+export const DEFAULT_SCENARIO = 'disco-rtps';
 export const DEFAULT_SERVER_COUNT = 16;
 export const DEFAULT_STAT_NAME = 'median';
 export const MDTD = 'Max Discovery Time Delta';
@@ -39,13 +40,30 @@ export function deriveSelectOptionsFromData(
   }
 
   benchmarkEntries.forEach(timestampObj => {
-    for (const [scenario, scenarioObj] of Object.entries(timestampObj)) {
-      uniqueScenarios.add(<Scenario>scenario);
+    if (!timestampObj['run_parameters']) {
+      return;
+    }
+    for (const [, sData] of Object.entries(timestampObj).filter(
+      ([key]) => key != 'run_parameters'
+    )) {
+      const sParams = sData['scenario_parameters'];
+      if (sParams) {
+        const sBase = sParams['Base'];
+        const sConfig = sParams['Config'];
+        const sName = sConfig
+          ? sBase + '-' + (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+          : sBase;
+        uniqueScenarios.add(<Scenario>sName);
 
-      for (const [size, sizeEntry] of Object.entries(scenarioObj)) {
-        updateServerCount(<Scenario>scenario, size.split('_')[1]);
+        for (const [sparam, sparamEntry] of Object.entries(sParams)) {
+          if (sparam === 'Servers') {
+            updateServerCount(<Scenario>sName, <number>(<unknown>sparamEntry));
+          }
+        }
 
-        for (const [plotType, plotTypeObj] of Object.entries(sizeEntry)) {
+        for (const [plotType, plotTypeObj] of Object.entries(sData).filter(
+          ([key]) => key != 'scenario_parameters'
+        )) {
           uniquePlotTypes.add(<PlotType>plotType);
 
           for (const statName of Object.keys(plotTypeObj)) {

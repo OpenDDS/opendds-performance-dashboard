@@ -28,7 +28,7 @@ function decodeValue(value: string): EncodableValue {
 
 /**
  * Convert an object to a url encoded query string
- * @param {Object} The object to conver
+ * @param {Object} object The object to convert
  * @returns
  */
 export function objectToQuery(
@@ -93,10 +93,12 @@ export function queryToObject(
  */
 export function resolveApiUrl(location: Location): string {
   const DEV_PROXY_API_PORT = 1919;
-  const LOCALHOST_DEV = ['3000', '5000'];
+  const LOCALHOST_DEV = ['3000', '5000', '5173'];
 
   function isDev({hostname, port}): boolean {
-    return hostname === 'localhost' && LOCALHOST_DEV.includes(port);
+    const local = hostname === 'localhost' || hostname.substr(0, 4) === '127.';
+    const result = local && LOCALHOST_DEV.includes(port);
+    return result;
   }
 
   const cleanedPath = trimTrailingSlashes(
@@ -126,7 +128,7 @@ export function resolveApiUrl(location: Location): string {
  * output: /test/com/index.html/
  * ```
  *
- * @param pathname the location path
+ * @param path the location path
  * @returns the cleaned location path
  */
 export function stripHtmFilenameFromPath(path: string): string {

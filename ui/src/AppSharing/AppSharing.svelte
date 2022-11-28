@@ -53,22 +53,31 @@
 </script>
 
 <div class="sharing">
-  <button on:click={() => (visible = true)}>Embed and Share Info</button>
+  <button on:click={() => (visible = true)} on:keypress={() => (visible = true)}
+    >Embed and Share Info</button
+  >
   {#if visible}
     <div
       in:fade={DEFAULT_FADE}
       out:fade={DELAYED_FADE}
       on:click={() => (visible = false)}
+      on:keypress={() => (visible = false)}
       class="sharing-info_backdrop"
     >
       <div
         in:fade={DELAYED_FADE}
         out:fade={DEFAULT_FADE}
         on:click|stopPropagation
+        on:keypress|stopPropagation
         class="sharing-info"
         role="dialog"
       >
-        <span role="button" class="close" on:click={() => (visible = false)}>
+        <span
+          role="button"
+          class="close"
+          on:click={() => (visible = false)}
+          on:keypress={() => (visible = false)}
+        >
           Close [X]
         </span>
 
@@ -78,7 +87,8 @@
             <span
               role="button"
               class="copy"
-              on:click={() => copy(shareLink.code)}>(Copy)</span
+              on:click={() => copy(shareLink.code)}
+              on:keypress={() => copy(shareLink.code)}>(Copy)</span
             >
             {#if copied === shareLink.code}
               <span transition:fade={DEFAULT_FADE}>Copied!</span>

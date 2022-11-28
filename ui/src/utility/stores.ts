@@ -1,6 +1,7 @@
 import {writable, get} from 'svelte/store';
 import type {AppError, BenchmarkIdentifier, Benchmarks} from '../types';
-import {BenchmarkLoadResponse, getAllScraped, getEntries} from './data-loader';
+import type {BenchmarkLoadResponse} from './data-loader';
+import {getAllScraped, getEntries} from './data-loader';
 
 const collectedDataStore = writable<Benchmarks>({});
 const collectedDataErrors = writable<AppError[]>([]);

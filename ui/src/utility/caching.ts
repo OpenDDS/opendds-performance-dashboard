@@ -34,7 +34,7 @@ function setOrClear<T>(key: string, data: T, tried = false): void {
     if (
       !tried &&
       (<DOMException>error).QUOTA_EXCEEDED_ERR &&
-      (<DOMException>error).code === (<DOMException>error).QUOTA_EXCEEDED_ERR
+      (<DOMException>error).name === 'QuotaExceededError'
     ) {
       localStorage.clear();
       return setOrClear(key, data, true);
