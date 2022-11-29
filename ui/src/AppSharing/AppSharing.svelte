@@ -50,10 +50,20 @@
       copied = null;
     }, 3000);
   }
+
+  interface KeyboardEvent {
+    key: string;
+  }
+
+  function onKeyPress(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      visible = true;
+    }
+  }
 </script>
 
 <div class="sharing">
-  <button on:click={() => (visible = true)} on:keypress={() => (visible = true)}
+  <button on:click={() => (visible = true)} on:keypress={onKeyPress}
     >Embed and Share Info</button
   >
   {#if visible}
