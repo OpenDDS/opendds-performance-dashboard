@@ -31,6 +31,7 @@
     TimestampViewModel
   } from '../types';
   import type {Primitive} from 'c3';
+  import {configParamMap, sizeParamMap} from '../utility/param-map';
 
   type ErrorEntry = {
     key: BenchmarkIdentifier;
@@ -121,26 +122,58 @@
   function deriveDataPointErrors(benchmarks: Benchmarks) {
     errors.clear();
     // console.log('Clearing Errors');
+
     for (const [timestamp, timeData] of Object.entries(benchmarks)) {
       const dateTime = getTimeKey(timestamp);
-      for (const [scenario, scenarioData] of Object.entries(timeData)) {
-        for (const [size, sizeData] of Object.entries(scenarioData)) {
-          if (sizeData.Errors) {
-            const id = [scenario, timestamp].join('|');
-            const new_error = {
-              key: timestamp,
-              scenario: <Scenario>scenario,
-              dateTime,
-              size
-            };
-            if (errors.has(id)) {
-              errors.get(id).push(new_error);
-            } else {
-              errors.set(id, [new_error]);
+      for (const [, sData] of Object.entries(timeData).filter(
+        ([key]) => key != 'run_parameters'
+      )) {
+        if (sData.Errors) {
+          const sParams = sData['scenario_parameters'];
+          if (sParams) {
+            const sBase = sParams['Base'];
+            const sConfig = sParams['Config'];
+            const sName = sConfig
+              ? sBase +
+                '-' +
+                (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+              : sBase;
+            const sSize = sParams[sizeParamMap[sBase]];
+            if (sSize) {
+              const id = [sName, timestamp].join('|');
+              const new_error = {
+                key: timestamp,
+                scenario: <Scenario>sName,
+                dateTime,
+                size: sSize
+              };
+              if (errors.has(id)) {
+                errors.get(id).push(new_error);
+              } else {
+                errors.set(id, [new_error]);
+              }
             }
           }
         }
       }
+      //for (const [scenario, scenarioData] of Object.entries(timeData)) {
+      //  for (const [size, sizeData] of Object.entries(scenarioData)) {
+      //    if (sizeData.Errors) {
+      //      const id = [scenario, timestamp].join('|');
+      //      const new_error = {
+      //        key: timestamp,
+      //        scenario: <Scenario>scenario,
+      //        dateTime,
+      //        size
+      //      };
+      //      if (errors.has(id)) {
+      //        errors.get(id).push(new_error);
+      //      } else {
+      //        errors.set(id, [new_error]);
+      //      }
+      //    }
+      //  }
+      //}
     }
   }
 
@@ -183,10 +216,10 @@
     for (const error_list of active) {
       for (const error of error_list) {
         error_count++;
-        const {key, size, dateTime} = error;
+        const {key, scenario: _scenario, dateTime, size} = error;
         const timestampAsClassName = classNameFromBenchmarkKey(key);
 
-        const trimmedSize = size.split('_')[0];
+        const trimmedSize = JSON.stringify(size);
         const formattedDateTime = dateTime.replace('_', ' ');
         const className = bySize ? timestampAsClassName : trimmedSize;
         const circleGroup = document.querySelector('.c3-circles-' + className);

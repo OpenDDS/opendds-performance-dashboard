@@ -18,14 +18,16 @@ describe('Form Data Helpers', () => {
         'Virtual Memory Utilization'
       ],
       scenarios: {
-        b1_latency_rtps: {serverCounts: []},
-        b1_latency_tcp: {serverCounts: []},
-        b1_latency_udp: {serverCounts: []},
-        disco: {serverCounts: []},
-        echo_rtps: {serverCounts: []},
-        echo_tcp: {serverCounts: []},
-        fan_rtps: {serverCounts: [16, 4]},
-        fan_tcp: {serverCounts: [16, 4]},
+        'b1_latency-rtps': {serverCounts: []},
+        'b1_latency-tcp': {serverCounts: []},
+        'b1_latency-udp': {serverCounts: []},
+        'disco-rtps': {serverCounts: []},
+        'disco-relay': {serverCounts: []},
+        'disco-repo': {serverCounts: []},
+        'echo-rtps': {serverCounts: []},
+        'echo-tcp': {serverCounts: []},
+        'fan-rtps': {serverCounts: [16, 4]},
+        'fan-tcp': {serverCounts: [16, 4]},
         showtime_mixed: {serverCounts: []}
       },
       statNames: [

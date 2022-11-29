@@ -1,5 +1,6 @@
 <script lang="ts">
-  import {AxesOptions, Data, generate} from 'c3';
+  import type {AxesOptions, Data} from 'c3';
+  import {generate} from 'c3';
   import {createEventDispatcher, onDestroy} from 'svelte';
 
   export let axis: AxesOptions;
