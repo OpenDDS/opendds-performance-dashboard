@@ -8,6 +8,7 @@
   } from 'src/types';
 
   import AppChartC3 from './AppChartC3.svelte';
+  import AppChartJs from './AppChartJs.svelte';
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
   export let form: FormConfiguration;
@@ -18,13 +19,21 @@
   export let statProperties: StatProperties;
 
   $: title = [form.scenario, form.plotType, form.statName].join(' \uFF5C ');
+  $: console.log({
+    benchmarks,
+    form,
+    selectedTimestamps,
+    statProperties,
+    timestamps,
+    title
+  });
 </script>
 
 <h2>{title}</h2>
 
 <div class="panel container" style={`min-height: ${DEFAULT_CHART_HEIGHT}px`}>
   <svelte:component
-    this={AppChartC3}
+    this={AppChartJs}
     {form}
     {selectedTimestamps}
     {benchmarks}
