@@ -1,8 +1,6 @@
 <script lang="ts">
   import {errorStore} from '../utility/stores';
   import Chart from './LineChartjs.svelte';
-  import {data} from './data';
-  import TempData from './TempData.json';
 
   import {
     chartDataFactory,
@@ -11,7 +9,6 @@
     BY_TIMESTAMP,
     MISSING_VALUE
   } from './chart-data-extractor';
-
   import type {ChartFactoryData} from './chart-data-extractor';
 
   import {
@@ -20,7 +17,6 @@
     getAxisXLabel,
     getLegendTitle,
     getAxisXTimeStampType,
-    DEFAULT_CHART_HEIGHT,
     getAxisYConfigurationPartials,
     getAxisYTickFormat
   } from './chart-layout-helpers';
@@ -28,6 +24,7 @@
     BenchmarkIdentifier,
     Benchmarks,
     FormConfiguration,
+    Primitive,
     Scenario,
     StatProperties,
     TimestampViewModel
@@ -74,7 +71,7 @@
   $: axisConfigurations[BY_TIMESTAMP].x.type = getAxisXTimeStampType(form);
   $: axisConfigurations[BY_TIMESTAMP].x.tick.fit = form.useTimeSeries;
   $: axis = axisConfigurations[chartType];
-  $: console.log({
+  $: console.log('CHARTJS', {
     scenario,
     chartType,
     isReady,
@@ -166,30 +163,49 @@
           }
         }
       }
-      //for (const [scenario, scenarioData] of Object.entries(timeData)) {
-      //  for (const [size, sizeData] of Object.entries(scenarioData)) {
-      //    if (sizeData.Errors) {
-      //      const id = [scenario, timestamp].join('|');
-      //      const new_error = {
-      //        key: timestamp,
-      //        scenario: <Scenario>scenario,
-      //        dateTime,
-      //        size
-      //      };
-      //      if (errors.has(id)) {
-      //        errors.get(id).push(new_error);
-      //      } else {
-      //        errors.set(id, [new_error]);
-      //      }
-      //    }
-      //  }
-      //}
     }
+  }
+
+  function styleMissingPointIfFound(
+    timestamp: string,
+    value: Primitive,
+    index: number
+  ): void {
+    if (value !== MISSING_VALUE) return;
+    const g = document.querySelector('.c3-circles-' + timestamp);
+    if (!g) return;
+
+    const circle = <SVGElement>g.querySelector('.c3-circle-' + (index - 1));
+    if (!circle) return;
+
+    circle.style.stroke = 'orange';
+    circle.style.strokeWidth = '4';
   }
 
   function getTimeKey(timestamp: string): string {
     const dateTimeString = timestamp.split('+')[0];
     return dateTimeString.replace('T', '_');
+  }
+
+  function styleMissingPoints() {
+    // console.log('App.svelte styleMissingPoints: data =', data);
+    const {columns} = chartData;
+
+    for (const column of columns) {
+      const [timestamp] = column;
+      for (let index = 0; index < column.length; index++) {
+        const value = column[index];
+        styleMissingPointIfFound(timestamp, value, index);
+      }
+    }
+  }
+
+  function styleSpecialPoints() {
+    // Microtask Hack.
+    setTimeout(() => {
+      styleDataPointErrors();
+      styleMissingPoints();
+    }, 0);
   }
 
   function styleDataPointErrors() {
@@ -209,6 +225,7 @@
       const {scenario: es, key} = error[0];
       return es === scenario && selectedSet.has(key);
     });
+    console.log({active});
 
     // SVG circle elements for points can be found
     // with this series of CSS selectors:
@@ -270,5 +287,11 @@
 </script>
 
 {#key redrawKey}
-  <Chart {axis} data={chartData} {legendTitle} />
+  <Chart
+    {axis}
+    data={chartData}
+    {legendTitle}
+    errorTicks={styleSpecialPoints}
+  />
+  <!-- on:rendered{styleSpecialPoints} -->
 {/key}
