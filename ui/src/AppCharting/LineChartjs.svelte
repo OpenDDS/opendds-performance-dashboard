@@ -24,20 +24,16 @@
     const bySize = chartType === BY_SIZE;
 
     const xLabels = data.columns[0].slice(1);
-    console.log('TICKS', {errorTicks, selectedSet, bySize, xLabels});
 
     const active = [...errorTicks.values()].filter(error => {
       if (!error.length) return false;
       const {scenario: es, key} = error[0];
-      //   console.log({scenario, es, key});
       return es === scenario && selectedSet.has(key);
     });
-    console.log({active});
 
     for (const error_list of active) {
       for (const error of error_list) {
         const {key, scenario: _scenario, dateTime, size} = error;
-        // console.log({key, scenario, dateTime, size, _scenario});
 
         const timestampAsClassName = classNameFromBenchmarkKey(key);
 
@@ -46,7 +42,6 @@
         const className = bySize ? timestampAsClassName : trimmedSize;
         const label = bySize ? trimmedSize : formattedDateTime;
         const index = xLabels.indexOf(label);
-        // console.log({index, label, className, scenario});
         if (index && label && className) {
           formattedErrors.push({index, label, className});
         }
@@ -86,16 +81,17 @@
     let datasets = [];
     let xValues = [];
 
-    console.log({formattedErrors});
-
     let colors = [
-      'orange',
-      'green',
+      'darkorange',
+      'darkgreen',
       'purple',
-      'blue',
-      'yellow',
+      'darkblue',
+      'gold',
       'magenta',
-      'violet'
+      'blueviolet',
+      'darkred',
+      'olivegreen',
+      'sienna'
     ];
 
     if (data && data.names && data.columns.length) {
@@ -109,12 +105,11 @@
           backgroundColor: colors[i],
           borderColor: colors[i],
           pointBackgroundColor: Array(column[0].length).fill(colors[i]),
-          pointRadius: 3
+          pointRadius: 5
         };
         for (const error of formattedErrors) {
           if (error.className === label) {
             container.pointBackgroundColor[error.index] = 'red';
-            container.pointRadius = 5;
           }
         }
         if (label.includes('_')) {
@@ -184,9 +179,7 @@
           tooltip: {
             callbacks: {
               label(context) {
-                console.log({context});
                 context.formattedValue = yAxis.tick.format(context.parsed.y);
-                context.dataset.borderColor;
               }
             },
             displayColors: true,
