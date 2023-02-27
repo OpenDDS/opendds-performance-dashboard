@@ -4,7 +4,7 @@ import type {
   XAxisType,
   YAxisConfiguration,
   YAxisType
-} from 'c3';
+} from '../types';
 import type {ChartType, FormConfiguration, StatProperties} from '../types';
 import type {ChartFactoryData} from './chart-data-extractor';
 import {BY_SIZE, BY_TIMESTAMP} from './chart-data-extractor';
@@ -132,7 +132,7 @@ export function getAxisYPadding({useLogScale}: HasLogScaleOptions): Padding {
 }
 
 export function getAxisYType({useLogScale}: HasLogScaleOptions): YAxisType {
-  if (useLogScale) return 'log';
+  if (useLogScale) return 'logarithmic';
   return 'linear';
 }
 

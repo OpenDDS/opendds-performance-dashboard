@@ -71,15 +71,15 @@
   $: axisConfigurations[BY_TIMESTAMP].x.type = getAxisXTimeStampType(form);
   $: axisConfigurations[BY_TIMESTAMP].x.tick.fit = form.useTimeSeries;
   $: axis = axisConfigurations[chartType];
-  $: console.log('CHARTJS', {
-    scenario,
-    chartType,
-    isReady,
-    hasNodes,
-    legendTitle,
-    axisConfigurations,
-    axis
-  });
+  //   $: console.log('CHARTJS', {
+  //     scenario,
+  //     chartType,
+  //     isReady,
+  //     hasNodes,
+  //     legendTitle,
+  //     axisConfigurations,
+  //     axis
+  //   });
 
   // X and Y Label
   $: if (chartData && axis && isReady) {
@@ -128,7 +128,6 @@
   // $: console.log('Chart Data Changed', chartData);
   function deriveDataPointErrors(benchmarks: Benchmarks) {
     errors.clear();
-    // console.log('Clearing Errors');
 
     for (const [timestamp, timeData] of Object.entries(benchmarks)) {
       const dateTime = getTimeKey(timestamp);
@@ -227,19 +226,7 @@
     });
     console.log({active});
 
-    // SVG circle elements for points can be found
-    // with this series of CSS selectors:
-    // .open-dds-chart
-    // svg
-    // .c3-chart
-    // .c3-chart-lines
-    // .c3-chart-line
-    // .c3-circles-{className}
-    // circle
-    // where the circle elements are in order by x label.
     let error_count = 0;
-    let circle_count = 0;
-    let missed_circle_count = 0;
     for (const error_list of active) {
       for (const error of error_list) {
         error_count++;
@@ -249,49 +236,28 @@
         const trimmedSize = JSON.stringify(size);
         const formattedDateTime = dateTime.replace('_', ' ');
         const className = bySize ? timestampAsClassName : trimmedSize;
-        const circleGroup = document.querySelector('.c3-circles-' + className);
+        // const circleGroup = document.querySelector('.c3-circles-' + className);
 
-        if (circleGroup) {
-          const label = bySize ? trimmedSize : formattedDateTime;
-          const index = xLabels.indexOf(label);
-          const circle = <SVGElement>circleGroup.children.item(index);
-          if (circle) {
-            circle_count++;
-            circle.style.stroke = 'red';
-            circle.style.strokeWidth = '4';
-          } else {
-            missed_circle_count++;
-          }
-        } else {
-          // This should never happen.
-          console.error('circle group not found for className =', className);
-        }
+        const label = bySize ? trimmedSize : formattedDateTime;
+        const index = xLabels.indexOf(label);
+        console.log({index, label});
       }
     }
-    console.log(
-      'considered',
-      active.length,
-      'error lists,',
-      error_count,
-      'individual errors, and updated',
-      circle_count,
-      'circles, with',
-      missed_circle_count,
-      'misses'
-    );
   }
 
   $: console.log('DATA', chartData);
 
-  $: redrawKey = chartType || chartData || axis || Date.now();
+  $: redrawKey = chartType || chartData || axis || Date.now() || errors;
 </script>
 
 {#key redrawKey}
   <Chart
     {axis}
     data={chartData}
+    {form}
     {legendTitle}
-    errorTicks={styleSpecialPoints}
+    errorTicks={errors}
+    {selectedTimestamps}
+    on:rendered{styleSpecialPoints}
   />
-  <!-- on:rendered{styleSpecialPoints} -->
 {/key}
