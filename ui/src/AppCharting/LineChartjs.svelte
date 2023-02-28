@@ -11,10 +11,30 @@
   export let legendTitle: string;
   export let selectedTimestamps;
 
-  let formattedErrors;
+  const dispatch = createEventDispatcher<{rendered: void}>();
   const CHART_ID = 'open-dds-chart';
+
+  let formattedErrors;
+  let key = Date.now();
+  let chartRef: any = null;
+
   $: scenario = form.scenario;
   $: chartType = form.chartType;
+
+  $: if (data && data.columns.length > 0 && key) {
+    console.debug('Drawing');
+    // Allow the rest of the UI to update
+    // without blocking to update the chart.
+    drawChart(data, axis);
+  }
+
+  const formatTime = (time: string) => {
+    if (time.includes('_')) {
+      const [datePart, timePart] = time.split('_');
+      const [hour, minute, second] = timePart.split('-');
+      return (time = `${datePart} ${hour}:${minute}:${second}`);
+    }
+  };
 
   function formatErrors() {
     formattedErrors = [];
@@ -39,8 +59,9 @@
 
         const trimmedSize = JSON.stringify(size);
         const formattedDateTime = dateTime.replace('_', ' ');
-        const className = bySize ? timestampAsClassName : trimmedSize;
+        let className = bySize ? timestampAsClassName : trimmedSize;
         const label = bySize ? trimmedSize : formattedDateTime;
+        className = formatTime(className);
         const index = xLabels.indexOf(label);
         if (index && label && className) {
           formattedErrors.push({index, label, className});
@@ -48,18 +69,6 @@
       }
     }
   }
-
-  const dispatch = createEventDispatcher<{rendered: void}>();
-
-  $: if (data && key) {
-    console.debug('Drawing');
-    // Allow the rest of the UI to update
-    // without blocking to update the chart.
-    drawChart(data, axis);
-  }
-
-  let key = Date.now();
-  let chartRef: any = null;
 
   function onRendered(theKey: any): void {
     if (theKey !== key) {
@@ -82,6 +91,7 @@
     let xValues = [];
 
     let colors = [
+      'olivegreen',
       'darkorange',
       'darkgreen',
       'purple',
@@ -90,7 +100,6 @@
       'magenta',
       'blueviolet',
       'darkred',
-      'olivegreen',
       'sienna'
     ];
 
@@ -99,6 +108,8 @@
       for (let i = 1; i < data.columns.length; i++) {
         let column = data.columns[i];
         let label = column[0];
+        // format time so it's readable
+        label = formatTime(label);
         let container = {
           data: [],
           label,
@@ -107,15 +118,12 @@
           pointBackgroundColor: Array(column[0].length).fill(colors[i]),
           pointRadius: 5
         };
+
+        // set error point color
         for (const error of formattedErrors) {
           if (error.className === label) {
             container.pointBackgroundColor[error.index] = 'red';
           }
-        }
-        if (label.includes('_')) {
-          const [datePart, timePart] = label.split('_');
-          const [hour, minute, second] = timePart.split('-');
-          label = `${datePart} ${hour}:${minute}:${second}`;
         }
 
         let dataSet = [];
@@ -129,8 +137,6 @@
         datasets.push(container);
       }
     }
-
-    console.log({datasets, xValues});
 
     chartRef?.destroy();
     const theKey = Date.now();

@@ -19,14 +19,6 @@
   export let statProperties: StatProperties;
 
   $: title = [form.scenario, form.plotType, form.statName].join(' \uFF5C ');
-  $: console.log({
-    benchmarks,
-    form,
-    selectedTimestamps,
-    statProperties,
-    timestamps,
-    title
-  });
 </script>
 
 <h2>{title}</h2>
