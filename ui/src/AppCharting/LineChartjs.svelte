@@ -75,7 +75,6 @@
       console.debug("There's a different ref in town, skipping", theKey, key);
       return;
     }
-    // chartRef.update();
     dispatch('rendered');
   }
 
@@ -108,7 +107,8 @@
       for (let i = 1; i < data.columns.length; i++) {
         let column = data.columns[i];
         let label = column[0];
-        // format time so it's readable
+
+        // format time for chart legend
         label = formatTime(label);
         let container = {
           data: [],
@@ -186,6 +186,12 @@
             callbacks: {
               label(context) {
                 context.formattedValue = yAxis.tick.format(context.parsed.y);
+              },
+              labelColor(context) {
+                return {
+                  borderColor: context.dataset.backgroundColor,
+                  backgroundColor: context.dataset.backgroundColor
+                };
               }
             },
             displayColors: true,
