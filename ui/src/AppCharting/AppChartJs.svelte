@@ -2,13 +2,7 @@
   import {errorStore} from '../utility/stores';
   import Chart from './LineChartjs.svelte';
 
-  import {
-    chartDataFactory,
-    classNameFromBenchmarkKey,
-    BY_SIZE,
-    BY_TIMESTAMP,
-    MISSING_VALUE
-  } from './chart-data-extractor';
+  import {chartDataFactory, BY_TIMESTAMP} from './chart-data-extractor';
   import type {ChartFactoryData} from './chart-data-extractor';
 
   import {
@@ -24,7 +18,6 @@
     BenchmarkIdentifier,
     Benchmarks,
     FormConfiguration,
-    Primitive,
     Scenario,
     StatProperties,
     TimestampViewModel
@@ -61,7 +54,7 @@
   $: scenario = form.scenario;
   $: chartType = form.chartType;
 
-  $: isReady = benchmarks && statProperties && form && true;
+  $: isReady = benchmarks && statProperties && form;
 
   $: hasNodes =
     scenario.startsWith('disco') || scenario.startsWith('showtime_');
@@ -71,15 +64,8 @@
   $: axisConfigurations[BY_TIMESTAMP].x.type = getAxisXTimeStampType(form);
   $: axisConfigurations[BY_TIMESTAMP].x.tick.fit = form.useTimeSeries;
   $: axis = axisConfigurations[chartType];
-  //   $: console.log('CHARTJS', {
-  //     scenario,
-  //     chartType,
-  //     isReady,
-  //     hasNodes,
-  //     legendTitle,
-  //     axisConfigurations,
-  //     axis
-  //   });
+
+  $: redrawKey = chartType || chartData || axis || Date.now() || errors;
 
   // X and Y Label
   $: if (chartData && axis && isReady) {
@@ -169,8 +155,6 @@
     const dateTimeString = timestamp.split('+')[0];
     return dateTimeString.replace('T', '_');
   }
-
-  $: redrawKey = chartType || chartData || axis || Date.now() || errors;
 </script>
 
 {#key redrawKey}

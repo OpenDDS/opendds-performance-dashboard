@@ -1,6 +1,5 @@
 <script lang="ts">
   import Chart from 'chart.js/auto';
-  import {createEventDispatcher} from 'svelte';
   import {BY_SIZE, classNameFromBenchmarkKey} from './chart-data-extractor';
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
@@ -11,30 +10,27 @@
   export let legendTitle: string;
   export let selectedTimestamps;
 
-  const dispatch = createEventDispatcher<{rendered: void}>();
   const CHART_ID = 'open-dds-chart';
 
   let formattedErrors;
-  let key = Date.now();
   let chartRef: any = null;
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
 
-  $: if (data && data.columns.length > 0 && key) {
+  $: if (data && data.columns.length > 0) {
     console.debug('Drawing');
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     drawChart(data, axis);
   }
 
-  const formatTime = (time: string) => {
+  function formatTime(time: string) {
     if (!time.includes('_')) return time;
-
     const [datePart, timePart] = time.split('_');
     const [hour, minute, second] = timePart.split('-');
-    return (time = `${datePart} ${hour}:${minute}:${second}`);
-  };
+    return `${datePart} ${hour}:${minute}:${second}`;
+  }
 
   function formatErrors() {
     formattedErrors = [];
@@ -70,14 +66,6 @@
     }
   }
 
-  function onRendered(theKey: any): void {
-    if (theKey !== key) {
-      console.debug("There's a different ref in town, skipping", theKey, key);
-      return;
-    }
-    dispatch('rendered');
-  }
-
   async function drawChart(data, axis): Promise<void> {
     const xAxis = axis.x;
     const yAxis = axis.y;
@@ -89,7 +77,7 @@
     let datasets = [];
     let xValues = [];
 
-    let colors = [
+    const colors = [
       'olivegreen',
       'darkorange',
       'darkgreen',
@@ -105,17 +93,18 @@
     if (data && data.names && data.columns.length) {
       xValues = data.columns[0].slice(1);
       for (let i = 1; i < data.columns.length; i++) {
-        let column = data.columns[i];
+        const column = data.columns[i];
         let label = column[0];
 
         // format time for chart legend
         label = formatTime(label);
-        let container = {
+        const color = colors[i];
+        const container = {
           data: [],
           label,
-          backgroundColor: colors[i],
-          borderColor: colors[i],
-          pointBackgroundColor: Array(column[0].length).fill(colors[i]),
+          backgroundColor: color,
+          borderColor: color,
+          pointBackgroundColor: Array(column[0].length).fill(color),
           pointRadius: 5
         };
 
@@ -126,10 +115,10 @@
           }
         }
 
-        let dataSet = [];
-        let yValues = column.slice(1);
+        const dataSet = [];
+        const yValues = column.slice(1);
         xValues.forEach((x, index) => {
-          let y = yValues[index];
+          const y = yValues[index];
           dataSet.push({x, y});
         });
 
@@ -139,8 +128,6 @@
     }
 
     chartRef?.destroy();
-    const theKey = Date.now();
-    key = theKey;
     chartRef = new Chart(CHART_ID, {
       type: 'line',
       data: {
@@ -211,10 +198,6 @@
         }
       }
     });
-
-    if (chartRef) {
-      onRendered(theKey);
-    }
   }
 </script>
 
