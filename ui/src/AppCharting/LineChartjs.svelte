@@ -29,11 +29,11 @@
   }
 
   const formatTime = (time: string) => {
-    if (time.includes('_')) {
-      const [datePart, timePart] = time.split('_');
-      const [hour, minute, second] = timePart.split('-');
-      return (time = `${datePart} ${hour}:${minute}:${second}`);
-    }
+    if (!time.includes('_')) return time;
+
+    const [datePart, timePart] = time.split('_');
+    const [hour, minute, second] = timePart.split('-');
+    return (time = `${datePart} ${hour}:${minute}:${second}`);
   };
 
   function formatErrors() {
