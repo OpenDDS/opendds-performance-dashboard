@@ -38,7 +38,6 @@
   <div class="row">
     <Select
       label="Scenario"
-      on:blur={scenarioChanged}
       on:change={scenarioChanged}
       options={Object.keys(options.scenarios)}
       value={form.scenario}

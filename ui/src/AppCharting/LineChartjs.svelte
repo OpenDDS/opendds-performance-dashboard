@@ -12,13 +12,13 @@
 
   const CHART_ID = 'open-dds-chart';
 
-  let formattedErrors;
   let chartRef: any = null;
+  let formattedErrors;
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
 
-  $: if (data && data.columns.length > 0) {
+  $: if (data && data.columns.length > 0 && axis) {
     console.debug('Drawing');
     // Allow the rest of the UI to update
     // without blocking to update the chart.
@@ -87,7 +87,13 @@
       'magenta',
       'blueviolet',
       'darkred',
-      'sienna'
+      'sienna',
+      'deepskyblue',
+      'gray',
+      'lightpink',
+      'lightsalmon',
+      'limegreen',
+      'mediumpurple'
     ];
 
     if (data && data.names && data.columns.length) {
