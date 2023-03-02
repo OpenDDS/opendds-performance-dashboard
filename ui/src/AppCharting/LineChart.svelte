@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type {AxesOptions, Data} from 'c3';
+  import type {AxesOptions, Data} from '../types';
   import {generate} from 'c3';
   import {createEventDispatcher, onDestroy} from 'svelte';
 
@@ -20,6 +20,8 @@
     // without blocking to update the chart.
     drawChart(data, axis, height);
   }
+
+  $: console.log('C3', {data});
 
   let key = Date.now();
   let chartRef: any = null;
@@ -48,7 +50,6 @@
       },
       oninit: () => onRendered(theKey),
       size: {height: height}
-      // zoom: {enabled: true}
     });
   }
 
@@ -69,6 +70,7 @@
 
     // If there are no legend items then no title is needed.
     const firstLegendItem = chart.querySelector('.c3-legend-item');
+    console.log('LEGEND TITLE', firstLegendItem);
     if (!firstLegendItem) return;
 
     // Get the relative position of the first legend item.
