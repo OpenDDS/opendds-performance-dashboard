@@ -30,7 +30,7 @@
     StatProperties,
     TimestampViewModel
   } from '../types';
-  import type {Primitive} from 'c3';
+  import type {Primitive} from '../types';
   import {configParamMap, sizeParamMap} from '../utility/param-map';
 
   type ErrorEntry = {
@@ -290,6 +290,8 @@
       styleMissingPoints();
     }, 0);
   }
+
+  $: console.log('DATA', chartData);
 
   $: redrawKey = chartType || chartData || axis || Date.now();
 </script>

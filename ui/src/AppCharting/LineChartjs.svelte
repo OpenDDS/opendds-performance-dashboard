@@ -77,28 +77,21 @@
     let datasets = [];
     let xValues = [];
 
-    const colors = [
-      'olivegreen',
-      'darkorange',
-      'darkgreen',
-      'purple',
-      'darkblue',
-      'gold',
-      'magenta',
-      'blueviolet',
-      'darkred',
-      'sienna'
-    ];
+    const getRandomColor = () => {
+      const randomColor = Math.floor(Math.random() * 16777215).toString(16);
+      return `#${randomColor}`;
+    };
 
     if (data && data.names && data.columns.length) {
       xValues = data.columns[0].slice(1);
       for (let i = 1; i < data.columns.length; i++) {
+        let randomColor = getRandomColor();
         const column = data.columns[i];
         let label = column[0];
 
         // format time for chart legend
         label = formatTime(label);
-        const color = colors[i];
+        const color = randomColor;
         const container = {
           data: [],
           label,
