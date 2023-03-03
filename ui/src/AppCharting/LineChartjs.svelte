@@ -1,6 +1,10 @@
 <script lang="ts">
   import Chart from 'chart.js/auto';
-  import {BY_SIZE, classNameFromBenchmarkKey} from './chart-data-extractor';
+  import {
+    BY_SIZE,
+    classNameFromBenchmarkKey,
+    MISSING_VALUE
+  } from './chart-data-extractor';
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
   export let axis;
@@ -12,14 +16,33 @@
 
   const CHART_ID = 'open-dds-chart';
 
-  let formattedErrors;
+  const colors = [
+    'darkgreen',
+    'purple',
+    'darkblue',
+    'deepskyblue',
+    'black',
+    'blueviolet',
+    'darkred',
+    'sienna',
+    'magenta',
+    'gold',
+    'rebeccapurple',
+    'salmon',
+    'steelblue',
+    'teal',
+    'yellowgreen',
+    'tomato',
+    'olivegreen'
+  ];
+
   let chartRef: any = null;
+  let formattedErrors;
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
 
   $: if (data && data.columns.length > 0) {
-    console.debug('Drawing');
     // Allow the rest of the UI to update
     // without blocking to update the chart.
     drawChart(data, axis);
@@ -77,21 +100,15 @@
     let datasets = [];
     let xValues = [];
 
-    const getRandomColor = () => {
-      const randomColor = Math.floor(Math.random() * 16777215).toString(16);
-      return `#${randomColor}`;
-    };
-
     if (data && data.names && data.columns.length) {
       xValues = data.columns[0].slice(1);
       for (let i = 1; i < data.columns.length; i++) {
-        let randomColor = getRandomColor();
         const column = data.columns[i];
         let label = column[0];
 
         // format time for chart legend
         label = formatTime(label);
-        const color = randomColor;
+        const color = colors[i - 1];
         const container = {
           data: [],
           label,
@@ -112,6 +129,9 @@
         const yValues = column.slice(1);
         xValues.forEach((x, index) => {
           const y = yValues[index];
+          if (y === MISSING_VALUE) {
+            container.pointBackgroundColor[index] = 'orange';
+          }
           dataSet.push({x, y});
         });
 
