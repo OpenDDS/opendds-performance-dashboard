@@ -8,6 +8,7 @@
   } from 'src/types';
 
   import AppChartC3 from './AppChartC3.svelte';
+  import AppChartJs from './AppChartJs.svelte';
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
   export let form: FormConfiguration;
@@ -24,7 +25,7 @@
 
 <div class="panel container" style={`min-height: ${DEFAULT_CHART_HEIGHT}px`}>
   <svelte:component
-    this={AppChartC3}
+    this={AppChartJs}
     {form}
     {selectedTimestamps}
     {benchmarks}

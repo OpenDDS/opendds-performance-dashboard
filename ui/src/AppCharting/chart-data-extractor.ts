@@ -1,10 +1,11 @@
-import type {Data, PrimitiveArray} from 'c3';
 import type {
   BenchmarkIdentifier,
   Benchmarks,
   ChartType,
+  Data,
   FormConfiguration,
   PlotStatistic,
+  PrimitiveArray,
   Scenario,
   TimestampViewModel
 } from '../types';
@@ -212,7 +213,9 @@ export function getDataNames(
         const sBase = sParams['Base'];
         const sConfig = sParams['Config'];
         const sName = sConfig
-          ? sBase + '-' + (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+          ? sBase +
+            '-' +
+            (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
           : sBase;
         const sServers = sParams['Servers'];
         const serverMatch =
@@ -247,7 +250,9 @@ export function getSizeKeys(
         const sBase = sParams['Base'];
         const sConfig = sParams['Config'];
         const sName = sConfig
-          ? sBase + '-' + (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+          ? sBase +
+            '-' +
+            (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
           : sBase;
         const sServers = sParams['Servers'];
         const serverMatch =
