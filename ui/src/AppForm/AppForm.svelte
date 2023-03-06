@@ -3,6 +3,7 @@
   import {BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
   import {CHART_TYPES, DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
   import type {
+    Base,
     FormConfiguration,
     FormScenarioOptions,
     FormSelectOptions,
@@ -13,10 +14,17 @@
   export let options: FormSelectOptions;
   export let form: FormConfiguration;
 
+  // let baseOpts: FormScenarioOptions;
+  // $: baseOpts = options.bases[form.base] || {
+  //   serverCounts: []
+  // };
+
   let scenarioOpts: FormScenarioOptions;
   $: scenarioOpts = options.scenarios[form.scenario] || {
     serverCounts: []
   };
+
+  $: console.log({options});
 
   let serverCounts: number[] = [];
   $: {
@@ -28,6 +36,11 @@
     }
   }
 
+  function baseChanged(event: Event) {
+    form.base = <Base>(<HTMLInputElement>event.target).value;
+    if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
+  }
+
   function scenarioChanged(event: Event) {
     form.scenario = <Scenario>(<HTMLInputElement>event.target).value;
     if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
@@ -36,6 +49,12 @@
 
 <form>
   <div class="row">
+    <Select
+      label="Base"
+      on:change={baseChanged}
+      options={Object.keys(options.bases)}
+      value={form.base}
+    />
     <Select
       label="Scenario"
       on:change={scenarioChanged}
