@@ -26,6 +26,26 @@ export type GitSha = string;
  */
 export type BuildHash = string;
 
+export type Base =
+  | 'b1_latency'
+  | 'b1_latency'
+  | 'b1_latency'
+  | 'disco'
+  | 'disco'
+  | 'disco'
+  | 'echo'
+  | 'echo'
+  | 'fan'
+  | 'fan'
+  | 'showtime_mixed';
+
+export type BaseScenario =
+  | {b1_latency: ['rtps', 'tcp', 'udp']}
+  | {disco: ['rtps', 'relay', 'repo']}
+  | {echo: ['rtps', 'tcp']}
+  | {fan: ['rtps', 'tcp']}
+  | {showtime_mixed: ['showtime_mixed']};
+
 export type Scenario =
   | 'b1_latency-rtps'
   | 'b1_latency-tcp'
@@ -65,6 +85,8 @@ export type ChartType = 'by size' | 'by timestamp';
 
 export type SelectedTimestamps = Array<BenchmarkIdentifier>;
 export type FormConfiguration = {
+  base: Base;
+  baseScenario: BaseScenario;
   scenario: Scenario;
   statName: StatName;
   plotType: PlotType;
@@ -81,6 +103,8 @@ export type FormScenarioOptions = {
 };
 
 export type FormSelectOptions = {
+  bases: Partial<Record<Base, FormScenarioOptions>>;
+  baseScenarios: Partial<Record<BaseScenario, FormScenarioOptions>>;
   scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
   plotTypes: Array<PlotType>;
   statNames: Array<StatName>;
@@ -107,7 +131,7 @@ export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 export type IgnoredRunMembers = 'run_parameters';
 
 export type Benchmark = Record<
-  Scenario | IgnoredRunMembers,
+  Base | Scenario | IgnoredRunMembers,
   ScenarioSizeRecords
 >;
 
