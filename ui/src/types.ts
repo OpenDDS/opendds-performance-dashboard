@@ -26,18 +26,7 @@ export type GitSha = string;
  */
 export type BuildHash = string;
 
-export type Base =
-  | 'b1_latency'
-  | 'b1_latency'
-  | 'b1_latency'
-  | 'disco'
-  | 'disco'
-  | 'disco'
-  | 'echo'
-  | 'echo'
-  | 'fan'
-  | 'fan'
-  | 'showtime_mixed';
+export type Base = 'b1_latency' | 'disco' | 'echo' | 'fan' | 'showtime_mixed';
 
 export type BaseScenario =
   | {b1_latency: ['rtps', 'tcp', 'udp']}
