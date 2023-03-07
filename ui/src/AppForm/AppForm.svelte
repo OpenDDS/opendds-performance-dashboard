@@ -4,6 +4,7 @@
   import {CHART_TYPES, DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
   import type {
     Base,
+    BaseScenario,
     FormConfiguration,
     FormScenarioOptions,
     FormSelectOptions,
@@ -14,19 +15,17 @@
   export let options: FormSelectOptions;
   export let form: FormConfiguration;
 
-  // let baseOpts: FormScenarioOptions;
-  // $: baseOpts = options.bases[form.base] || {
-  //   serverCounts: []
-  // };
-
+  let baseScenarioOpts;
   let scenarioOpts: FormScenarioOptions;
+
+  $: baseScenarioOpts = options.bases[form.base].baseScenarios || [];
   $: scenarioOpts = options.scenarios[form.scenario] || {
     serverCounts: []
   };
 
-  $: console.log({options});
-
+  let baseScenarioOptions: string[] = [];
   let serverCounts: number[] = [];
+
   $: {
     serverCounts = Array.isArray(scenarioOpts.serverCounts)
       ? scenarioOpts.serverCounts
@@ -38,6 +37,12 @@
 
   function baseChanged(event: Event) {
     form.base = <Base>(<HTMLInputElement>event.target).value;
+    form.baseScenario = <BaseScenario>options.bases[form.base].baseScenarios[0];
+    if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
+  }
+
+  function baseScenarioChanged(event: Event) {
+    form.baseScenario = <BaseScenario>(<HTMLInputElement>event.target).value;
     if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
   }
 
@@ -55,6 +60,14 @@
       options={Object.keys(options.bases)}
       value={form.base}
     />
+
+    <Select
+      label="Base Scenario"
+      on:change={baseScenarioChanged}
+      options={baseScenarioOpts}
+      value={form.baseScenario}
+    />
+
     <Select
       label="Scenario"
       on:change={scenarioChanged}

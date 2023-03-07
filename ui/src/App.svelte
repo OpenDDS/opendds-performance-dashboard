@@ -11,15 +11,17 @@
     getStatProperties,
     getRunIndex
   } from './utility/data-loader';
-  import {deriveSelectOptionsFromData} from './AppForm/form-data-helpers';
   import AppForm from './AppForm/AppForm.svelte';
   import {
+    DEFAULT_BASE,
     DEFAULT_CHART_TYPE,
     DEFAULT_PLOT_TYPE,
     DEFAULT_RECENT_COUNT,
     DEFAULT_SCENARIO,
     DEFAULT_STAT_NAME,
-    DEFAULT_SERVER_COUNT
+    DEFAULT_SERVER_COUNT,
+    deriveSelectOptionsFromData,
+    DEFAULT_BASE_SCENARIO
   } from './AppForm/form-data-helpers';
 
   import AppChart from './AppCharting/AppChart.svelte';
@@ -52,6 +54,8 @@
   let benchmarks: Benchmarks = {};
 
   let form: FormConfiguration = {
+    base: DEFAULT_BASE,
+    baseScenario: DEFAULT_BASE_SCENARIO,
     scenario: DEFAULT_SCENARIO,
     statName: DEFAULT_STAT_NAME,
     plotType: DEFAULT_PLOT_TYPE,
@@ -64,6 +68,8 @@
 
   // Chart Related Properties
   let selectOptions: FormSelectOptions = {
+    bases: {[form.base]: {baseScenarios: [], serverCounts: []}},
+    baseScenarios: [form.baseScenario],
     scenarios: {[form.scenario]: {serverCounts: []}},
     plotTypes: [],
     statNames: []

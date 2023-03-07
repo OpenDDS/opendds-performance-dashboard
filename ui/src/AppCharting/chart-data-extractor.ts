@@ -1,4 +1,5 @@
 import type {
+  Base,
   BenchmarkIdentifier,
   Benchmarks,
   ChartType,

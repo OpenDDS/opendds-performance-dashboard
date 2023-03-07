@@ -28,12 +28,33 @@ export type BuildHash = string;
 
 export type Base = 'b1_latency' | 'disco' | 'echo' | 'fan' | 'showtime_mixed';
 
+// leaving in case the type needs to be changed to a similar foramt later
+// export interface BaseScenario extends Base =
+//   | {b1_latency: ['rtps' | 'tcp' | 'udp']}
+//   | {
+//       disco: [
+//         | 'info-repo'
+//         | 'rtps'
+//         | 'rtps-multicast'
+//         | 'rtps-relay'
+//         | 'relay'
+//         | 'repo'
+//       ];
+//     }
+//   | {echo: ['rtps' | 'tcp']}
+//   | {fan: ['rtps' | 'tcp']}
+//   | {showtime_mixed: ['showtime_mixed']};
+
 export type BaseScenario =
-  | {b1_latency: ['rtps', 'tcp', 'udp']}
-  | {disco: ['rtps', 'relay', 'repo']}
-  | {echo: ['rtps', 'tcp']}
-  | {fan: ['rtps', 'tcp']}
-  | {showtime_mixed: ['showtime_mixed']};
+  | 'info-repo'
+  | 'relay'
+  | 'repo'
+  | 'rtps'
+  | 'rtps-multicast'
+  | 'rtps-relay'
+  | 'showtime-mixed'
+  | 'tcp'
+  | 'udp';
 
 export type Scenario =
   | 'b1_latency-rtps'
@@ -88,7 +109,8 @@ export type FormConfiguration = {
 
 export type FormConfigurationKeys = keyof FormConfiguration;
 export type FormScenarioOptions = {
-  serverCounts: number[];
+  baseScenarios?: string[];
+  serverCounts?: number[];
 };
 
 export type FormSelectOptions = {

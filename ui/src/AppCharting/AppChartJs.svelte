@@ -15,6 +15,7 @@
     getAxisYTickFormat
   } from './chart-layout-helpers';
   import type {
+    Base,
     BenchmarkIdentifier,
     Benchmarks,
     FormConfiguration,
@@ -25,6 +26,7 @@
   import {configParamMap, sizeParamMap} from '../utility/param-map';
 
   type ErrorEntry = {
+    base: Base;
     key: BenchmarkIdentifier;
     scenario: Scenario;
     dateTime: string;
@@ -134,9 +136,10 @@
             if (sSize) {
               const id = [sName, timestamp].join('|');
               const new_error = {
+                base: <Base>sName,
+                dateTime,
                 key: timestamp,
                 scenario: <Scenario>sName,
-                dateTime,
                 size: sSize
               };
               if (errors.has(id)) {
