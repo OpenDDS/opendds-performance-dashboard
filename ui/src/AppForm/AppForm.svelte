@@ -17,15 +17,12 @@
 
   let baseScenarioOpts;
   let scenarioOpts: FormScenarioOptions;
+  let serverCounts: number[] = [];
 
   $: baseScenarioOpts = options.bases[form.base].baseScenarios || [];
   $: scenarioOpts = options.scenarios[form.scenario] || {
     serverCounts: []
   };
-
-  let baseScenarioOptions: string[] = [];
-  let serverCounts: number[] = [];
-
   $: {
     serverCounts = Array.isArray(scenarioOpts.serverCounts)
       ? scenarioOpts.serverCounts
@@ -35,21 +32,32 @@
     }
   }
 
+  function setScenario() {
+    if (form.base.startsWith('showtime')) {
+      form.scenario = <Scenario>form.base;
+      return;
+    }
+    form.scenario = <Scenario>`${form.base}-${form.baseScenario}`;
+  }
+  $: console.log({form, options});
+
   function baseChanged(event: Event) {
     form.base = <Base>(<HTMLInputElement>event.target).value;
     form.baseScenario = <BaseScenario>options.bases[form.base].baseScenarios[0];
+    setScenario();
     if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
   }
 
   function baseScenarioChanged(event: Event) {
     form.baseScenario = <BaseScenario>(<HTMLInputElement>event.target).value;
+    setScenario();
     if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
   }
 
-  function scenarioChanged(event: Event) {
-    form.scenario = <Scenario>(<HTMLInputElement>event.target).value;
-    if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
-  }
+  // function scenarioChanged(event: Event) {
+  //   form.scenario = <Scenario>(<HTMLInputElement>event.target).value;
+  //   if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
+  // }
 </script>
 
 <form>
@@ -68,12 +76,12 @@
       value={form.baseScenario}
     />
 
-    <Select
+    <!-- <Select
       label="Scenario"
       on:change={scenarioChanged}
       options={Object.keys(options.scenarios)}
       value={form.scenario}
-    />
+    /> -->
 
     <Select
       label="Chart Type"

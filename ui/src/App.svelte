@@ -69,6 +69,7 @@
   // Chart Related Properties
   let selectOptions: FormSelectOptions = {
     bases: {[form.base]: {baseScenarios: [], serverCounts: []}},
+    // TODO: TypeScript isn't happy here
     baseScenarios: [form.baseScenario],
     scenarios: {[form.scenario]: {serverCounts: []}},
     plotTypes: [],
