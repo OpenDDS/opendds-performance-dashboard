@@ -102,11 +102,11 @@ export function deriveSelectOptionsFromData(
   return {
     // TODO: add serverCounts to bases and remove scenarios
     bases: [...uniqueBases].sort().reduce((acc, base) => {
-      const baseScenarios: string[] = baseScenarioParamMap[base] || [];
+      const baseScenarios = (baseScenarioParamMap[base] ||
+        []) as Array<BaseScenario>;
       acc[base] = {baseScenarios};
       return acc;
     }, {} as Record<Base, FormScenarioOptions>),
-    // TODO: fix this, expects baseScenarios from FormSelectOptions type
     baseScenarios: [...uniqueBaseScenarios].sort(),
     scenarios: [...uniqueScenarios].sort().reduce((acc, scenario) => {
       const serverCounts: number[] = serverCountMap[scenario] || [];

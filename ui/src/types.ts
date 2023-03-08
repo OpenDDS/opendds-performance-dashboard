@@ -115,7 +115,7 @@ export type FormScenarioOptions = {
 
 export type FormSelectOptions = {
   bases: Partial<Record<Base, FormScenarioOptions>>;
-  baseScenarios: Partial<Record<BaseScenario, FormScenarioOptions>>;
+  baseScenarios: Array<BaseScenario>;
   scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
   plotTypes: Array<PlotType>;
   statNames: Array<StatName>;
@@ -180,7 +180,6 @@ export type TimestampViewModel = Omit<Run, 'errors'> & {
 };
 
 // some of the types used for the ts helper files
-
 export type Primitive = string | boolean | number | Date | null;
 export type PrimitiveArray = Primitive[];
 export type XAxisName = 'x';
