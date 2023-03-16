@@ -4,10 +4,10 @@ export const configParamMap: Record<string, string> = {
   RtpsRelay: 'relay'
 };
 
+// TODO: remove this and derive base scenario options from base
 export const baseScenarioParamMap: Record<string, string[]> = {
   b1_latency: ['rtps', 'tcp', 'udp'],
   disco: ['rtps', 'relay', 'repo'],
-  // disco: ['info-repo', 'rtps', 'rtps-multicast', 'rtps-relay', 'relay', 'repo'],
   echo: ['rtps', 'tcp'],
   fan: ['rtps', 'tcp'],
   showtime_mixed: ['showtime_mixed']

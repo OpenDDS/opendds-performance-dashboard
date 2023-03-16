@@ -155,8 +155,12 @@ export function getMaxAndMinValues({columns}: HasColumnsOptions): {
   let min = Number.MAX_VALUE;
   let max = Number.MIN_VALUE;
 
-  for (const column of columns) {
-    const [label, ...rest] = column;
+  // temp fix for typescript
+  // TODO: refactor with new data model so this works
+  columns.forEach(column => {
+    const key = Object.keys(column)[0];
+    let data = column[key];
+    const [label, ...rest] = data;
     if (label !== 'x') {
       // Ignore zero values.
       const values = <number[]>(
@@ -165,7 +169,7 @@ export function getMaxAndMinValues({columns}: HasColumnsOptions): {
       min = Math.min(min, ...values);
       max = Math.max(max, ...values);
     }
-  }
+  });
 
   return {
     min,

@@ -1,7 +1,12 @@
 <script lang="ts">
   import Select from '../components/Select.svelte';
-  import {BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
-  import {CHART_TYPES, DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
+  import {
+    BY_TIMESTAMP,
+    getConfigOptions,
+    getXAxisAndLegendOptions
+  } from '../AppCharting/chart-data-extractor';
+  import {DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
+  import {filteredDataStore} from '../utility/stores';
   import type {
     Base,
     BaseScenario,
@@ -9,7 +14,8 @@
     FormScenarioOptions,
     FormSelectOptions,
     Scenario,
-    StatName
+    StatName,
+    XAxisAndLegendOptions
   } from '../types';
 
   export let options: FormSelectOptions;
@@ -18,11 +24,13 @@
   let baseScenarioOpts;
   let scenarioOpts: FormScenarioOptions;
   let serverCounts: number[] = [];
+  let xAxisOptions: XAxisAndLegendOptions[];
 
-  $: baseScenarioOpts = options.bases[form.base].baseScenarios || [];
+  $: baseScenarioOpts = options?.bases[form.base]?.baseScenarios || [];
   $: scenarioOpts = options.scenarios[form.scenario] || {
     serverCounts: []
   };
+  $: xAxisOptions = options.xAxisOptions;
   $: {
     serverCounts = Array.isArray(scenarioOpts.serverCounts)
       ? scenarioOpts.serverCounts
@@ -39,25 +47,80 @@
     }
     form.scenario = <Scenario>`${form.base}-${form.baseScenario}`;
   }
+
+  export function filterOptionsByBase(base) {
+    filteredDataStore.update(store => {
+      console.log({store});
+      store.columns.forEach(obj => {
+        const key = Object.keys(obj)[0];
+        let data = obj[key];
+        obj[key] = data.filter(d => d.base === base);
+      });
+      return store;
+    });
+  }
+
+  // TODO: write array shift function
+  // function shiftOptionsArray(array: any[], value: string) {
+  //   let index = array.indexOf(value);
+  //   console.log({index, array, value});
+  //   // shiftOptionsArray(options.legendOptions, form.legend)
+  //   array.splice(index, 1);
+  //   array.splice(0, 0, form[value]);
+  //   form[value] = array[index];
+  //   // let index = options.legendOptions.indexOf(form.legend);
+  //   //   options.legendOptions.splice(index, 1);
+  //   //   options.legendOptions.splice(0, 0, form.legend);
+  //   //   form.legend = options.legendOptions[index];
+  // }
   $: console.log({form, options});
 
   function baseChanged(event: Event) {
+    filterOptionsByBase(<Base>(<HTMLInputElement>event.target).value);
     form.base = <Base>(<HTMLInputElement>event.target).value;
-    form.baseScenario = <BaseScenario>options.bases[form.base].baseScenarios[0];
+
+    let xAxisAndLegendOptions = getXAxisAndLegendOptions($filteredDataStore);
+    let configOptions = getConfigOptions($filteredDataStore);
+    options.xAxisOptions = xAxisAndLegendOptions;
+    options.legendOptions = xAxisAndLegendOptions;
+    options.baseScenarios = configOptions;
+    form.xAxis = xAxisAndLegendOptions[0];
+    form.legend = xAxisAndLegendOptions[1];
+    form.baseScenario = configOptions[0];
+    console.log('BASECHANGED', {xAxisAndLegendOptions, configOptions});
     setScenario();
     if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
   }
 
-  function baseScenarioChanged(event: Event) {
+  function configChanged(event: Event) {
     form.baseScenario = <BaseScenario>(<HTMLInputElement>event.target).value;
-    setScenario();
-    if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
   }
 
-  // function scenarioChanged(event: Event) {
-  //   form.scenario = <Scenario>(<HTMLInputElement>event.target).value;
-  //   if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
-  // }
+  function legendChanged(event: Event) {
+    if (
+      form.xAxis ===
+      <XAxisAndLegendOptions>(<HTMLInputElement>event.target).value
+    ) {
+      let index = options.xAxisOptions.indexOf(form.xAxis);
+      if (options.xAxisOptions[index + 1]! > options.xAxisOptions.length) {
+        form.xAxis = options.xAxisOptions[index + 1];
+      } else form.xAxis = options.xAxisOptions[index - 1];
+    }
+    form.legend = <XAxisAndLegendOptions>(<HTMLInputElement>event.target).value;
+  }
+
+  function xAxisChanged(event: Event) {
+    if (
+      form.legend ===
+      <XAxisAndLegendOptions>(<HTMLInputElement>event.target).value
+    ) {
+      let index = options.xAxisOptions.indexOf(form.legend);
+      if (options.legendOptions[index + 1]! > options.xAxisOptions.length) {
+        form.legend = options.xAxisOptions[index + 1];
+      } else form.legend = options.xAxisOptions[index - 1];
+    }
+    form.xAxis = <XAxisAndLegendOptions>(<HTMLInputElement>event.target).value;
+  }
 </script>
 
 <form>
@@ -70,23 +133,10 @@
     />
 
     <Select
-      label="Base Scenario"
-      on:change={baseScenarioChanged}
-      options={baseScenarioOpts}
-      value={form.baseScenario}
-    />
-
-    <!-- <Select
-      label="Scenario"
-      on:change={scenarioChanged}
-      options={Object.keys(options.scenarios)}
-      value={form.scenario}
-    /> -->
-
-    <Select
-      label="Chart Type"
-      options={CHART_TYPES}
-      bind:value={form.chartType}
+      label="X-Axis"
+      on:change={xAxisChanged}
+      options={options.xAxisOptions}
+      value={form.xAxis}
     />
 
     {#if form.plotType}
@@ -101,6 +151,20 @@
       label="Statistic"
       options={options.statNames}
       bind:value={form.statName}
+    />
+
+    <Select
+      label="Legend"
+      on:change={legendChanged}
+      options={options.legendOptions}
+      value={form.legend}
+    />
+
+    <Select
+      label="Config"
+      on:change={configChanged}
+      options={options.baseScenarios}
+      value={form.baseScenario}
     />
 
     <Select

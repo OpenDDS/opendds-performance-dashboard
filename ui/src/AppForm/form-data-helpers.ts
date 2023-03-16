@@ -1,14 +1,16 @@
 import {BY_SIZE, BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
 import type {
+  Base,
+  BaseScenario,
   Benchmarks,
+  FormConfiguration,
+  FormScenarioOptions,
   FormSelectOptions,
+  IgnoredStatistics,
   PlotType,
   Scenario,
-  IgnoredStatistics,
   StatName,
-  FormScenarioOptions,
-  Base,
-  BaseScenario
+  XAxisAndLegendOptions
 } from '../types';
 import {baseScenarioParamMap, configParamMap} from '../utility/param-map';
 
@@ -16,22 +18,27 @@ export const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
 export const DEFAULT_CHART_TYPE = BY_SIZE;
 export const DEFAULT_PLOT_TYPE = 'Discovery Time Delta';
 export const DEFAULT_RECENT_COUNT = 5;
-export const DEFAULT_BASE = 'disco';
+export const DEFAULT_BASE = 'fan';
 export const DEFAULT_BASE_SCENARIO = 'rtps';
-export const DEFAULT_SCENARIO = 'disco-rtps';
+export const DEFAULT_LEGEND = 'Timestamp';
+export const DEFAULT_SCENARIO = 'fan-rtps';
 export const DEFAULT_SERVER_COUNT = 16;
 export const DEFAULT_STAT_NAME = 'median';
+export let DEFAULT_X_AXIS = 'Bytes';
 export const MDTD = 'Max Discovery Time Delta';
 
 export function deriveSelectOptionsFromData(
-  benchmarks: Benchmarks
+  benchmarks: Benchmarks,
+  opts: FormConfiguration
 ): FormSelectOptions {
   const uniqueBases = new Set<Base>();
   const uniqueBaseScenarios = new Set<BaseScenario>();
-  const uniqueScenarios = new Set<Scenario>();
+  const uniqueLegends = new Set<XAxisAndLegendOptions>();
   const uniquePlotTypes = new Set<PlotType | IgnoredStatistics>();
-  const uniqueStatNames = new Set<StatName>();
+  const uniqueScenarios = new Set<Scenario>();
   const uniqueServerCounts = new Map<Scenario, Set<number>>();
+  const uniqueStatNames = new Set<StatName>();
+  const uniqueXAxisOptions = new Set<XAxisAndLegendOptions>();
 
   const benchmarkEntries = Object.values(benchmarks);
 
@@ -56,6 +63,15 @@ export function deriveSelectOptionsFromData(
       if (sParams) {
         const sBase = sParams['Base'];
         const sConfig = sParams['Config'];
+        if (sBase === opts.base) {
+          // TODO: use configParamMap to adjust RTPS Multicast to rtps etc
+          uniqueBaseScenarios.add(sConfig);
+          const options = Object.keys(sParams).filter(k => k !== 'Base');
+          options.forEach(
+            option =>
+              uniqueXAxisOptions.add(option) && uniqueLegends.add(option)
+          );
+        }
         const sName = sConfig
           ? sBase +
             '-' +
@@ -63,7 +79,6 @@ export function deriveSelectOptionsFromData(
           : sBase;
 
         uniqueBases.add(<Base>sBase);
-        uniqueBaseScenarios.add(sConfig);
         uniqueScenarios.add(<Scenario>sName);
 
         for (const [sparam, sparamEntry] of Object.entries(sParams)) {
@@ -83,6 +98,8 @@ export function deriveSelectOptionsFromData(
         }
       }
     }
+    uniqueXAxisOptions.add('Timestamp');
+    uniqueLegends.add('Timestamp');
   });
 
   // Cleanup and remove size records from plot type entries
@@ -108,12 +125,14 @@ export function deriveSelectOptionsFromData(
       return acc;
     }, {} as Record<Base, FormScenarioOptions>),
     baseScenarios: [...uniqueBaseScenarios].sort(),
+    legendOptions: [...uniqueLegends].sort(),
+    plotTypes: allPlotTypes,
     scenarios: [...uniqueScenarios].sort().reduce((acc, scenario) => {
       const serverCounts: number[] = serverCountMap[scenario] || [];
       acc[scenario] = {serverCounts};
       return acc;
     }, {} as Record<Scenario, FormScenarioOptions>),
-    plotTypes: allPlotTypes,
-    statNames: [...uniqueStatNames].sort()
+    statNames: [...uniqueStatNames].sort(),
+    xAxisOptions: [...uniqueXAxisOptions].sort()
   };
 }

@@ -6,6 +6,12 @@ import {getAllScraped, getEntries} from './data-loader';
 const collectedDataStore = writable<Benchmarks>({});
 const collectedDataErrors = writable<AppError[]>([]);
 
+export const benchmarkDataStore = writable([]);
+export const filteredDataStore = writable([]);
+// TODO: add store type safety
+// export const filteredDataStore = writable({columns: []});
+// export const filteredDataStore = writable<Array<string | any>>([]);
+
 export const errorStore = {
   ...collectedDataErrors,
   clear(): void {

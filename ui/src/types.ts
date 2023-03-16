@@ -93,10 +93,16 @@ export type StatName =
 
 export type ChartType = 'by size' | 'by timestamp';
 
+export type XAxisAndLegendOptions =
+  | 'Bytes'
+  | 'Participants'
+  | 'Timestamp'
+  | any;
+
 export type SelectedTimestamps = Array<BenchmarkIdentifier>;
 export type FormConfiguration = {
   base: Base;
-  baseScenario: BaseScenario;
+  baseScenario?: BaseScenario;
   scenario: Scenario;
   statName: StatName;
   plotType: PlotType;
@@ -105,6 +111,8 @@ export type FormConfiguration = {
   useTimeSeries: boolean;
   useLogScale: boolean;
   latest?: number;
+  legend?: XAxisAndLegendOptions;
+  xAxis?: XAxisAndLegendOptions;
 };
 
 export type FormConfigurationKeys = keyof FormConfiguration;
@@ -115,10 +123,12 @@ export type FormScenarioOptions = {
 
 export type FormSelectOptions = {
   bases: Partial<Record<Base, FormScenarioOptions>>;
-  baseScenarios: Array<BaseScenario>;
-  scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
+  baseScenarios?: Array<BaseScenario>;
+  legendOptions?: Array<XAxisAndLegendOptions>;
   plotTypes: Array<PlotType>;
+  scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
   statNames: Array<StatName>;
+  xAxisOptions?: Array<XAxisAndLegendOptions>;
 };
 
 export type StatProperty = {
@@ -142,7 +152,7 @@ export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 export type IgnoredRunMembers = 'run_parameters';
 
 export type Benchmark = Record<
-  Base | Scenario | IgnoredRunMembers,
+  Base | BaseScenario | Scenario | IgnoredRunMembers,
   ScenarioSizeRecords
 >;
 

@@ -5,7 +5,12 @@
   import './assets/stylized.css';
 
   import OpenDDSLogo from './components/OpenDDSLogo.svelte';
-  import {dataStore, errorStore} from './utility/stores';
+  import {
+    benchmarkDataStore,
+    dataStore,
+    errorStore,
+    filteredDataStore
+  } from './utility/stores';
   import {
     getGitTags,
     getStatProperties,
@@ -14,6 +19,7 @@
   import AppForm from './AppForm/AppForm.svelte';
   import {
     DEFAULT_BASE,
+    DEFAULT_BASE_SCENARIO,
     DEFAULT_CHART_TYPE,
     DEFAULT_PLOT_TYPE,
     DEFAULT_RECENT_COUNT,
@@ -21,7 +27,8 @@
     DEFAULT_STAT_NAME,
     DEFAULT_SERVER_COUNT,
     deriveSelectOptionsFromData,
-    DEFAULT_BASE_SCENARIO
+    DEFAULT_X_AXIS,
+    DEFAULT_LEGEND
   } from './AppForm/form-data-helpers';
 
   import AppChart from './AppCharting/AppChart.svelte';
@@ -45,8 +52,13 @@
     StatProperties,
     TimestampViewModel
   } from './types';
+  import {
+    chartDataFactory,
+    type ChartFactoryData
+  } from './AppCharting/chart-data-extractor';
 
   export let initialData = {};
+
   const {isEmbedded} = configureEmbedding(initialData);
 
   // The segment of data based on
@@ -56,24 +68,27 @@
   let form: FormConfiguration = {
     base: DEFAULT_BASE,
     baseScenario: DEFAULT_BASE_SCENARIO,
-    scenario: DEFAULT_SCENARIO,
-    statName: DEFAULT_STAT_NAME,
-    plotType: DEFAULT_PLOT_TYPE,
-    serverCount: DEFAULT_SERVER_COUNT,
     chartType: DEFAULT_CHART_TYPE,
+    latest: undefined,
+    legend: DEFAULT_LEGEND,
+    plotType: DEFAULT_PLOT_TYPE,
+    statName: DEFAULT_STAT_NAME,
+    scenario: DEFAULT_SCENARIO,
+    serverCount: DEFAULT_SERVER_COUNT,
     useTimeSeries: false,
     useLogScale: false,
-    latest: undefined
+    xAxis: DEFAULT_X_AXIS
   };
 
   // Chart Related Properties
   let selectOptions: FormSelectOptions = {
     bases: {[form.base]: {baseScenarios: [], serverCounts: []}},
-    // TODO: TypeScript isn't happy here
     baseScenarios: [form.baseScenario],
-    scenarios: {[form.scenario]: {serverCounts: []}},
+    legendOptions: [form.legend],
     plotTypes: [],
-    statNames: []
+    scenarios: {[form.scenario]: {serverCounts: []}},
+    statNames: [],
+    xAxisOptions: [form.xAxis]
   };
 
   let isSelectingTimestamps = false;
@@ -102,6 +117,27 @@
       }
       return acc;
     }, {});
+  }
+
+  $: if (
+    isReady &&
+    Object.keys(benchmarks).length !== 0 &&
+    statProperties &&
+    form
+  ) {
+    const selected = timestamps.filter(({key}) => {
+      return selectedTimestamps.indexOf(key) !== -1;
+    });
+
+    const factory = chartDataFactory();
+
+    factory(benchmarks, selected, form).then(onLoaded).catch(onError);
+  }
+
+  function onLoaded(results: ChartFactoryData) {
+    if (!results) return;
+    benchmarkDataStore.set(results);
+    filteredDataStore.set($benchmarkDataStore);
   }
 
   //-------------------------------------------------------------------------------
@@ -142,7 +178,7 @@
   async function loadBenchmarks(ids = []) {
     try {
       const {results} = await dataStore.loadBenchmarks(ids);
-      selectOptions = deriveSelectOptionsFromData(results);
+      selectOptions = deriveSelectOptionsFromData(results, form);
     } catch (error) {
       onError(error);
     }

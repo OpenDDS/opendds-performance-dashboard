@@ -7,7 +7,6 @@
   export let data;
   export let errorTicks;
   export let form;
-  export let legendTitle: string;
   export let selectedTimestamps;
 
   const CHART_ID = 'open-dds-chart';
@@ -18,7 +17,7 @@
   $: scenario = form.scenario;
   $: chartType = form.chartType;
 
-  $: if (data && data.columns.length > 0 && axis) {
+  $: if (data && data.columns?.length > 0 && axis) {
     console.debug('Drawing');
     // Allow the rest of the UI to update
     // without blocking to update the chart.
@@ -67,9 +66,10 @@
   }
 
   async function drawChart(data, axis): Promise<void> {
-    const xAxis = axis.x;
+    // const xAxis = axis.x;
     const yAxis = axis.y;
-    const xAxisLabel = xAxis.label.text;
+    // const xAxisLabel = xAxis.label.text;
+    const xAxisLabel = form.xAxis;
     const yAxisLabel = yAxis.label.text;
     const yAxisType = yAxis.type === 'log' ? 'logarithmic' : yAxis.type;
 
@@ -198,7 +198,7 @@
                 size: 20,
                 weight: 'bold'
               },
-              text: legendTitle
+              text: form.legend
             }
           }
         }

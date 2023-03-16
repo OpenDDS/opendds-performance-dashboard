@@ -1,5 +1,6 @@
 import type {
-  Base,
+  // Base,
+  BaseScenario,
   BenchmarkIdentifier,
   Benchmarks,
   ChartType,
@@ -9,6 +10,7 @@ import type {
   PrimitiveArray,
   Scenario,
   TimestampViewModel
+  // XAxisAndLegendOptions
 } from '../types';
 import {configParamMap, sizeParamMap} from '../utility/param-map';
 
@@ -40,15 +42,24 @@ export type ChartFactoryCallback = (
   opts: FormConfiguration
 ) => Promise<Data>;
 
-const FUNCTION_MAP: Record<ChartType, ChartFactoryCallback> = {
-  [BY_TIMESTAMP]: getChartDataByTimestamp,
-  [BY_SIZE]: getChartDataBySize
-};
+// const FUNCTION_MAP: Record<ChartType, ChartFactoryCallback> = {
+//   [BY_TIMESTAMP]: getChartData,
+//   [BY_SIZE]: getChartData
+// };
 
-export function chartDataFactory(type: ChartType): ChartFactoryCallback {
-  const fn = FUNCTION_MAP[type];
-  if (!fn) throw new Error(`Chart data for ${type} is not currently supported`);
-  return fn;
+// export function xAxisDataFactory(
+//   type: XAxisAndLegendOptions
+// ): ChartFactoryCallback {
+//   const fn = getXAxisAndLegendOptions;
+//   if (!fn)
+//     throw new Error(`X-Axis data for ${type} is not currently supported`);
+//   return fn;
+// }
+
+export function chartDataFactory(): ChartFactoryCallback {
+  // const fn = FUNCTION_MAP[type];
+  return getChartData;
+  // if (!fn) throw new Error(`Chart data for ${type} is not currently supported`);
 }
 
 export function classNameFromBenchmarkKey(key: BenchmarkIdentifier): string {
@@ -67,6 +78,98 @@ export function classNameToDateTime(text: string): string {
   return date + ' ' + newTime;
 }
 
+export function getConfigOptions(data) {
+  let configOptions = new Set<BaseScenario>();
+
+  let store = data;
+
+  if (store && store['columns']) {
+    store['columns'].forEach(option => {
+      const key = Object.keys(option)[0];
+      let data = option[key];
+      data = data.map(item => {
+        if (item.config !== 'undefined') configOptions.add(item.config);
+      });
+    });
+  }
+
+  return [...configOptions];
+}
+
+export function getXAxisAndLegendOptions(data) {
+  let options = new Set();
+
+  let store = data;
+  console.log('getXAxisAndLegendOptions', {store});
+
+  if (store && store['columns']) {
+    store['columns'].forEach(option => {
+      const key = Object.keys(option)[0];
+      let data = option[key];
+      data = data.map(item => {
+        let res = item.data['scenario_parameters'];
+        res = Object.keys(res).filter(key => key !== 'Base');
+        res.forEach(item => options.add(item));
+      });
+    });
+    options.add('Timestamp');
+  }
+
+  return [...options];
+}
+
+export async function getChartData(
+  benchmarkMap: Benchmarks,
+  timestamps: TimestampViewModel[],
+  opts: FormConfiguration
+) {
+  const {scenario, plotType, statName} = opts;
+  const data: Data = {};
+  // const isFan = isFanScenario(scenario);
+
+  if (!benchmarkMap || !scenario || !statName || !plotType) return data;
+
+  const columns = [];
+
+  for (const timestamp of timestamps) {
+    const date = classNameFromBenchmarkKey(timestamp.key);
+    const column = {};
+    column[date] = [];
+    const benchmark = benchmarkMap[timestamp.key];
+    if (benchmark) {
+      for (const [, sData] of Object.entries(benchmark).filter(
+        ([key]) => key != 'run_parameters'
+      )) {
+        const sParams = sData['scenario_parameters'];
+        if (sParams) {
+          const sBase = sParams['Base'];
+          const sConfig = sParams['Config'];
+          column[date].push({base: sBase, config: sConfig, data: sData});
+          // TODO: add server count to data
+          // const sServers = sParams['Servers'];
+          // const serverMatch =
+          //   !isFan ||
+          //   (sServers &&
+          //     JSON.stringify(sServers) === JSON.stringify(serverCount));
+          // const sSize = sParams[sizeParamMap[sBase]];
+          // const sizeMatch = sSize && JSON.stringify(sSize) === size;
+          // if (sName === scenario && serverMatch && sizeMatch) {
+          //   const plotStatistic: PlotStatistic = <PlotStatistic>(
+          //     (<unknown>sData[plotType])
+          //   );
+          //   if (plotStatistic && plotStatistic[statName]) {
+          //     value = plotStatistic[statName];
+          //   }
+          // }
+        }
+      }
+    }
+    columns.push(column);
+  }
+
+  return {...data, columns};
+}
+
 export async function getChartDataBySize(
   benchmarkMap: Benchmarks,
   timestamps: TimestampViewModel[],
@@ -80,6 +183,7 @@ export async function getChartDataBySize(
   const isFan = isFanScenario(scenario);
 
   const sizes = getSizeKeys(benchmarkMap, {scenario, serverCount});
+
   const arr: ChartingArray = ['x', ...sizes];
   const columns: ChartingColumns = [arr];
 
@@ -268,7 +372,6 @@ export function getSizeKeys(
   }
 
   const result = [...sizes].sort((n1, n2) => Number(n1) - Number(n2));
-  //console.log("getSizeKeys is returning result: ", result);
   return result;
 }
 
@@ -279,7 +382,7 @@ export function isFanScenario(scenario: Scenario): boolean {
 //----------------------------------------------------------------
 // Internals
 //------------------------------------------------------------
-function mutating_assignNames(data: Data): Data {
+function mutating_assignNames(data: Data) {
   data.names = {};
   if (!data.columns) return data;
   for (const column of data.columns) {
