@@ -81,6 +81,25 @@
     form.scenario = <Scenario>`${form.base}-${form.baseScenario}`;
   }
 
+  function filterOptionsByServerCount(servers) {
+    if (dataFiltered) {
+      // TODO: make function for this store update
+      filteredDataStore.update(store => {
+        if (store && store['columns']) {
+          store['columns'].forEach(obj => {
+            const key = Object.keys(obj)[0];
+            let data = obj[key];
+            obj[key] = data.filter(
+              d => d.data['scenario_parameters'].Servers === servers
+            );
+          });
+          console.log('FILTERING BY Servers', {store});
+          return store;
+        }
+      });
+    }
+  }
+
   function filterOptionsByConfig(config) {
     if (dataFiltered) {
       filteredDataStore.update(store => {
@@ -115,6 +134,7 @@
       options.configOptions = configOptions;
       options.baseScenarios = getConfigs($filteredDataStore);
       if (form.baseScenario) filterOptionsByConfig(form.baseScenario);
+      if (form.serverCount) filterOptionsByServerCount(form.serverCount);
       // if (!configOptions.includes('Servers')) form.serverCount = null;
       // if (configOptions.includes('Servers') && form.serverCount) {
       //   filteredDataStore.update(store => {
