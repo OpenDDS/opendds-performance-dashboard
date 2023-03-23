@@ -1,5 +1,7 @@
 <script lang="ts">
   import Chart from 'chart.js/auto';
+  import {onDestroy} from 'svelte';
+  import {filteredDataStore} from '../utility/stores';
   import {BY_SIZE, classNameFromBenchmarkKey} from './chart-data-extractor';
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
@@ -12,15 +14,32 @@
   const CHART_ID = 'open-dds-chart';
 
   let chartRef: any = null;
-  let formattedErrors;
+  let formattedErrors = [];
+
+  // onDestroy(() => {
+  //   console.debug('Destroying Chart');
+  //   chartRef?.destroy();
+  // });
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
+  // $: console.log({data});
 
-  $: if (data && data.columns?.length > 0 && axis) {
-    console.debug('Drawing');
+  $: if (
+    data &&
+    data.columns?.length > 0 &&
+    axis &&
+    legendValues?.length &&
+    xValues?.length
+  ) {
+    console.warn('Drawing chart', {legendValues, xValues});
     // Allow the rest of the UI to update
     // without blocking to update the chart.
+    // chartRef?.destroy();
+    // let chartStatus = Chart.getChart('open-dds-chart'); // <canvas> id
+    // if (chartStatus != undefined) {
+    //   chartStatus.destroy();
+    // }
     drawChart(data, axis);
   }
 
@@ -32,7 +51,6 @@
   }
 
   function formatErrors() {
-    formattedErrors = [];
     if (!Array.isArray(data.columns) || !Array.isArray(data.columns[0])) return;
 
     const selectedSet = new Set(selectedTimestamps);
@@ -65,17 +83,87 @@
     }
   }
 
+  // $: console.log({selectedTimestamps});
+
+  function getXandLegendValues(data, name: 'xAxis' | 'legend') {
+    const values = new Set();
+    // if (form.xAxis === 'Timestamp' || form.legend === 'Timestamp') {
+    //   data.columns.forEach(column => {
+    //     values.add(Object.keys(column).toString());
+    //   });
+    //   return [...values];
+    // }
+    if (name === 'xAxis' && form.xAxis === 'Timestamp') {
+      data.columns.forEach(column => {
+        values.add(Object.keys(column).toString());
+      });
+      return [...values];
+    }
+    if (name === 'legend' && form.legend === 'Timestamp') {
+      data.columns.forEach(column => {
+        values.add(Object.keys(column).toString());
+      });
+      return [...values];
+    }
+
+    data['columns'].forEach(option => {
+      const key = Object.keys(option)[0];
+      let data = option[key];
+      data = data.map(item => {
+        let res = item.data['scenario_parameters'];
+        for (const key in res) {
+          // add values based on form
+          if (name === 'xAxis' ? key === form.xAxis : key === form.legend) {
+            values.add(res[key]);
+          }
+        }
+      });
+    });
+    // console.log([...values].sort((n1, n2) => Number(n1) - Number(n2)));
+    return [...values].sort((n1, n2) => Number(n1) - Number(n2));
+  }
+
+  function getYValues(data, xValue) {
+    // console.log({data, xValue});
+
+    // if (form.xAxis === 'Timestamp') {
+    //   // TODO: make work for timestamps
+    //   return;
+    // }
+    const values = new Set();
+    const dataOptions = [];
+    data.forEach(option => {
+      if (option.data['scenario_parameters'][form.xAxis] === xValue)
+        dataOptions.push(option);
+    });
+    dataOptions.forEach(option => {
+      values.add(option.data[form.plotType][form.statName]);
+    });
+    return values;
+  }
+
+  let legendValues;
+  let xValues;
+
+  $: if (data.columns) {
+    legendValues = getXandLegendValues($filteredDataStore, 'legend');
+    xValues = getXandLegendValues($filteredDataStore, 'xAxis');
+  }
+  // $: console.log({legendValues, xValues});
+
   async function drawChart(data, axis): Promise<void> {
-    // const xAxis = axis.x;
+    // console.log({axis, data});
+
+    const xAxis = axis.x;
     const yAxis = axis.y;
     // const xAxisLabel = xAxis.label.text;
     const xAxisLabel = form.xAxis;
     const yAxisLabel = yAxis.label.text;
-    const yAxisType = yAxis.type === 'log' ? 'logarithmic' : yAxis.type;
+    const xAxisType = xAxis.type;
+    const yAxisType = yAxis.type;
 
     if (errorTicks) formatErrors();
     let datasets = [];
-    let xValues = [];
 
     const colors = [
       'olivegreen',
@@ -96,40 +184,64 @@
       'mediumpurple'
     ];
 
-    if (data && data.names && data.columns.length) {
-      xValues = data.columns[0].slice(1);
-      for (let i = 1; i < data.columns.length; i++) {
-        const column = data.columns[i];
-        let label = column[0];
+    if (data.columns.length) {
+      // TODO: this for loop should be when (key)timestamps are selected, need to write other loop
+      for (let j = 0; j < data.columns.length; j++) {
+        // console.log('DATA.COLUMNS', data.columns);
 
-        // format time for chart legend
-        label = formatTime(label);
-        const color = colors[i];
+        let columnArray = <any>Object.values(data['columns'])[j];
+        let label;
+        let color;
+        if (legendValues[j] !== undefined) {
+          label = legendValues[j];
+          color = colors[j];
+        }
+        // console.log({label, legendValues, j});
         const container = {
           data: [],
           label,
           backgroundColor: color,
           borderColor: color,
-          pointBackgroundColor: Array(column[0].length).fill(color),
+          pointBackgroundColor: colors[j],
           pointRadius: 5
         };
+        const set = Object.values(columnArray)[0];
+
+        let yValues = [];
+        xValues.forEach(x => {
+          yValues.push(getYValues(set, x));
+        });
+        // TODO: need to make dataset an object
+
+        // console.log({set, container});
 
         // set error point color
         for (const error of formattedErrors) {
           if (error.className === label) {
-            container.pointBackgroundColor[error.index] = 'red';
+            // container.posintBackgroundColor[error.index] = 'red';
           }
         }
 
         const dataSet = [];
-        const yValues = column.slice(1);
+
+        // const yValues = Object.values(set).slice(1);
         xValues.forEach((x, index) => {
+          // yValues.push(getYValues(set, x));
           const y = yValues[index];
-          dataSet.push({x, y});
+          y.forEach(y => {
+            dataSet.push({x, y});
+          });
+          // dataSet.push({x, y});
         });
+        // console.log({yValues});
+        // dataSet.push({x: 10, y: 20}, {x: 10, y: 15}, {x: 10, y: 13});
+        // Object.assign(dataSet, ({x, y});
 
         container.data = dataSet;
         datasets.push(container);
+        // console.log({container, datasets});
+
+        // }
       }
     }
 
@@ -137,7 +249,7 @@
     chartRef = new Chart(CHART_ID, {
       type: 'line',
       data: {
-        // labels: xValues,
+        labels: xValues,
         datasets
       },
       options: {
@@ -156,6 +268,7 @@
               },
               text: xAxisLabel
             }
+            // type: xAxisType
           },
           y: {
             title: {
@@ -192,6 +305,14 @@
           },
           legend: {
             display: true,
+            // labels: {
+            //   generateLabels(chart) {
+            //     if (legendValues.length) {
+            //       chart.legend.legendItems = legendValues;
+            //       console.log({chart});
+            //     }
+            //   }
+            // },
             title: {
               display: true,
               font: {

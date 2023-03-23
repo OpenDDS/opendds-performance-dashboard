@@ -15,10 +15,13 @@
   export let selectedTimestamps: BenchmarkIdentifier[];
 
   export let benchmarks: Benchmarks = {};
-  export let timestamps: TimestampViewModel[] = [];
   export let statProperties: StatProperties;
 
-  $: title = [form.scenario, form.plotType, form.statName].join(' \uFF5C ');
+  $: legentTitle = form.baseScenario
+    ? `${form.base}-${form.baseScenario}`
+    : form.base;
+
+  $: title = [legentTitle, form.plotType, form.statName].join(' \uFF5C ');
 </script>
 
 <h2>{title}</h2>
@@ -29,7 +32,6 @@
     {form}
     {selectedTimestamps}
     {benchmarks}
-    {timestamps}
     {statProperties}
   />
   <slot name="accessory" />

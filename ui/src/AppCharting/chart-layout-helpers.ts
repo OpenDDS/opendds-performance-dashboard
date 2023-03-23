@@ -38,53 +38,42 @@ export function yAxisConfigurationFactory(): YAxisConfiguration {
   };
 }
 
-type AxisFactoryEntry = Record<
-  ChartType,
-  {x: XAxisConfiguration; y: YAxisConfiguration}
->;
+// type AxisFactoryEntry = Record<
+//   ChartType,
+//   {x: XAxisConfiguration; y: YAxisConfiguration}
+// >;
 
-export function axisFactory(): AxisFactoryEntry {
+export function axisFactory(useTimeSeries) {
   return {
-    'by size': {
-      x: <XAxisConfiguration>{
-        label: {
-          position: 'outer-left'
-        },
-        type: 'category'
+    x: {
+      label: {
+        position: 'outer-left',
+        text: ''
       },
-      y: yAxisConfigurationFactory()
+      tick: {
+        culling: false,
+        fit: false,
+        format: useTimeSeries ? '%Y-%m-%d %H:%M:%S' : DEFAULT_Y_TICK_FORMAT,
+        rotate: -90
+      },
+      type: useTimeSeries ? 'timeseries' : 'category'
     },
-    'by timestamp': {
-      x: <XAxisConfiguration>{
-        label: {
-          position: 'outer-left',
-          text: 'Timestamp'
-        },
-        //type: 'category',
-        tick: {
-          culling: false,
-          fit: false,
-          format: '%Y-%m-%d %H:%M:%S', // display format
-          rotate: -90
-        }
-      },
-      y: yAxisConfigurationFactory()
-    }
+    y: yAxisConfigurationFactory()
   };
 }
 
 //----------------------------------------------------------------------------
 // Pure Functions For Chart Data
 //----------------------------------------------------------------------------
-export function getAxisXLabel(
-  {chartType}: FormConfiguration,
-  {hasNodes}: HasNodesOptions
-): string {
-  return chartType === BY_TIMESTAMP
-    ? 'timestamp'
-    : hasNodes
-    ? 'nodes'
-    : 'payload size in bytes';
+export function getAxisXLabel({
+  xAxis
+}: FormConfiguration): // {hasNodes}: HasNodesOptions
+string {
+  return xAxis === 'Bytes'
+    ? 'Payload Size in Bytes'
+    : // : hasNodes
+      // ? 'Nodes'
+      xAxis;
 }
 
 export function getAxisXTimeStampType({

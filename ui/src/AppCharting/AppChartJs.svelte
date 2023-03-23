@@ -2,15 +2,11 @@
   import {errorStore, filteredDataStore} from '../utility/stores';
   import Chart from './LineChartjs.svelte';
 
-  import {BY_TIMESTAMP} from './chart-data-extractor';
-  import type {ChartFactoryData} from './chart-data-extractor';
-
   import {
     axisFactory,
     getAxisYLabel,
     getAxisXLabel,
-    getLegendTitle,
-    getAxisXTimeStampType,
+    // getAxisXTimeStampType,
     getAxisYConfigurationPartials,
     getAxisYTickFormat
   } from './chart-layout-helpers';
@@ -19,11 +15,8 @@
     BenchmarkIdentifier,
     Benchmarks,
     FormConfiguration,
-    // FormSelectOptions,
     Scenario,
-    StatProperties,
-    TimestampViewModel
-    // XAxisOptions
+    StatProperties
   } from '../types';
   import {configParamMap, sizeParamMap} from '../utility/param-map';
 
@@ -42,40 +35,44 @@
   export let selectedTimestamps: BenchmarkIdentifier[];
 
   export let benchmarks: Benchmarks = {};
-  // export let timestamps: TimestampViewModel[] = [];
   export let statProperties: StatProperties;
 
   //----------------------------------------------------------------
   // Local State
   //------------------------------------------------------------
-  let axisConfigurations = axisFactory();
+  // let axisConfigurations = axisFactory();
   let errors = new Map<BenchmarkIdentifier, ErrorEntry[]>();
-  // let xAxisOptions: XAxisOptions;
 
   //----------------------------------------------------------------
   // Computed Properties
   //------------------------------------------------------------
-  $: scenario = form.scenario;
+  // $: base = form.base;
+  // $: baseScenario = form.baseScenario;
+  // $: chartData = $filteredDataStore;
   $: chartType = form.chartType;
-  $: xAxis = form.xAxis;
+  // $: legend = form.legend;
+  // $: scenario = form.scenario;
+  // $: xAxis = form.xAxis;
+
+  $: console.log('AppChartJs', $filteredDataStore, {form});
 
   $: isReady = benchmarks && statProperties && form;
 
-  $: hasNodes =
-    scenario.startsWith('disco') || scenario.startsWith('showtime_');
-  // $: legendTitle = getLegendTitle(form, {hasNodes});
+  // $: hasNodes =
+  //   scenario.startsWith('disco') || scenario.startsWith('showtime_');
 
   // Axis Configuration
-  $: axisConfigurations[BY_TIMESTAMP].x.type = getAxisXTimeStampType(form);
-  $: axisConfigurations[BY_TIMESTAMP].x.tick.fit = form.useTimeSeries;
-  $: axis = axisConfigurations[chartType];
+  $: axis = axisFactory(form.useTimeSeries);
+  // $: console.log('FILTEREDDATASTORE', $filteredDataStore);
 
   $: redrawKey =
-    chartType || $filteredDataStore || axis || Date.now() || errors || xAxis;
+    chartType || $filteredDataStore || form || Date.now() || errors;
 
   // X and Y Label
   $: if ($filteredDataStore['columns'] && axis && isReady) {
     const partials = getAxisYConfigurationPartials(form);
+    // console.log({partials});
+
     Object.assign(axis.y, partials);
 
     axis.y.tick.format = getAxisYTickFormat(form, {
@@ -86,40 +83,16 @@
       axis.y.label.text = getAxisYLabel(form, {statProperties});
     }
     if (typeof axis.x.label !== 'string') {
-      axis.x.label.text = getAxisXLabel(form, {hasNodes});
+      axis.x.label.text = getAxisXLabel(form);
+      // axis.x.label.text = getAxisXLabel(form, {hasNodes});
     }
   }
 
-  // $: if (isReady) {
-  //   const selected = timestamps.filter(({key}) => {
-  //     return selectedTimestamps.indexOf(key) !== -1;
-  //   });
-
-  // const factory = chartDataFactory();
-  // const xAxisFactory = xAxisDataFactory(xAxis);
-
-  // factory(benchmarks, selected, form).then(onLoaded).catch(onError);
-  // xAxisFactory(benchmarks, selected, form);
-  // .then(onLoadedXAxisOptions)
-  // .catch(onError);
-  // }
-
   $: deriveDataPointErrors(benchmarks);
-  // $: console.log({$filteredDataStore});
 
   //----------------------------------------------------------------
   // Event Listeners
   //------------------------------------------------------------
-  // function onLoadedXAxisOptions(results: ChartFactoryData) {
-  //   if (!results) return;
-  //   xAxisOptions = results;
-  //   // console.log('LOADING XAXIS OPTIONS', {xAxisOptions});
-  // }
-
-  // function onLoaded(results: ChartFactoryData) {
-  //   if (!results) return;
-  //   $filteredDataStore = results;
-  // }
 
   function onError(error: Error) {
     errorStore.onError(error);
@@ -128,8 +101,6 @@
   //----------------------------------------------------------------
   // Methods
   //------------------------------------------------------------
-  // $: console.log('Benchmarks Rerendered', benchmarks);
-  // $: console.log('Chart Data Changed', $filteredDataStore);
   function deriveDataPointErrors(benchmarks: Benchmarks) {
     errors.clear();
 

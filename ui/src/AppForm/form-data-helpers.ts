@@ -10,12 +10,18 @@ import type {
   PlotType,
   Scenario,
   StatName,
-  XAxisAndLegendOptions
+  ConfigOptions
 } from '../types';
 import {baseScenarioParamMap, configParamMap} from '../utility/param-map';
 
 export const CHART_TYPES = [BY_TIMESTAMP, BY_SIZE];
 export const DEFAULT_CHART_TYPE = BY_SIZE;
+export const DEFAULT_CONFIG_OPTIONS = [
+  'Bytes',
+  'Timestamp',
+  'Servers',
+  'Config'
+];
 export const DEFAULT_PLOT_TYPE = 'Discovery Time Delta';
 export const DEFAULT_RECENT_COUNT = 5;
 export const DEFAULT_BASE = 'fan';
@@ -32,13 +38,12 @@ export function deriveSelectOptionsFromData(
   opts: FormConfiguration
 ): FormSelectOptions {
   const uniqueBases = new Set<Base>();
-  const uniqueBaseScenarios = new Set<BaseScenario>();
-  const uniqueLegends = new Set<XAxisAndLegendOptions>();
+  const uniqueBaseScenarios = new Set<ConfigOptions>();
+  const uniqueParams = new Set<ConfigOptions>();
   const uniquePlotTypes = new Set<PlotType | IgnoredStatistics>();
   const uniqueScenarios = new Set<Scenario>();
   const uniqueServerCounts = new Map<Scenario, Set<number>>();
   const uniqueStatNames = new Set<StatName>();
-  const uniqueXAxisOptions = new Set<XAxisAndLegendOptions>();
 
   const benchmarkEntries = Object.values(benchmarks);
 
@@ -57,7 +62,7 @@ export function deriveSelectOptionsFromData(
       return;
     }
     for (const [, sData] of Object.entries(timestampObj).filter(
-      ([key]) => key != 'run_parameters'
+      ([key]) => key !== 'run_parameters'
     )) {
       const sParams = sData['scenario_parameters'];
       if (sParams) {
@@ -67,10 +72,7 @@ export function deriveSelectOptionsFromData(
           // TODO: use configParamMap to adjust RTPS Multicast to rtps etc
           uniqueBaseScenarios.add(sConfig);
           const options = Object.keys(sParams).filter(k => k !== 'Base');
-          options.forEach(
-            option =>
-              uniqueXAxisOptions.add(option) && uniqueLegends.add(option)
-          );
+          options.forEach(option => uniqueParams.add(option));
         }
         const sName = sConfig
           ? sBase +
@@ -98,8 +100,7 @@ export function deriveSelectOptionsFromData(
         }
       }
     }
-    uniqueXAxisOptions.add('Timestamp');
-    uniqueLegends.add('Timestamp');
+    uniqueParams.add('Timestamp');
   });
 
   // Cleanup and remove size records from plot type entries
@@ -125,14 +126,13 @@ export function deriveSelectOptionsFromData(
       return acc;
     }, {} as Record<Base, FormScenarioOptions>),
     baseScenarios: [...uniqueBaseScenarios].sort(),
-    legendOptions: [...uniqueLegends].sort(),
+    configOptions: [...uniqueParams].sort(),
     plotTypes: allPlotTypes,
     scenarios: [...uniqueScenarios].sort().reduce((acc, scenario) => {
       const serverCounts: number[] = serverCountMap[scenario] || [];
       acc[scenario] = {serverCounts};
       return acc;
     }, {} as Record<Scenario, FormScenarioOptions>),
-    statNames: [...uniqueStatNames].sort(),
-    xAxisOptions: [...uniqueXAxisOptions].sort()
+    statNames: [...uniqueStatNames].sort()
   };
 }

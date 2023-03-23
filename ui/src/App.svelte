@@ -28,8 +28,10 @@
     DEFAULT_SERVER_COUNT,
     deriveSelectOptionsFromData,
     DEFAULT_X_AXIS,
-    DEFAULT_LEGEND
+    DEFAULT_LEGEND,
+    DEFAULT_CONFIG_OPTIONS
   } from './AppForm/form-data-helpers';
+  // import {filterOptionsByBase} from './AppForm/AppForm.svelte';
 
   import AppChart from './AppCharting/AppChart.svelte';
   import AppErrorView from './AppErrorView.svelte';
@@ -54,6 +56,7 @@
   } from './types';
   import {
     chartDataFactory,
+    getChartData,
     type ChartFactoryData
   } from './AppCharting/chart-data-extractor';
 
@@ -67,14 +70,16 @@
 
   let form: FormConfiguration = {
     base: DEFAULT_BASE,
+    // baseScenario: null,
     baseScenario: DEFAULT_BASE_SCENARIO,
     chartType: DEFAULT_CHART_TYPE,
+    configOptions: DEFAULT_CONFIG_OPTIONS,
     latest: undefined,
     legend: DEFAULT_LEGEND,
     plotType: DEFAULT_PLOT_TYPE,
     statName: DEFAULT_STAT_NAME,
     scenario: DEFAULT_SCENARIO,
-    serverCount: DEFAULT_SERVER_COUNT,
+    serverCount: 16,
     useTimeSeries: false,
     useLogScale: false,
     xAxis: DEFAULT_X_AXIS
@@ -84,11 +89,12 @@
   let selectOptions: FormSelectOptions = {
     bases: {[form.base]: {baseScenarios: [], serverCounts: []}},
     baseScenarios: [form.baseScenario],
-    legendOptions: [form.legend],
+    configOptions: [form.configOptions],
+    // legendOptions: [form.legend],
     plotTypes: [],
     scenarios: {[form.scenario]: {serverCounts: []}},
-    statNames: [],
-    xAxisOptions: [form.xAxis]
+    statNames: []
+    // xAxisOptions: [form.xAxis]
   };
 
   let isSelectingTimestamps = false;
@@ -129,9 +135,10 @@
       return selectedTimestamps.indexOf(key) !== -1;
     });
 
-    const factory = chartDataFactory();
+    getChartData(benchmarks, selected, form).then(onLoaded).catch(onError);
+    // const factory = getChartData();
 
-    factory(benchmarks, selected, form).then(onLoaded).catch(onError);
+    // factory(benchmarks, selected, form).then(onLoaded).catch(onError);
   }
 
   function onLoaded(results: ChartFactoryData) {
@@ -263,17 +270,15 @@
   {:else}
     {#if !isEmbedded}
       <div class="row">
-        <AppForm bind:form options={selectOptions} />
+        <AppForm
+          bind:form
+          options={selectOptions}
+          timestamps={selectedTimestamps}
+        />
       </div>
     {/if}
 
-    <AppChart
-      {benchmarks}
-      {form}
-      {selectedTimestamps}
-      {statProperties}
-      {timestamps}
-    >
+    <AppChart {benchmarks} {form} {selectedTimestamps} {statProperties}>
       <AppErrorView slot="accessory" />
     </AppChart>
   {/if}

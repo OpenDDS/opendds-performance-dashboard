@@ -28,23 +28,6 @@ export type BuildHash = string;
 
 export type Base = 'b1_latency' | 'disco' | 'echo' | 'fan' | 'showtime_mixed';
 
-// leaving in case the type needs to be changed to a similar foramt later
-// export interface BaseScenario extends Base =
-//   | {b1_latency: ['rtps' | 'tcp' | 'udp']}
-//   | {
-//       disco: [
-//         | 'info-repo'
-//         | 'rtps'
-//         | 'rtps-multicast'
-//         | 'rtps-relay'
-//         | 'relay'
-//         | 'repo'
-//       ];
-//     }
-//   | {echo: ['rtps' | 'tcp']}
-//   | {fan: ['rtps' | 'tcp']}
-//   | {showtime_mixed: ['showtime_mixed']};
-
 export type BaseScenario =
   | 'info-repo'
   | 'relay'
@@ -93,26 +76,29 @@ export type StatName =
 
 export type ChartType = 'by size' | 'by timestamp';
 
-export type XAxisAndLegendOptions =
+export type ConfigOptions =
   | 'Bytes'
   | 'Participants'
   | 'Timestamp'
+  | 'Servers'
+  | 'Config'
   | any;
 
 export type SelectedTimestamps = Array<BenchmarkIdentifier>;
 export type FormConfiguration = {
   base: Base;
-  baseScenario?: BaseScenario;
+  baseScenario?: BaseScenario | null;
+  chartType: ChartType;
+  configOptions: ConfigOptions;
+  latest?: number;
+  legend: ConfigOptions;
+  plotType: PlotType;
   scenario: Scenario;
   statName: StatName;
-  plotType: PlotType;
-  chartType: ChartType;
-  serverCount: number;
+  serverCount: number | null;
   useTimeSeries: boolean;
   useLogScale: boolean;
-  latest?: number;
-  legend?: XAxisAndLegendOptions;
-  xAxis?: XAxisAndLegendOptions;
+  xAxis: ConfigOptions;
 };
 
 export type FormConfigurationKeys = keyof FormConfiguration;
@@ -124,11 +110,12 @@ export type FormScenarioOptions = {
 export type FormSelectOptions = {
   bases: Partial<Record<Base, FormScenarioOptions>>;
   baseScenarios?: Array<BaseScenario>;
-  legendOptions?: Array<XAxisAndLegendOptions>;
+  configOptions?: Array<ConfigOptions>;
+  // legendOptions?: Array<XAxisAndLegendOptions>;
   plotTypes: Array<PlotType>;
   scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
   statNames: Array<StatName>;
-  xAxisOptions?: Array<XAxisAndLegendOptions>;
+  // xAxisOptions?: Array<XAxisAndLegendOptions>;
 };
 
 export type StatProperty = {
