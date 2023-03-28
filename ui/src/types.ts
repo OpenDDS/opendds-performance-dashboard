@@ -28,7 +28,7 @@ export type BuildHash = string;
 
 export type Base = 'b1_latency' | 'disco' | 'echo' | 'fan' | 'showtime_mixed';
 
-export type BaseScenario =
+export type BaseConfig =
   | 'info-repo'
   | 'relay'
   | 'repo'
@@ -87,7 +87,7 @@ export type ConfigOptions =
 export type SelectedTimestamps = Array<BenchmarkIdentifier>;
 export type FormConfiguration = {
   base: Base;
-  baseScenario?: BaseScenario | null;
+  baseConfig?: BaseConfig | null;
   chartType: ChartType;
   configOptions: ConfigOptions;
   latest?: number;
@@ -103,13 +103,13 @@ export type FormConfiguration = {
 
 export type FormConfigurationKeys = keyof FormConfiguration;
 export type FormScenarioOptions = {
-  baseScenarios?: string[];
+  baseConfigs?: string[];
   serverCounts?: number[];
 };
 
 export type FormSelectOptions = {
   bases: Partial<Record<Base, FormScenarioOptions>>;
-  baseScenarios?: Array<BaseScenario>;
+  baseConfigs?: Array<BaseConfig>;
   configOptions?: Array<ConfigOptions>;
   // legendOptions?: Array<XAxisAndLegendOptions>;
   plotTypes: Array<PlotType>;
@@ -139,7 +139,7 @@ export type Benchmarks = Record<BenchmarkIdentifier, Benchmark>;
 export type IgnoredRunMembers = 'run_parameters';
 
 export type Benchmark = Record<
-  Base | BaseScenario | Scenario | IgnoredRunMembers,
+  Base | BaseConfig | Scenario | IgnoredRunMembers,
   ScenarioSizeRecords
 >;
 

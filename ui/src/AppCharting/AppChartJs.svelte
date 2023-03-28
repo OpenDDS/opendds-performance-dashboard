@@ -46,13 +46,8 @@
   //----------------------------------------------------------------
   // Computed Properties
   //------------------------------------------------------------
-  // $: base = form.base;
-  // $: baseScenario = form.baseScenario;
-  // $: chartData = $filteredDataStore;
+
   $: chartType = form.chartType;
-  // $: legend = form.legend;
-  // $: scenario = form.scenario;
-  // $: xAxis = form.xAxis;
 
   // $: console.log('AppChartJs', $filteredDataStore, {form});
 

@@ -1,13 +1,12 @@
 import type {
-  // Base,
-  BaseScenario,
+  BaseConfig,
   BenchmarkIdentifier,
   Benchmarks,
   ChartType,
   ConfigOptions,
   Data,
   FormConfiguration,
-  PlotStatistic,
+  // PlotStatistic,
   PrimitiveArray,
   Scenario,
   TimestampViewModel
@@ -88,9 +87,7 @@ export function getConfigs(data) {
         let res = item.data['scenario_parameters'];
         let sConfig = res['Config'];
         if (sConfig) {
-          configParamMap[sConfig]
-            ? configOptions.add(configParamMap[sConfig])
-            : configOptions.add(sConfig);
+          configOptions.add(sConfig);
         }
       });
     });
@@ -167,137 +164,137 @@ export async function getChartData(
   // return mutating_assignNames({...data, columns});
 }
 
-export async function getChartDataBySize(
-  benchmarkMap: Benchmarks,
-  timestamps: TimestampViewModel[],
-  opts: FormConfiguration
-): Promise<Data> {
-  const {scenario, serverCount, plotType, statName} = opts;
-  const data: Data = {columns: [], x: 'x', names: {}};
+// export async function getChartDataBySize(
+//   benchmarkMap: Benchmarks,
+//   timestamps: TimestampViewModel[],
+//   opts: FormConfiguration
+// ): Promise<Data> {
+//   const {scenario, serverCount, plotType, statName} = opts;
+//   const data: Data = {columns: [], x: 'x', names: {}};
 
-  if (!scenario || !statName || !plotType) return data;
+//   if (!scenario || !statName || !plotType) return data;
 
-  const isFan = isFanScenario(scenario);
+//   const isFan = isFanScenario(scenario);
 
-  const sizes = getSizeKeys(benchmarkMap, {scenario, serverCount});
+//   const sizes = getSizeKeys(benchmarkMap, {scenario, serverCount});
 
-  const arr: ChartingArray = ['x', ...sizes];
-  const columns: ChartingColumns = [arr];
+//   const arr: ChartingArray = ['x', ...sizes];
+//   const columns: ChartingColumns = [arr];
 
-  for (const timestamp of timestamps) {
-    const column: ChartingArray = [classNameFromBenchmarkKey(timestamp.key)];
+//   for (const timestamp of timestamps) {
+//     const column: ChartingArray = [classNameFromBenchmarkKey(timestamp.key)];
 
-    for (const size of sizes) {
-      let value: number = MISSING_VALUE;
-      const benchmark = benchmarkMap[timestamp.key];
-      if (benchmark) {
-        for (const [, sData] of Object.entries(benchmark).filter(
-          ([key]) => key != 'run_parameters'
-        )) {
-          const sParams = sData['scenario_parameters'];
-          if (sParams) {
-            const sBase = sParams['Base'];
-            const sConfig = sParams['Config'];
-            const sName = sConfig
-              ? sBase +
-                '-' +
-                (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
-              : sBase;
-            const sServers = sParams['Servers'];
-            const serverMatch =
-              !isFan ||
-              (sServers &&
-                JSON.stringify(sServers) === JSON.stringify(serverCount));
-            const sSize = sParams[sizeParamMap[sBase]];
-            const sizeMatch = sSize && JSON.stringify(sSize) === size;
-            if (sName === scenario && serverMatch && sizeMatch) {
-              const plotStatistic: PlotStatistic = <PlotStatistic>(
-                (<unknown>sData[plotType])
-              );
-              if (plotStatistic && plotStatistic[statName]) {
-                value = plotStatistic[statName];
-              }
-            }
-          }
-        }
-      }
-      column.push(value);
-    }
-    columns.push(column);
-  }
+//     for (const size of sizes) {
+//       let value: number = MISSING_VALUE;
+//       const benchmark = benchmarkMap[timestamp.key];
+//       if (benchmark) {
+//         for (const [, sData] of Object.entries(benchmark).filter(
+//           ([key]) => key != 'run_parameters'
+//         )) {
+//           const sParams = sData['scenario_parameters'];
+//           if (sParams) {
+//             const sBase = sParams['Base'];
+//             const sConfig = sParams['Config'];
+//             const sName = sConfig
+//               ? sBase +
+//                 '-' +
+//                 (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+//               : sBase;
+//             const sServers = sParams['Servers'];
+//             const serverMatch =
+//               !isFan ||
+//               (sServers &&
+//                 JSON.stringify(sServers) === JSON.stringify(serverCount));
+//             const sSize = sParams[sizeParamMap[sBase]];
+//             const sizeMatch = sSize && JSON.stringify(sSize) === size;
+//             if (sName === scenario && serverMatch && sizeMatch) {
+//               const plotStatistic: PlotStatistic = <PlotStatistic>(
+//                 (<unknown>sData[plotType])
+//               );
+//               if (plotStatistic && plotStatistic[statName]) {
+//                 value = plotStatistic[statName];
+//               }
+//             }
+//           }
+//         }
+//       }
+//       column.push(value);
+//     }
+//     columns.push(column);
+//   }
 
-  return mutating_assignNames({...data, columns});
-}
+//   return mutating_assignNames({...data, columns});
+// }
 
-export async function getChartDataByTimestamp(
-  benchmarkMap: Benchmarks,
-  timestamps: TimestampViewModel[],
-  opts: FormConfiguration
-): Promise<Data> {
-  const {scenario, serverCount, plotType, statName} = opts;
-  const data: Data = {columns: [], x: 'x', names: {}};
+// export async function getChartDataByTimestamp(
+//   benchmarkMap: Benchmarks,
+//   timestamps: TimestampViewModel[],
+//   opts: FormConfiguration
+// ): Promise<Data> {
+//   const {scenario, serverCount, plotType, statName} = opts;
+//   const data: Data = {columns: [], x: 'x', names: {}};
 
-  if (!scenario || !statName || !plotType) return data;
+//   if (!scenario || !statName || !plotType) return data;
 
-  const isFan: boolean = isFanScenario(scenario);
+//   const isFan: boolean = isFanScenario(scenario);
 
-  const xValues: PrimitiveArray = timestamps.map(
-    timestamp => timestamp.dateTime
-  );
-  const arr: ChartingArray = ['x', ...xValues];
-  const columns: ChartingColumns = [arr];
+//   const xValues: PrimitiveArray = timestamps.map(
+//     timestamp => timestamp.dateTime
+//   );
+//   const arr: ChartingArray = ['x', ...xValues];
+//   const columns: ChartingColumns = [arr];
 
-  const dataNames: string[] = getDataNames(benchmarkMap, {
-    scenario,
-    serverCount
-  });
+//   const dataNames: string[] = getDataNames(benchmarkMap, {
+//     scenario,
+//     serverCount
+//   });
 
-  for (const dataName of dataNames) {
-    const column: ChartingArray = [dataName];
+//   for (const dataName of dataNames) {
+//     const column: ChartingArray = [dataName];
 
-    for (const timestamp of timestamps) {
-      let value: number = MISSING_VALUE;
-      const benchmark = benchmarkMap[timestamp.key];
-      if (benchmark) {
-        for (const [, sData] of Object.entries(benchmark).filter(
-          ([key]) => key != 'run_parameters'
-        )) {
-          const sParams = sData['scenario_parameters'];
-          if (sParams) {
-            const sBase = sParams['Base'];
-            const sConfig = sParams['Config'];
-            const sName = sConfig
-              ? sBase +
-                '-' +
-                (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
-              : sBase;
-            const sServers = sParams['Servers'];
-            const serverMatch =
-              !isFan ||
-              (sServers &&
-                JSON.stringify(sServers) === JSON.stringify(serverCount));
-            const sSize = sParams[sizeParamMap[sBase]];
-            const sizeMatch = sSize && JSON.stringify(sSize) === dataName;
-            if (sName === scenario && serverMatch && sizeMatch) {
-              const plotStatistic: PlotStatistic = <PlotStatistic>(
-                (<unknown>sData[plotType])
-              );
-              if (plotStatistic && plotStatistic[statName]) {
-                value = plotStatistic[statName];
-              }
-            }
-          }
-        }
-      }
+//     for (const timestamp of timestamps) {
+//       let value: number = MISSING_VALUE;
+//       const benchmark = benchmarkMap[timestamp.key];
+//       if (benchmark) {
+//         for (const [, sData] of Object.entries(benchmark).filter(
+//           ([key]) => key != 'run_parameters'
+//         )) {
+//           const sParams = sData['scenario_parameters'];
+//           if (sParams) {
+//             const sBase = sParams['Base'];
+//             const sConfig = sParams['Config'];
+//             const sName = sConfig
+//               ? sBase +
+//                 '-' +
+//                 (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
+//               : sBase;
+//             const sServers = sParams['Servers'];
+//             const serverMatch =
+//               !isFan ||
+//               (sServers &&
+//                 JSON.stringify(sServers) === JSON.stringify(serverCount));
+//             const sSize = sParams[sizeParamMap[sBase]];
+//             const sizeMatch = sSize && JSON.stringify(sSize) === dataName;
+//             if (sName === scenario && serverMatch && sizeMatch) {
+//               const plotStatistic: PlotStatistic = <PlotStatistic>(
+//                 (<unknown>sData[plotType])
+//               );
+//               if (plotStatistic && plotStatistic[statName]) {
+//                 value = plotStatistic[statName];
+//               }
+//             }
+//           }
+//         }
+//       }
 
-      column.push(value);
-    }
-    columns.push(column);
-  }
+//       column.push(value);
+//     }
+//     columns.push(column);
+//   }
 
-  const xFormat = '%Y-%m-%d %H:%M:%S'; // date format
-  return mutating_assignNames({...data, columns, xFormat});
-}
+//   const xFormat = '%Y-%m-%d %H:%M:%S'; // date format
+//   return mutating_assignNames({...data, columns, xFormat});
+// }
 
 export function getDataNames(
   benchmarkMap: Benchmarks,

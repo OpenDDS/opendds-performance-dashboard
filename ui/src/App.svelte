@@ -54,11 +54,7 @@
     StatProperties,
     TimestampViewModel
   } from './types';
-  import {
-    // chartDataFactory,
-    getChartData
-    // type ChartFactoryData
-  } from './AppCharting/chart-data-extractor';
+  import {getChartData} from './AppCharting/chart-data-extractor';
 
   export let initialData = {};
 
@@ -70,8 +66,7 @@
 
   let form: FormConfiguration = {
     base: DEFAULT_BASE,
-    baseScenario: DEFAULT_BASE_SCENARIO,
-    // baseScenario: null,
+    baseConfig: DEFAULT_BASE_SCENARIO,
     chartType: DEFAULT_CHART_TYPE,
     configOptions: DEFAULT_CONFIG_OPTIONS,
     latest: undefined,
@@ -87,14 +82,12 @@
 
   // Chart Related Properties
   let selectOptions: FormSelectOptions = {
-    bases: {[form.base]: {baseScenarios: [], serverCounts: []}},
-    baseScenarios: [form.baseScenario],
+    bases: {[form.base]: {baseConfigs: [], serverCounts: []}},
+    baseConfigs: [form.baseConfig],
     configOptions: [form.configOptions],
-    // legendOptions: [form.legend],
     plotTypes: [],
     scenarios: {[form.scenario]: {serverCounts: []}},
     statNames: []
-    // xAxisOptions: [form.xAxis]
   };
 
   let isSelectingTimestamps = false;

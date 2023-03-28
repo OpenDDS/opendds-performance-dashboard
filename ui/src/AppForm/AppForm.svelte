@@ -7,9 +7,10 @@
   } from '../AppCharting/chart-data-extractor';
   import {DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
   import {benchmarkDataStore, filteredDataStore} from '../utility/stores';
+  import {configParamMap} from '../utility/param-map';
   import type {
     Base,
-    BaseScenario,
+    BaseConfig,
     FormConfiguration,
     FormScenarioOptions,
     FormSelectOptions,
@@ -22,7 +23,7 @@
   export let form: FormConfiguration;
   export let timestamps;
 
-  let baseScenarioOpts: BaseScenario[];
+  let baseScenarioOpts: BaseConfig[];
   let scenarioOpts: FormScenarioOptions;
   let serverCounts: number[] | string[] = [];
   let configOptions: Array<ConfigOptions> = [];
@@ -36,7 +37,7 @@
   // update the form options when the data store is updated
   $: if (baseFiltered && configOptions.length > 1) {
     form.xAxis = configOptions[0];
-    form.legend = configOptions[1];
+    form.legend = configOptions[configOptions.length - 1];
     console.log('SETTING FORM.XAXIS AND FORM.LEGEND', {configOptions});
   }
   $: {
@@ -51,7 +52,7 @@
       }
     }
   }
-  $: baseScenarioOpts = options.baseScenarios || null;
+  $: baseScenarioOpts = options.baseConfigs || null;
   $: showConfigOption = shallowCopy.includes('Config');
   $: showServerCount = shallowCopy.includes('Servers');
   $: showTimestampOption = shallowCopy.includes('Timestamp');
@@ -79,7 +80,7 @@
       form.scenario = <Scenario>form.base;
       return;
     }
-    form.scenario = <Scenario>`${form.base}-${form.baseScenario}`;
+    form.scenario = <Scenario>`${form.base}-${form.baseConfig}`;
   }
 
   // function filterOptionsByServerCount(servers) {
@@ -91,7 +92,7 @@
   //         store['columns'].forEach(obj => {
   //           const key = Object.keys(obj)[0];
   //           let data = obj[key];
-  //           obj[key] = data.filter(d => d.config === form.baseScenario);
+  //           obj[key] = data.filter(d => d.config === form.baseConfig);
   //           console.log('OBJ', obj[key]);
   //           obj[key] = data.filter(
   //             d => d.data['scenario_parameters'].Servers === servers
@@ -131,19 +132,21 @@
             const key = Object.keys(obj)[0];
             let data = obj[key];
             obj[key] = data.filter(d => d.base === base);
-            options.baseScenarios = getConfigs($filteredDataStore);
-            if (form.baseScenario && form.serverCount) {
+            options.baseConfigs = getConfigs($filteredDataStore);
+            configOptions = getConfigOptions($filteredDataStore);
+            options.configOptions = configOptions;
+            if (form.baseConfig && form.serverCount) {
               obj[key] = data.filter(
                 d =>
                   d.base === base &&
-                  d.config === form.baseScenario &&
+                  d.config === form.baseConfig &&
                   d.data['scenario_parameters'].Servers === form.serverCount
               );
               console.log('Filtering config, serverCount, and base');
-            } else if (form.baseScenario) {
+            } else if (form.baseConfig) {
               console.log('Filtering config, base');
               obj[key] = data.filter(
-                d => d.base === base && d.config === form.baseScenario
+                d => d.base === base && d.config === form.baseConfig
               );
             }
           });
@@ -151,8 +154,6 @@
         }
       });
       baseFiltered = true;
-      configOptions = getConfigOptions($filteredDataStore);
-      options.configOptions = configOptions;
       // TODO: need to update form.xAxis and form.legend on base change
       // infinite loop
       // form.xAxis = configOptions[0];
@@ -167,28 +168,28 @@
   async function baseChanged(event: Event) {
     // filterOptionsByBase(form.base);
     form.base = <Base>(<HTMLInputElement>event.target).value;
-    form.baseScenario = null;
+    form.baseConfig = null;
     form.serverCount = null;
     setScenario();
     if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
   }
 
   function configChanged(event: Event) {
-    let val = <BaseScenario>(<HTMLInputElement>event.target).value;
+    let config = <BaseConfig>(<HTMLInputElement>event.target).value;
     // filterOptionsByConfig(val);
-    form.baseScenario = <BaseScenario>(<HTMLInputElement>event.target).value;
+    form.baseConfig = config;
   }
 
   function serverChanged(event: Event) {
-    let val = parseInt(<BaseScenario>(<HTMLInputElement>event.target).value);
+    let server = parseInt(<BaseConfig>(<HTMLInputElement>event.target).value);
     // filterOptionsByServerCount(form.serverCount);
-    form.serverCount = val;
+    form.serverCount = server;
   }
 
   function legendChanged(event: Event) {
     const value = <ConfigOptions>(<HTMLInputElement>event.target).value;
     if (value === 'Servers') form.serverCount = null;
-    if (value === 'Config') form.baseScenario = null;
+    if (value === 'Config') form.baseConfig = null;
     if (form.xAxis === value) {
       let index = configOptions.indexOf(form.xAxis);
       if (configOptions[index + 1]! > configOptions.length) {
@@ -203,7 +204,7 @@
   function xAxisChanged(event: Event) {
     // TODO: clean this up
     const value = <ConfigOptions>(<HTMLInputElement>event.target).value;
-    if (value === 'Config') form.baseScenario = null;
+    if (value === 'Config') form.baseConfig = null;
     if (value === 'Servers') form.serverCount = null;
     if (form.legend === value) {
       let index = configOptions.indexOf(form.legend);
@@ -265,7 +266,7 @@
         disabled={!baseScenarioOpts.length}
         on:change={configChanged}
         options={baseScenarioOpts}
-        value={form.baseScenario}
+        value={form.baseConfig}
       />
     {/if}
 

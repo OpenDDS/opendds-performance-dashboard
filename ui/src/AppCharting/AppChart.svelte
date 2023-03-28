@@ -6,6 +6,7 @@
     StatProperties,
     TimestampViewModel
   } from 'src/types';
+  import {configParamMap} from '../utility/param-map';
 
   import AppChartC3 from './AppChartC3.svelte';
   import AppChartJs from './AppChartJs.svelte';
@@ -18,8 +19,8 @@
   export let statProperties: StatProperties;
 
   $: legentTitle =
-    form.base !== 'showtime_mixed' && form.baseScenario
-      ? `${form.base}-${form.baseScenario}`
+    form.base !== 'showtime_mixed' && form.baseConfig
+      ? `${form.base}-${configParamMap[form.baseConfig]}`
       : form.base;
 
   $: title = [legentTitle, form.plotType, form.statName].join(' \uFF5C ');

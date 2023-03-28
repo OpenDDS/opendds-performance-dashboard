@@ -153,7 +153,7 @@
   $: if ($filteredDataStore['columns']) {
     legendValues = getXandLegendValues($filteredDataStore, 'legend');
     xValues = getXandLegendValues($filteredDataStore, 'xAxis');
-    // console.log('GETTING X AND LEGEND VALUES', {legendValues, xValues});
+    console.log('GETTING X AND LEGEND VALUES', {legendValues, xValues});
   }
 
   const colors = [
@@ -224,7 +224,7 @@
           });
         } else xValues.forEach(x => yValues.push(getYValues(set, x)));
 
-        // console.log({set, yValues});
+        console.log({set, yValues});
 
         // set error point color
         for (const error of formattedErrors) {

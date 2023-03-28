@@ -1,7 +1,7 @@
 import {BY_SIZE, BY_TIMESTAMP} from '../AppCharting/chart-data-extractor';
 import type {
   Base,
-  BaseScenario,
+  BaseConfig,
   Benchmarks,
   FormConfiguration,
   FormScenarioOptions,
@@ -120,12 +120,12 @@ export function deriveSelectOptionsFromData(
   return {
     // TODO: add serverCounts to bases and remove scenarios
     bases: [...uniqueBases].sort().reduce((acc, base) => {
-      const baseScenarios = (baseScenarioParamMap[base] ||
-        []) as Array<BaseScenario>;
-      acc[base] = {baseScenarios};
+      const baseConfigs = (baseScenarioParamMap[base] ||
+        []) as Array<BaseConfig>;
+      acc[base] = {baseConfigs};
       return acc;
     }, {} as Record<Base, FormScenarioOptions>),
-    baseScenarios: [...uniqueBaseScenarios].sort(),
+    baseConfigs: [...uniqueBaseScenarios].sort(),
     configOptions: [...uniqueParams].sort(),
     plotTypes: allPlotTypes,
     scenarios: [...uniqueScenarios].sort().reduce((acc, scenario) => {
