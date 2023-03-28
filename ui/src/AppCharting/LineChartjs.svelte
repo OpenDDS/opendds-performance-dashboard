@@ -1,12 +1,11 @@
 <script lang="ts">
   import Chart from 'chart.js/auto';
-  import {onDestroy} from 'svelte';
   import {filteredDataStore} from '../utility/stores';
   import {BY_SIZE, classNameFromBenchmarkKey} from './chart-data-extractor';
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
   export let axis;
-  export let data;
+  // export let data;
   export let errorTicks;
   export let form;
   export let selectedTimestamps;
@@ -23,11 +22,11 @@
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
-  // $: console.log({data});
+  // let drawIt = false;
 
   $: if (
-    data &&
-    data.columns?.length > 0 &&
+    $filteredDataStore &&
+    $filteredDataStore['columns']?.length > 0 &&
     axis &&
     legendValues?.length &&
     xValues?.length
@@ -40,7 +39,7 @@
     // if (chartStatus != undefined) {
     //   chartStatus.destroy();
     // }
-    drawChart(data, axis);
+    drawChart($filteredDataStore, axis);
   }
 
   function formatTime(time: string) {
@@ -51,12 +50,16 @@
   }
 
   function formatErrors() {
-    if (!Array.isArray(data.columns) || !Array.isArray(data.columns[0])) return;
+    if (
+      !Array.isArray($filteredDataStore['columns']) ||
+      !Array.isArray($filteredDataStore['columns'][0])
+    )
+      return;
 
     const selectedSet = new Set(selectedTimestamps);
     const bySize = chartType === BY_SIZE;
 
-    const xLabels = data.columns[0].slice(1);
+    const xLabels = $filteredDataStore['columns'][0].slice(1);
 
     const active = [...errorTicks.values()].filter(error => {
       if (!error.length) return false;
@@ -83,16 +86,9 @@
     }
   }
 
-  // $: console.log({selectedTimestamps});
-
   function getXandLegendValues(data, name: 'xAxis' | 'legend') {
     const values = new Set();
-    // if (form.xAxis === 'Timestamp' || form.legend === 'Timestamp') {
-    //   data.columns.forEach(column => {
-    //     values.add(Object.keys(column).toString());
-    //   });
-    //   return [...values];
-    // }
+
     if (name === 'xAxis' && form.xAxis === 'Timestamp') {
       data.columns.forEach(column => {
         values.add(Object.keys(column).toString());
@@ -106,7 +102,7 @@
       return [...values];
     }
 
-    data['columns'].forEach(option => {
+    data.columns.forEach(option => {
       const key = Object.keys(option)[0];
       let data = option[key];
       data = data.map(item => {
@@ -145,14 +141,80 @@
   let legendValues;
   let xValues;
 
-  $: if (data.columns) {
+  $: if ($filteredDataStore['columns']) {
     legendValues = getXandLegendValues($filteredDataStore, 'legend');
     xValues = getXandLegendValues($filteredDataStore, 'xAxis');
+    // console.log('GETTING X AND LEGEND VALUES', {legendValues, xValues});
   }
-  // $: console.log({legendValues, xValues});
+
+  const colors = [
+    'olivegreen',
+    'darkorange',
+    'darkgreen',
+    'purple',
+    'darkblue',
+    'gold',
+    'magenta',
+    'blueviolet',
+    'darkred',
+    'sienna',
+    'deepskyblue',
+    'gray',
+    'lightpink',
+    'lightsalmon',
+    'limegreen',
+    'mediumpurple'
+  ];
+
+  // function determineChartData() {
+  //   let datasets = [];
+  //   if (legendValues.length === data.columns.length)
+  //     for (let j = 0; j < data.columns.length; j++) {
+  //       let columnArray = <any>Object.values(data['columns'])[j];
+  //       let label;
+  //       let color;
+  //       if (legendValues[j] !== undefined) {
+  //         label = legendValues[j];
+  //         color = colors[j];
+  //       }
+  //       const container = {
+  //         data: [],
+  //         label,
+  //         backgroundColor: color,
+  //         borderColor: color,
+  //         pointBackgroundColor: colors[j],
+  //         pointRadius: 5
+  //       };
+  //       const set = Object.values(columnArray)[0];
+
+  //       let yValues = [];
+  //       xValues.forEach(x => {
+  //         yValues.push(getYValues(set, x));
+  //       });
+
+  //       // set error point color
+  //       for (const error of formattedErrors) {
+  //         if (error.className === label) {
+  //           // container.posintBackgroundColor[error.index] = 'red';
+  //         }
+  //       }
+
+  //       const dataSet = [];
+
+  //       xValues.forEach((x, index) => {
+  //         const y = yValues[index];
+  //         y.forEach(y => {
+  //           dataSet.push({x, y});
+  //         });
+  //       });
+
+  //       container.data = dataSet;
+  //       datasets.push(container);
+  //     }
+  // }
 
   async function drawChart(data, axis): Promise<void> {
-    // console.log({axis, data});
+    console.log({axis, data});
 
     const xAxis = axis.x;
     const yAxis = axis.y;
@@ -165,30 +227,10 @@
     if (errorTicks) formatErrors();
     let datasets = [];
 
-    const colors = [
-      'olivegreen',
-      'darkorange',
-      'darkgreen',
-      'purple',
-      'darkblue',
-      'gold',
-      'magenta',
-      'blueviolet',
-      'darkred',
-      'sienna',
-      'deepskyblue',
-      'gray',
-      'lightpink',
-      'lightsalmon',
-      'limegreen',
-      'mediumpurple'
-    ];
-
+    // with labels, this will only work if there are the same number of labels as datasets (4 timestamps, bytes etc.)
     if (data.columns.length) {
       // TODO: this for loop should be when (key)timestamps are selected, need to write other loop
       for (let j = 0; j < data.columns.length; j++) {
-        // console.log('DATA.COLUMNS', data.columns);
-
         let columnArray = <any>Object.values(data['columns'])[j];
         let label;
         let color;
@@ -211,7 +253,6 @@
         xValues.forEach(x => {
           yValues.push(getYValues(set, x));
         });
-        // TODO: need to make dataset an object
 
         // console.log({set, container});
 

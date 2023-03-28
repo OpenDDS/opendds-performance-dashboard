@@ -6,7 +6,7 @@
     getConfigs
   } from '../AppCharting/chart-data-extractor';
   import {DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
-  import {filteredDataStore} from '../utility/stores';
+  import {benchmarkDataStore, filteredDataStore} from '../utility/stores';
   import type {
     Base,
     BaseScenario,
@@ -24,16 +24,17 @@
 
   let baseScenarioOpts: BaseScenario[];
   let scenarioOpts: FormScenarioOptions;
-  let serverCounts: number[] = [];
+  let serverCounts: number[] | string[] = [];
   let configOptions: Array<ConfigOptions> = [];
   let shallowCopy: Array<ConfigOptions> = [];
-  let dataFiltered: boolean = false;
+  let baseFiltered: boolean = false;
+  let selectedTimestamp = timestamps[0];
 
   $: if (form.base && $filteredDataStore['columns']) {
     filterOptionsByBase(form.base);
-    console.log('FILTER OPTIONS BY BASE', $filteredDataStore);
   }
-  $: if (dataFiltered && configOptions.length > 1) {
+  // update the form options when the data store is updated
+  $: if (baseFiltered && configOptions.length > 1) {
     form.xAxis = configOptions[0];
     form.legend = configOptions[1];
     console.log('SETTING FORM.XAXIS AND FORM.LEGEND', {configOptions});
@@ -65,7 +66,7 @@
       form.serverCount === serverCounts[0];
     }
   }
-  $: console.log({shallowCopy, configOptions, scenarioOpts});
+  $: console.log({shallowCopy, configOptions, serverCounts});
 
   $: form.xAxis === 'Timestamp'
     ? (form.useTimeSeries = true)
@@ -81,78 +82,77 @@
     form.scenario = <Scenario>`${form.base}-${form.baseScenario}`;
   }
 
-  function filterOptionsByServerCount(servers) {
-    if (dataFiltered) {
-      // TODO: make function for this store update
-      filteredDataStore.update(store => {
-        if (store && store['columns']) {
-          store['columns'].forEach(obj => {
-            const key = Object.keys(obj)[0];
-            let data = obj[key];
-            obj[key] = data.filter(
-              d => d.data['scenario_parameters'].Servers === servers
-            );
-          });
-          console.log('FILTERING BY Servers', {store});
-          return store;
-        }
-      });
-    }
-  }
+  // function filterOptionsByServerCount(servers) {
+  //   if (baseFiltered && configFiltered) {
+  //     // TODO: make function for this store update
+  //     console.log({baseFiltered, configFiltered}, form.serverCount);
+  //     filteredDataStore.update(store => {
+  //       if (store && store['columns']) {
+  //         store['columns'].forEach(obj => {
+  //           const key = Object.keys(obj)[0];
+  //           let data = obj[key];
+  //           obj[key] = data.filter(d => d.config === form.baseScenario);
+  //           console.log('OBJ', obj[key]);
+  //           obj[key] = data.filter(
+  //             d => d.data['scenario_parameters'].Servers === servers
+  //           );
+  //         });
+  //         console.log('FILTERING BY Servers', {store});
+  //         return store;
+  //       }
+  //     });
+  //   }
+  // }
 
-  function filterOptionsByConfig(config) {
-    if (dataFiltered) {
-      filteredDataStore.update(store => {
-        if (store && store['columns']) {
-          store['columns'].forEach(obj => {
-            const key = Object.keys(obj)[0];
-            let data = obj[key];
-            obj[key] = data.filter(d => d.config === config);
-          });
-          console.log('FILTERING BY CONFIG', {store});
-          return store;
-        }
-      });
-    }
-  }
+  // function filterOptionsByConfig(config) {
+  //   if (baseFiltered) {
+  //     filteredDataStore.update(store => {
+  //       if (store && store['columns']) {
+  //         store['columns'].forEach(obj => {
+  //           const key = Object.keys(obj)[0];
+  //           let data = obj[key];
+  //           obj[key] = data.filter(d => d.config === config);
+  //         });
+  //         console.log('FILTERING BY CONFIG', {store});
+  //         return store;
+  //       }
+  //     });
+  //     configFiltered = true;
+  //   }
+  // }
 
   function filterOptionsByBase(base) {
+    filteredDataStore.set($benchmarkDataStore);
     if ($filteredDataStore['columns']) {
+      console.log('FILTER OPTIONS BY BASE', $filteredDataStore, {base});
       filteredDataStore.update(store => {
         if (store && store['columns']) {
           store['columns'].forEach(obj => {
             const key = Object.keys(obj)[0];
             let data = obj[key];
             obj[key] = data.filter(d => d.base === base);
+            options.baseScenarios = getConfigs($filteredDataStore);
+            if (form.baseScenario && form.serverCount) {
+              obj[key] = data.filter(
+                d =>
+                  d.base === base &&
+                  d.config === form.baseScenario &&
+                  d.data['scenario_parameters'].Servers === form.serverCount
+              );
+              console.log('Filtering config, serverCount, and base');
+            } else if (form.baseScenario) {
+              console.log('Filtering config, base');
+              obj[key] = data.filter(
+                d => d.base === base && d.config === form.baseScenario
+              );
+            }
           });
           return store;
         }
       });
-      dataFiltered = true;
-      // if (form.serverCount) filterByServers(form.serverCount);
+      baseFiltered = true;
       configOptions = getConfigOptions($filteredDataStore);
       options.configOptions = configOptions;
-      options.baseScenarios = getConfigs($filteredDataStore);
-      if (form.baseScenario) filterOptionsByConfig(form.baseScenario);
-      if (form.serverCount) filterOptionsByServerCount(form.serverCount);
-      // if (!configOptions.includes('Servers')) form.serverCount = null;
-      // if (configOptions.includes('Servers') && form.serverCount) {
-      //   filteredDataStore.update(store => {
-      //     if (store && store['columns']) {
-      //       store['columns'].forEach(obj => {
-      //         const key = Object.keys(obj)[0];
-      //         let data = obj[key];
-      //         // obj[key] = data.filter(d => d.base === base);
-      //         obj[key] = data.filter(d => {
-      //           return (
-      //             d.data['scenario_parameters'].Servers === form.serverCount
-      //           );
-      //         });
-      //       });
-      //       return store;
-      //     }
-      //   });
-      // }
       // TODO: need to update form.xAxis and form.legend on base change
       // infinite loop
       // form.xAxis = configOptions[0];
@@ -160,50 +160,36 @@
     }
   }
 
-  // function filterByServers(serverCount) {
-  //   filteredDataStore.update(store => {
-  //     if (store && store['columns']) {
-  //       store['columns'].forEach(obj => {
-  //         const key = Object.keys(obj)[0];
-  //         let data = obj[key];
-  //         obj[key] = data.filter(
-  //           d =>
-  //             Object.values(d.data['scenario_parameters'].Servers) ===
-  //             serverCount
-  //         );
-  //       });
-  //       console.log({store});
-
-  //       return store;
-  //     }
-  //   });
-  // }
-
-  $: console.log({form});
-
-  // $: options.baseScenarios = getConfigs($filteredDataStore);
+  $: console.log({form, options});
 
   // TODO: write array shift function
 
   async function baseChanged(event: Event) {
+    // filterOptionsByBase(form.base);
     form.base = <Base>(<HTMLInputElement>event.target).value;
-    filterOptionsByBase(form.base);
+    form.baseScenario = null;
+    form.serverCount = null;
     setScenario();
     if (form.statName === <StatName>MDTD) form.statName = DEFAULT_STAT_NAME;
   }
 
   function configChanged(event: Event) {
+    let val = <BaseScenario>(<HTMLInputElement>event.target).value;
+    // filterOptionsByConfig(val);
     form.baseScenario = <BaseScenario>(<HTMLInputElement>event.target).value;
-    filterOptionsByConfig(form.baseScenario);
   }
 
   function serverChanged(event: Event) {
     let val = parseInt(<BaseScenario>(<HTMLInputElement>event.target).value);
+    // filterOptionsByServerCount(form.serverCount);
     form.serverCount = val;
   }
 
   function legendChanged(event: Event) {
-    if (form.xAxis === <ConfigOptions>(<HTMLInputElement>event.target).value) {
+    const value = <ConfigOptions>(<HTMLInputElement>event.target).value;
+    if (value === 'Servers') form.serverCount = null;
+    if (value === 'Config') form.baseScenario = null;
+    if (form.xAxis === value) {
       let index = configOptions.indexOf(form.xAxis);
       if (configOptions[index + 1]! > configOptions.length) {
         form.xAxis = configOptions[index + 1];
@@ -211,11 +197,15 @@
         form.xAxis = configOptions[index - 1];
       else form.xAxis = configOptions[configOptions.length - 1];
     }
-    form.legend = <ConfigOptions>(<HTMLInputElement>event.target).value;
+    form.legend = value;
   }
 
   function xAxisChanged(event: Event) {
-    if (form.legend === <ConfigOptions>(<HTMLInputElement>event.target).value) {
+    // TODO: clean this up
+    const value = <ConfigOptions>(<HTMLInputElement>event.target).value;
+    if (value === 'Config') form.baseScenario = null;
+    if (value === 'Servers') form.serverCount = null;
+    if (form.legend === value) {
       let index = configOptions.indexOf(form.legend);
       if (configOptions[index + 1]! > configOptions.length) {
         form.legend = configOptions[index + 1];
@@ -223,7 +213,7 @@
         form.legend = configOptions[index - 1];
       } else form.legend = configOptions[configOptions.length - 1];
     }
-    form.xAxis = <ConfigOptions>(<HTMLInputElement>event.target).value;
+    form.xAxis = value;
   }
 </script>
 
@@ -263,7 +253,12 @@
       options={options.configOptions}
       value={form.legend}
     />
-    <!-- {#each shallowCopy as option} -->
+    <!-- {#each shallowCopy as option}
+      <Select label={option} />
+      on:change={option.onchange}
+        options={option.options}
+        value={option.value}
+    {/each} -->
     {#if showConfigOption}
       <Select
         label="Config"
@@ -280,10 +275,15 @@
         label="# of Servers"
         on:change={serverChanged}
         options={serverCounts}
+        value={form.serverCount}
       />
     {/if}
     {#if showTimestampOption}
-      <Select label="Timestamp" options={timestamps} value={form.serverCount} />
+      <Select
+        label="Timestamp"
+        options={timestamps}
+        value={selectedTimestamp[0]}
+      />
     {/if}
   </div>
   <div>

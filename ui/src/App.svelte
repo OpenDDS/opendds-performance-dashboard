@@ -55,9 +55,9 @@
     TimestampViewModel
   } from './types';
   import {
-    chartDataFactory,
-    getChartData,
-    type ChartFactoryData
+    // chartDataFactory,
+    getChartData
+    // type ChartFactoryData
   } from './AppCharting/chart-data-extractor';
 
   export let initialData = {};
@@ -70,8 +70,8 @@
 
   let form: FormConfiguration = {
     base: DEFAULT_BASE,
-    // baseScenario: null,
     baseScenario: DEFAULT_BASE_SCENARIO,
+    // baseScenario: null,
     chartType: DEFAULT_CHART_TYPE,
     configOptions: DEFAULT_CONFIG_OPTIONS,
     latest: undefined,
@@ -79,7 +79,7 @@
     plotType: DEFAULT_PLOT_TYPE,
     statName: DEFAULT_STAT_NAME,
     scenario: DEFAULT_SCENARIO,
-    serverCount: 16,
+    serverCount: DEFAULT_SERVER_COUNT,
     useTimeSeries: false,
     useLogScale: false,
     xAxis: DEFAULT_X_AXIS
@@ -136,12 +136,9 @@
     });
 
     getChartData(benchmarks, selected, form).then(onLoaded).catch(onError);
-    // const factory = getChartData();
-
-    // factory(benchmarks, selected, form).then(onLoaded).catch(onError);
   }
 
-  function onLoaded(results: ChartFactoryData) {
+  function onLoaded(results) {
     if (!results) return;
     benchmarkDataStore.set(results);
     filteredDataStore.set($benchmarkDataStore);

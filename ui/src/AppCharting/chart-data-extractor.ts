@@ -123,10 +123,10 @@ export async function getChartData(
   timestamps: TimestampViewModel[],
   opts: FormConfiguration
 ) {
-  const {base, scenario, plotType, serverCount, statName} = opts;
-  const isFan = base === 'fan';
+  const {scenario, plotType, statName} = opts;
+  // const isFan = base === 'fan';
 
-  const sizes = getSizeKeys(benchmarkMap, {scenario, serverCount});
+  // const sizes = getSizeKeys(benchmarkMap, {scenario, serverCount});
   // console.log({base, isFan, sizes, serverCount});
 
   // const arr = ['x', ...sizes];
@@ -156,28 +156,7 @@ export async function getChartData(
           const sBase = sParams['Base'];
           const sConfig = sParams['Config'];
           column[date].push({base: sBase, config: sConfig, data: sData});
-
           // TODO: add server count to data
-          // const sName = sConfig
-          //   ? sBase +
-          //     '-' +
-          //     (configParamMap[sConfig] ? configParamMap[sConfig] : sConfig)
-          //   : sBase;
-          // const sServers = sParams['Servers'];
-          // const serverMatch =
-          //   !isFan ||
-          //   (sServers &&
-          //     JSON.stringify(sServers) === JSON.stringify(serverCount));
-          // const sSize = sParams[sizeParamMap[sBase]];
-          // const sizeMatch = sSize && JSON.stringify(sSize) === dataName;
-          // if (sName === scenario && serverMatch && sizeMatch) {
-          //   const plotStatistic: PlotStatistic = <PlotStatistic>(
-          //     (<unknown>sData[plotType])
-          //   );
-          //   if (plotStatistic && plotStatistic[statName]) {
-          //     value = plotStatistic[statName];
-          //   }
-          // }
         }
       }
     }

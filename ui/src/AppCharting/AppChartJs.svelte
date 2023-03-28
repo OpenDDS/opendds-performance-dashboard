@@ -54,7 +54,7 @@
   // $: scenario = form.scenario;
   // $: xAxis = form.xAxis;
 
-  $: console.log('AppChartJs', $filteredDataStore, {form});
+  // $: console.log('AppChartJs', $filteredDataStore, {form});
 
   $: isReady = benchmarks && statProperties && form;
 

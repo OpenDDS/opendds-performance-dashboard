@@ -17,9 +17,10 @@
   export let benchmarks: Benchmarks = {};
   export let statProperties: StatProperties;
 
-  $: legentTitle = form.baseScenario
-    ? `${form.base}-${form.baseScenario}`
-    : form.base;
+  $: legentTitle =
+    form.base !== 'showtime_mixed' && form.baseScenario
+      ? `${form.base}-${form.baseScenario}`
+      : form.base;
 
   $: title = [legentTitle, form.plotType, form.statName].join(' \uFF5C ');
 </script>
