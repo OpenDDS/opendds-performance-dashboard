@@ -5,7 +5,6 @@
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
   export let axis;
-  // export let data;
   export let errorTicks;
   export let form;
   export let selectedTimestamps;
@@ -22,7 +21,6 @@
 
   $: scenario = form.scenario;
   $: chartType = form.chartType;
-  // let drawIt = false;
 
   $: if (
     $filteredDataStore &&
@@ -165,53 +163,6 @@
     'limegreen',
     'mediumpurple'
   ];
-
-  // function determineChartData() {
-  //   let datasets = [];
-  //   if (legendValues.length === data.columns.length)
-  //     for (let j = 0; j < data.columns.length; j++) {
-  //       let columnArray = <any>Object.values(data['columns'])[j];
-  //       let label;
-  //       let color;
-  //       if (legendValues[j] !== undefined) {
-  //         label = legendValues[j];
-  //         color = colors[j];
-  //       }
-  //       const container = {
-  //         data: [],
-  //         label,
-  //         backgroundColor: color,
-  //         borderColor: color,
-  //         pointBackgroundColor: colors[j],
-  //         pointRadius: 5
-  //       };
-  //       const set = Object.values(columnArray)[0];
-
-  //       let yValues = [];
-  //       xValues.forEach(x => {
-  //         yValues.push(getYValues(set, x));
-  //       });
-
-  //       // set error point color
-  //       for (const error of formattedErrors) {
-  //         if (error.className === label) {
-  //           // container.posintBackgroundColor[error.index] = 'red';
-  //         }
-  //       }
-
-  //       const dataSet = [];
-
-  //       xValues.forEach((x, index) => {
-  //         const y = yValues[index];
-  //         y.forEach(y => {
-  //           dataSet.push({x, y});
-  //         });
-  //       });
-
-  //       container.data = dataSet;
-  //       datasets.push(container);
-  //     }
-  // }
 
   async function drawChart(data, axis): Promise<void> {
     console.log({axis, data});

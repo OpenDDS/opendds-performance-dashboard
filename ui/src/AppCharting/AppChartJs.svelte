@@ -148,11 +148,5 @@
 </script>
 
 {#key redrawKey}
-  <Chart
-    {axis}
-    data={$filteredDataStore}
-    {form}
-    errorTicks={errors}
-    {selectedTimestamps}
-  />
+  <Chart {axis} {form} errorTicks={errors} {selectedTimestamps} />
 {/key}
