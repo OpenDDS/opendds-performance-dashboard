@@ -117,23 +117,34 @@
     return [...values].sort((n1, n2) => Number(n1) - Number(n2));
   }
 
-  function getYValues(data, xValue) {
-    // console.log({data, xValue});
-
-    // if (form.xAxis === 'Timestamp') {
-    //   // TODO: make work for timestamps
-    //   return;
-    // }
+  function getYValues(data, value) {
     const values = new Set();
     const dataOptions = [];
-    data.forEach(option => {
-      if (option.data['scenario_parameters'][form.xAxis] === xValue)
-        dataOptions.push(option);
-    });
-    dataOptions.forEach(option => {
-      values.add(option.data[form.plotType][form.statName]);
-    });
-    return values;
+    if (form.xAxis === 'Timestamp') {
+      // console.log('X AXIS IS TIMESTAMP', form.legend);
+      data.forEach(option => {
+        // console.log('LEGEND', {option, value});
+        if (option.data['scenario_parameters'][form.legend] === value)
+          dataOptions.push(option);
+      });
+      dataOptions.forEach(option => {
+        // console.log('DATAOPTION', option);
+        values.add(option.data[form.plotType][form.statName]);
+      });
+      // console.log('LEGEND', {data, dataOptions, values});
+      return values;
+    } else {
+      data.forEach(option => {
+        if (option.data['scenario_parameters'][form.xAxis] === value) {
+          // console.log('XAXIS', {option, value});
+          dataOptions.push(option);
+        }
+      });
+      dataOptions.forEach(option => {
+        values.add(option.data[form.plotType][form.statName]);
+      });
+      return values;
+    }
   }
 
   let legendValues;
@@ -185,6 +196,8 @@
         let columnArray = <any>Object.values(data['columns'])[j];
         let label;
         let color;
+        // if (form.xAxis === 'Timestamp') {
+        // }
         if (legendValues[j] !== undefined) {
           label = legendValues[j];
           color = colors[j];
@@ -201,11 +214,17 @@
         const set = Object.values(columnArray)[0];
 
         let yValues = [];
-        xValues.forEach(x => {
-          yValues.push(getYValues(set, x));
-        });
+        if (form.xAxis === 'Timestamp') {
+          // console.log({legendValues});
 
-        // console.log({set, container});
+          legendValues.forEach(legend => {
+            // console.log({legend});
+
+            yValues.push(getYValues(set, legend));
+          });
+        } else xValues.forEach(x => yValues.push(getYValues(set, x)));
+
+        // console.log({set, yValues});
 
         // set error point color
         for (const error of formattedErrors) {

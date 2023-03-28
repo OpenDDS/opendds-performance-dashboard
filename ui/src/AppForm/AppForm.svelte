@@ -28,7 +28,7 @@
   let configOptions: Array<ConfigOptions> = [];
   let shallowCopy: Array<ConfigOptions> = [];
   let baseFiltered: boolean = false;
-  let selectedTimestamp = timestamps[0];
+  let selectedTimestamp = timestamps[0] ? timestamps[0] : null;
 
   $: if (form.base && $filteredDataStore['columns']) {
     filterOptionsByBase(form.base);
@@ -282,7 +282,7 @@
       <Select
         label="Timestamp"
         options={timestamps}
-        value={selectedTimestamp[0]}
+        value={selectedTimestamp}
       />
     {/if}
   </div>
