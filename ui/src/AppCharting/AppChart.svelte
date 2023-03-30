@@ -18,12 +18,17 @@
   export let benchmarks: Benchmarks = {};
   export let statProperties: StatProperties;
 
-  $: legentTitle =
+  $: baseConfig =
+    configParamMap[form.baseConfig] !== undefined
+      ? configParamMap[form.baseConfig]
+      : form.baseConfig;
+
+  $: legendTitle =
     form.base !== 'showtime_mixed' && form.baseConfig
-      ? `${form.base}-${configParamMap[form.baseConfig]}`
+      ? `${form.base}-${baseConfig}`
       : form.base;
 
-  $: title = [legentTitle, form.plotType, form.statName].join(' \uFF5C ');
+  $: title = [legendTitle, form.plotType, form.statName].join(' \uFF5C ');
 </script>
 
 <h2>{title}</h2>
