@@ -1,13 +1,7 @@
-import type {
-  Padding,
-  XAxisConfiguration,
-  XAxisType,
-  YAxisConfiguration,
-  YAxisType
-} from '../types';
-import type {ChartType, FormConfiguration, StatProperties} from '../types';
+import type {Padding, XAxisType, YAxisConfiguration, YAxisType} from '../types';
+import type {FormConfiguration, StatProperties} from '../types';
 import type {ChartFactoryData} from './chart-data-extractor';
-import {BY_SIZE, BY_TIMESTAMP} from './chart-data-extractor';
+import {BY_SIZE} from './chart-data-extractor';
 
 type HasStatPropertiesOptions = {statProperties: StatProperties};
 type HasColumnsOptions = Pick<ChartFactoryData, 'columns'>;

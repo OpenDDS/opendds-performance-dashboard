@@ -3,11 +3,11 @@
   import {
     BY_TIMESTAMP,
     getConfigOptions,
-    getConfigs
+    getConfigs,
+    classNameFromBenchmarkKey
   } from '../AppCharting/chart-data-extractor';
   import {DEFAULT_STAT_NAME, MDTD} from './form-data-helpers';
-  import {benchmarkDataStore, filteredDataStore} from '../utility/stores';
-  import {configParamMap} from '../utility/param-map';
+  import {filteredDataStore} from '../utility/stores';
   import type {
     Base,
     BaseConfig,
@@ -16,43 +16,45 @@
     FormSelectOptions,
     Scenario,
     StatName,
-    ConfigOptions
+    ConfigOptions,
+    BenchmarkIdentifier
   } from '../types';
 
   export let options: FormSelectOptions;
   export let form: FormConfiguration;
-  export let timestamps;
+  export let timestamps: BenchmarkIdentifier[];
 
   let baseScenarioOpts: BaseConfig[];
   let scenarioOpts: FormScenarioOptions;
   let serverCounts: number[] | string[] = [];
   let configOptions: Array<ConfigOptions> = [];
   let shallowCopy: Array<ConfigOptions> = [];
-  let baseFiltered: boolean = false;
-  let selectedTimestamp = timestamps[0] ? timestamps[0] : null;
 
-  $: if (form.base && $filteredDataStore['columns']) {
+  $: if (form.base && $filteredDataStore && $filteredDataStore['columns']) {
     filterOptionsByBase(form.base);
   }
   // update the form options when the data store is updated
-  $: if (baseFiltered && configOptions.length > 1) {
-    form.xAxis = configOptions[0];
-    form.legend = configOptions[configOptions.length - 1];
-    console.log('SETTING FORM.XAXIS AND FORM.LEGEND', {configOptions});
-  }
+  // $: if (configOptions.length > 1) {
+  //   form.xAxis = configOptions[0];
+  //   form.legend = configOptions[1];
+  //   console.log('SETTING FORM.XAXIS AND FORM.LEGEND', {configOptions});
+  // }
   $: {
-    if (configOptions.length && form.base) {
+    if (configOptions.length && form.xAxis && form.legend) {
       shallowCopy = configOptions.slice();
-      let xIndex = configOptions.indexOf(form.xAxis);
-      let lIndex = configOptions.indexOf(form.legend);
-      let IndexesToBeRemoved = [xIndex, lIndex];
-      console.log('SETTING SHALLOW COPY');
-      while (IndexesToBeRemoved.length) {
-        shallowCopy.splice(IndexesToBeRemoved.pop(), 1);
-      }
+      let xIndex = shallowCopy.indexOf(form.xAxis);
+      // let indexesToBeRemoved = [xIndex, lIndex];
+      // console.log('SETTING SHALLOW COPY', {configOptions, indexesToBeRemoved});
+      shallowCopy.splice(xIndex, 1);
+      let lIndex = shallowCopy.indexOf(form.legend);
+      shallowCopy.splice(lIndex, 1);
+      // while (indexesToBeRemoved.length) {
+      //   shallowCopy.splice(indexesToBeRemoved.pop(), 1);
+      // }
     }
   }
   $: baseScenarioOpts = options.baseConfigs || null;
+  $: formattedTimestamps = timestamps.map(t => classNameFromBenchmarkKey(t));
   $: showConfigOption = shallowCopy.includes('Config');
   $: showServerCount = shallowCopy.includes('Servers');
   $: showTimestampOption = shallowCopy.includes('Timestamp');
@@ -80,7 +82,11 @@
       form.scenario = <Scenario>form.base;
       return;
     }
-    form.scenario = <Scenario>`${form.base}-${form.baseConfig}`;
+    form.scenario = <Scenario>(
+      `${form.base}-${
+        form.baseConfig ? form.baseConfig : options.baseConfigs[0]
+      }`
+    );
   }
 
   // function filterOptionsByServerCount(servers) {
@@ -122,12 +128,43 @@
   //   }
   // }
 
+  // function filterByTimestamp() {
+  //   console.log('FIRST', $filteredDataStore);
+
+  //   let newStore = [];
+  //   filteredDataStore.update(store => {
+  //     if (store && store['columns']) {
+  //       store['columns'].forEach(obj => {
+  //         console.log('OBJ', Object.keys(obj)[0] === form.timestamp);
+  //         // const key = Object.keys(obj)[0];
+  //         if (Object.keys(obj)[0] === form.timestamp) newStore.push(obj);
+  //       });
+  //       // console.log('STORE', store['columns']);
+  //     }
+  //     store = newStore;
+  //     return store;
+  //   });
+  //   console.log('second', $filteredDataStore);
+  //   console.log({newStore});
+  // }
+
   function filterOptionsByBase(base) {
-    filteredDataStore.set($benchmarkDataStore);
     if ($filteredDataStore['columns']) {
       console.log('FILTER OPTIONS BY BASE', $filteredDataStore, {base});
+      let newStore = [];
       filteredDataStore.update(store => {
         if (store && store['columns']) {
+          if (form.timestamp) {
+            store['columns'].forEach(obj => {
+              if (Object.keys(obj)[0] === form.timestamp) newStore.push(obj);
+              // console.log(
+              //   'FILTER OPTIONS TIMESTAMP',
+              //   $filteredDataStore,
+              //   form.timestamp
+              // );
+            });
+            store['columns'] = newStore;
+          }
           store['columns'].forEach(obj => {
             const key = Object.keys(obj)[0];
             let data = obj[key];
@@ -142,9 +179,9 @@
                   d.config === form.baseConfig &&
                   d.data['scenario_parameters'].Servers === form.serverCount
               );
-              console.log('Filtering config, serverCount, and base');
+              // console.log('Filtering config, serverCount, and base');
             } else if (form.baseConfig) {
-              console.log('Filtering config, base');
+              // console.log('Filtering config, base');
               obj[key] = data.filter(
                 d => d.base === base && d.config === form.baseConfig
               );
@@ -153,11 +190,7 @@
           return store;
         }
       });
-      baseFiltered = true;
-      // TODO: need to update form.xAxis and form.legend on base change
-      // infinite loop
-      // form.xAxis = configOptions[0];
-      // form.legend = configOptions[1];
+      // baseFiltered = true;
     }
   }
 
@@ -166,7 +199,6 @@
   // TODO: write array shift function
 
   async function baseChanged(event: Event) {
-    // filterOptionsByBase(form.base);
     form.base = <Base>(<HTMLInputElement>event.target).value;
     form.baseConfig = null;
     form.serverCount = null;
@@ -186,11 +218,18 @@
     form.serverCount = server;
   }
 
+  function timestampChanged(event: Event) {
+    form.timestamp = <BenchmarkIdentifier>(
+      (<HTMLInputElement>event.target).value
+    );
+  }
+
   function legendChanged(event: Event) {
-    const value = <ConfigOptions>(<HTMLInputElement>event.target).value;
-    if (value === 'Servers') form.serverCount = null;
-    if (value === 'Config') form.baseConfig = null;
-    if (form.xAxis === value) {
+    const legend = <ConfigOptions>(<HTMLInputElement>event.target).value;
+    if (legend === 'Servers') form.serverCount = null;
+    if (legend === 'Config') form.baseConfig = null;
+    if (legend === 'Timestamp') form.timestamp = null;
+    if (form.xAxis === legend) {
       let index = configOptions.indexOf(form.xAxis);
       if (configOptions[index + 1]! > configOptions.length) {
         form.xAxis = configOptions[index + 1];
@@ -198,15 +237,16 @@
         form.xAxis = configOptions[index - 1];
       else form.xAxis = configOptions[configOptions.length - 1];
     }
-    form.legend = value;
+    form.legend = legend;
   }
 
   function xAxisChanged(event: Event) {
     // TODO: clean this up
-    const value = <ConfigOptions>(<HTMLInputElement>event.target).value;
-    if (value === 'Config') form.baseConfig = null;
-    if (value === 'Servers') form.serverCount = null;
-    if (form.legend === value) {
+    const xAxis = <ConfigOptions>(<HTMLInputElement>event.target).value;
+    if (xAxis === 'Config') form.baseConfig = null;
+    if (xAxis === 'Servers') form.serverCount = null;
+    if (xAxis === 'Timestamp') form.timestamp = null;
+    if (form.legend === xAxis) {
       let index = configOptions.indexOf(form.legend);
       if (configOptions[index + 1]! > configOptions.length) {
         form.legend = configOptions[index + 1];
@@ -214,7 +254,7 @@
         form.legend = configOptions[index - 1];
       } else form.legend = configOptions[configOptions.length - 1];
     }
-    form.xAxis = value;
+    form.xAxis = xAxis;
   }
 </script>
 
@@ -282,8 +322,9 @@
     {#if showTimestampOption}
       <Select
         label="Timestamp"
-        options={timestamps}
-        value={selectedTimestamp}
+        on:change={timestampChanged}
+        options={formattedTimestamps}
+        value={form.timestamp}
       />
     {/if}
   </div>

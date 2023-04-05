@@ -85,6 +85,8 @@
   }
 
   function getXandLegendValues(data, name: 'xAxis' | 'legend') {
+    console.log('getXandLegendValues', {data});
+
     const values = new Set();
 
     if (name === 'xAxis' && form.xAxis === 'Timestamp') {
@@ -118,8 +120,9 @@
   }
 
   function getYValues(data, value) {
-    const values = new Set();
+    const values = [];
     const dataOptions = [];
+    console.log({data, value});
     if (form.xAxis === 'Timestamp') {
       // console.log('X AXIS IS TIMESTAMP', form.legend);
       data.forEach(option => {
@@ -128,8 +131,7 @@
           dataOptions.push(option);
       });
       dataOptions.forEach(option => {
-        // console.log('DATAOPTION', option);
-        values.add(option.data[form.plotType][form.statName]);
+        values.push(option.data[form.plotType][form.statName]);
       });
       // console.log('LEGEND', {data, dataOptions, values});
       return values;
@@ -141,7 +143,7 @@
         }
       });
       dataOptions.forEach(option => {
-        values.add(option.data[form.plotType][form.statName]);
+        values.push(option.data[form.plotType][form.statName]);
       });
       return values;
     }
@@ -150,7 +152,12 @@
   let legendValues;
   let xValues;
 
-  $: if ($filteredDataStore['columns']) {
+  $: if (
+    $filteredDataStore &&
+    $filteredDataStore['columns'] &&
+    form.legend &&
+    form.xAxis
+  ) {
     legendValues = getXandLegendValues($filteredDataStore, 'legend');
     xValues = getXandLegendValues($filteredDataStore, 'xAxis');
     console.log('GETTING X AND LEGEND VALUES', {legendValues, xValues});
@@ -178,31 +185,37 @@
   async function drawChart(data, axis): Promise<void> {
     console.log({axis, data});
 
-    const xAxis = axis.x;
+    // const xAxis = axis.x;
     const yAxis = axis.y;
     // const xAxisLabel = xAxis.label.text;
     const xAxisLabel = form.xAxis;
     const yAxisLabel = yAxis.label.text;
-    const xAxisType = xAxis.type;
+    // const xAxisType = xAxis.type;
     const yAxisType = yAxis.type;
 
     if (errorTicks) formatErrors();
     let datasets = [];
 
     // with labels, this will only work if there are the same number of labels as datasets (4 timestamps, bytes etc.)
+
+    // TODO: this for loop should be when (key)timestamps are selected for xaxis or legend, need to write other loop
+    // if (legendValues.length && xValues.length === data.columns.length) {
+
     if (data.columns.length) {
-      // TODO: this for loop should be when (key)timestamps are selected, need to write other loop
-      for (let j = 0; j < data.columns.length; j++) {
-        let columnArray = <any>Object.values(data['columns'])[j];
-        let label;
-        let color;
-        // if (form.xAxis === 'Timestamp') {
-        // }
-        if (legendValues[j] !== undefined) {
-          label = legendValues[j];
-          color = colors[j];
-        }
-        // console.log({label, legendValues, j});
+      const usesTimesStamps =
+        form.xAxis === 'Timestamp' ||
+        form.legend === 'Timestamp' ||
+        form.timestamp;
+
+      const count = usesTimesStamps ? data.columns.length : legendValues.length;
+      for (let j = 0; j < count; j++) {
+        if (legendValues[j] === undefined) continue;
+
+        // Try adding labels to each dataset after calculating all yValues at the end of xValues loop?
+        // do second for loop to calculate y values and push to container data?
+        const label = legendValues[j];
+        const color = colors[j];
+
         const container = {
           data: [],
           label,
@@ -211,48 +224,63 @@
           pointBackgroundColor: colors[j],
           pointRadius: 5
         };
+
+        let columnArray = Object.values(data['columns'])[j];
         const set = Object.values(columnArray)[0];
+        if (set.length) {
+          console.log({set, columnArray});
 
-        let yValues = [];
-        if (form.xAxis === 'Timestamp') {
-          // console.log({legendValues});
+          const dataSet = [];
+          // let yValues = [];
+          // refactor this
+          // if (data.columns.length > legendValues.length) {
+          // }
+          if (form.xAxis === 'Timestamp') {
+            // const x = xValues[j];
+            legendValues.forEach(legend => {
+              // yValues.push(getYValues(set, legend));
+              const yValues = getYValues(set, legend);
+              console.log({yValues, legend});
 
-          legendValues.forEach(legend => {
-            // console.log({legend});
+              for (const y of yValues) {
+                dataSet.push({x: legend, y});
+              }
+            });
+          } else {
+            xValues.forEach(x => {
+              // yValues.push(getYValues(set, x));
+              // const yValuesTest = getYValues(set, x);
+              const yValues = getYValues(set, x);
+              console.log({yValues});
 
-            yValues.push(getYValues(set, legend));
-          });
-        } else xValues.forEach(x => yValues.push(getYValues(set, x)));
-
-        console.log({set, yValues});
-
-        // set error point color
-        for (const error of formattedErrors) {
-          if (error.className === label) {
-            // container.posintBackgroundColor[error.index] = 'red';
+              const y = yValues[0];
+              console.log({y});
+              dataSet.push({x, y});
+            });
           }
+
+          console.log({dataSet});
+
+          // set error point color
+          for (const error of formattedErrors) {
+            if (error.className === label) {
+              // container.posintBackgroundColor[error.index] = 'red';
+            }
+          }
+
+          // xValues.forEach((x, index) => {
+          //   // yValues.push(getYValues(set, x));
+          //   const y = yValues[index];
+          //   y?.forEach(y => {
+          //     dataSet.push({x, y});
+          //   });
+          //   // dataSet.push({x, y});
+          // });
+
+          container.data = dataSet;
+          datasets.push(container);
+          console.log({container, datasets});
         }
-
-        const dataSet = [];
-
-        // const yValues = Object.values(set).slice(1);
-        xValues.forEach((x, index) => {
-          // yValues.push(getYValues(set, x));
-          const y = yValues[index];
-          y.forEach(y => {
-            dataSet.push({x, y});
-          });
-          // dataSet.push({x, y});
-        });
-        // console.log({yValues});
-        // dataSet.push({x: 10, y: 20}, {x: 10, y: 15}, {x: 10, y: 13});
-        // Object.assign(dataSet, ({x, y});
-
-        container.data = dataSet;
-        datasets.push(container);
-        // console.log({container, datasets});
-
-        // }
       }
     }
 
@@ -260,6 +288,7 @@
     chartRef = new Chart(CHART_ID, {
       type: 'line',
       data: {
+        // xValues has to contain the same amount of elements as the dataset with the most values...
         labels: xValues,
         datasets
       },

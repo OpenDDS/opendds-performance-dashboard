@@ -153,7 +153,6 @@ export async function getChartData(
           const sBase = sParams['Base'];
           const sConfig = sParams['Config'];
           column[date].push({base: sBase, config: sConfig, data: sData});
-          // TODO: add server count to data
         }
       }
     }
@@ -161,7 +160,6 @@ export async function getChartData(
   }
 
   return {...data, columns};
-  // return mutating_assignNames({...data, columns});
 }
 
 // export async function getChartDataBySize(

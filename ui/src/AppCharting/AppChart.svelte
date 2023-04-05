@@ -3,8 +3,7 @@
     BenchmarkIdentifier,
     Benchmarks,
     FormConfiguration,
-    StatProperties,
-    TimestampViewModel
+    StatProperties
   } from 'src/types';
   import {configParamMap} from '../utility/param-map';
 

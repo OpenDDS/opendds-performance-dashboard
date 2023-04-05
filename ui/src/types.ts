@@ -96,6 +96,7 @@ export type FormConfiguration = {
   scenario: Scenario;
   statName: StatName;
   serverCount: number | null;
+  timestamp?: BenchmarkIdentifier | null;
   useTimeSeries: boolean;
   useLogScale: boolean;
   xAxis: ConfigOptions;
@@ -111,11 +112,9 @@ export type FormSelectOptions = {
   bases: Partial<Record<Base, FormScenarioOptions>>;
   baseConfigs?: Array<BaseConfig>;
   configOptions?: Array<ConfigOptions>;
-  // legendOptions?: Array<XAxisAndLegendOptions>;
   plotTypes: Array<PlotType>;
   scenarios: Partial<Record<Scenario, FormScenarioOptions>>;
   statNames: Array<StatName>;
-  // xAxisOptions?: Array<XAxisAndLegendOptions>;
 };
 
 export type StatProperty = {

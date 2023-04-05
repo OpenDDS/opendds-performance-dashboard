@@ -75,6 +75,7 @@
     statName: DEFAULT_STAT_NAME,
     scenario: DEFAULT_SCENARIO,
     serverCount: DEFAULT_SERVER_COUNT,
+    timestamp: null,
     useTimeSeries: false,
     useLogScale: false,
     xAxis: DEFAULT_X_AXIS
@@ -118,12 +119,8 @@
     }, {});
   }
 
-  $: if (
-    isReady &&
-    Object.keys(benchmarks).length !== 0 &&
-    statProperties &&
-    form
-  ) {
+  // $: if (isReady && Object.keys(benchmarks).length !== 0 && statProperties && form) {
+  $: if (isReady && Object.keys(benchmarks).length !== 0 && statProperties) {
     const selected = timestamps.filter(({key}) => {
       return selectedTimestamps.indexOf(key) !== -1;
     });

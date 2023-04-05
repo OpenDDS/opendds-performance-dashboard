@@ -15,6 +15,7 @@
     BenchmarkIdentifier,
     Benchmarks,
     FormConfiguration,
+    FormSelectOptions,
     Scenario,
     StatProperties
   } from '../types';
@@ -64,7 +65,14 @@
     chartType || $filteredDataStore || form || Date.now() || errors;
 
   // X and Y Label
-  $: if ($filteredDataStore['columns'] && axis && isReady) {
+
+  $: if (
+    $filteredDataStore &&
+    $filteredDataStore['columns'] &&
+    axis &&
+    isReady
+  ) {
+    console.log('APPCHARTJS', $filteredDataStore['columns']);
     const partials = getAxisYConfigurationPartials(form);
     // console.log({partials});
 
