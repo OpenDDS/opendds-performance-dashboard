@@ -3,12 +3,6 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    /**
-     * svelte-preprocess cannot figure out whether you have
-     * a value or a type, so tell TypeScript to enforce using
-     * `import type` instead of `import` for Types.
-     */
-    "importsNotUsedAsValues": "error",
     "isolatedModules": true,
     "resolveJsonModule": true,
     /**
@@ -18,7 +12,8 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
+    "rootDir": ".",
+    "verbatimModuleSyntax": true,
     /**
      * Typecheck JS in `.svelte` and `.js` files by default.
      * Disable checkJs if you'd like to use dynamic types in JS.

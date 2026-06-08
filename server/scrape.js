@@ -205,4 +205,4 @@ function getStats(lines, type) {
   return stats;
 }
 
-export {getData};
+export {getAllData, getData};

@@ -7,7 +7,6 @@
     TimestampViewModel
   } from 'src/types';
 
-  import AppChartC3 from './AppChartC3.svelte';
   import AppChartJs from './AppChartJs.svelte';
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
