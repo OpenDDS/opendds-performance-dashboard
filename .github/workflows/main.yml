@@ -1,4 +1,4 @@
-name: Build and zip web UI
+name: CI
 on:
   push:
     branches:
@@ -14,21 +14,29 @@ jobs:
       NAME: opendds-performance-dashboard
     steps:
       - name: Checkout opendds-performance-dashboard
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            ui/package-lock.json
+      - name: Install server
+        run: npm ci --prefix server
+      - name: Check server lint
+        run: npm run lint:check --prefix server
       - name: Install UI
-        run: |
-          cd ui
-          npm ci
+        run: npm ci --prefix ui
+      - name: Check UI lint
+        run: npm run lint:check --prefix ui
+      - name: Test UI
+        run: npm test --prefix ui -- --runInBand
       - name: Build UI
-        run: |
-          cd ui
-          npm run build
+        run: npm run build --prefix ui
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{env.NAME}}
           path: ui/dist

@@ -215,5 +215,5 @@
 </script>
 
 <div>
-  <canvas id={CHART_ID} style={`min-height: ${DEFAULT_CHART_HEIGHT}px`} />
+  <canvas id={CHART_ID} style={`min-height: ${DEFAULT_CHART_HEIGHT}px`}></canvas>
 </div>

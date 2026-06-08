@@ -190,7 +190,7 @@ export interface DataSeries {
   values: DataPoint[];
 }
 
-export type ArrayOrSingle<T extends any> = T | T[];
+export type ArrayOrSingle<T> = T | T[];
 export type ArrayOrString = ArrayOrSingle<string>;
 export interface XAxisConfiguration extends AxisConfiguration {
   /**
