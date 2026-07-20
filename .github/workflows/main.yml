@@ -8,6 +8,20 @@ on:
       - master
 
 jobs:
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+      - run: npm ci --prefix infra
+      - run: npm run build --prefix infra
+      - run: npm test --prefix infra
+      - run: npm run synth --prefix infra -- -c stage=ci
+
   build:
     runs-on: ubuntu-latest
     env:

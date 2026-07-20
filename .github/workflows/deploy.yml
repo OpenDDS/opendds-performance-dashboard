@@ -1,0 +1,36 @@
+name: Deploy Dashboard
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    if: vars.AWS_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci --prefix ui
+      - run: npm test --prefix ui -- --runInBand
+      - run: npm run build --prefix ui
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Upload immutable application assets
+        # Do not use --delete: benchmark runs and run_index.json share this prefix.
+        run: aws s3 sync ui/dist "s3://${{ vars.DASHBOARD_BUCKET }}/bench2"
+      - name: Upload statistics metadata
+        run: aws s3 cp contracts/stat_properties.json "s3://${{ vars.DASHBOARD_BUCKET }}/bench2/stat_properties.json" --content-type application/json --cache-control public,max-age=3600
+      - name: Refresh CloudFront
+        run: aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths '/bench2/index.html' '/bench2/stat_properties.json'

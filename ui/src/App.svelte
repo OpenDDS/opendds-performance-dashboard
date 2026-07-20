@@ -160,9 +160,23 @@
 
     return function map(timestamps: RunIndex) {
       return timestamps.map<TimestampViewModel>(
-        ({key, commit, date: dateTime, hash, errors: errorCount}: Run) => {
+        ({
+          key,
+          commit,
+          date: dateTime,
+          hash,
+          errors: errorCount,
+          era = 'centipede',
+          suite,
+          topology,
+          status
+        }: Run) => {
           const [date, timePlus] = dateTime.split('T');
           const [time] = timePlus.split('+');
+          const topologyLabel = topology
+            ? `${topology.legCount}x${topology.coresPerLeg}`
+            : 'legacy';
+          const environmentKey = `${era}:${hash || 'unknown'}:${topologyLabel}`;
           return {
             key,
             date,
@@ -171,6 +185,12 @@
             errorCount,
             commit,
             hash,
+            era,
+            suite,
+            topology,
+            status,
+            environmentKey,
+            environmentLabel: `${era} / ${topologyLabel} / ${hash ? hash.substring(0, 8) : 'unknown'}`,
             tag: keyedTags[commit]
           };
         }

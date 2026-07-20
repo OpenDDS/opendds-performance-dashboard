@@ -17,6 +17,16 @@
 
   let useLatest = !isNaN(latest);
 
+  const environmentOptions = Array.from(
+    new Map(timestamps.map(t => [t.environmentKey, t.environmentLabel]))
+  );
+  let environmentKey =
+    timestamps.find(t => selected.includes(t.key))?.environmentKey ||
+    timestamps[timestamps.length - 1]?.environmentKey;
+  $: filteredTimestamps = timestamps.filter(
+    timestamp => timestamp.environmentKey === environmentKey
+  );
+
   let recentCount = Math.min(
     MAX_TIMESTAMPS,
     Math.max(latest || 0, MIN_TIMESTAMPS)
@@ -35,8 +45,8 @@
     if (value > MAX_TIMESTAMPS) value = MAX_TIMESTAMPS;
     recentCount = value;
 
-    const firstSelectedIndex = timestamps.length - recentCount;
-    selected = timestamps
+    const firstSelectedIndex = filteredTimestamps.length - recentCount;
+    selected = filteredTimestamps
       .filter((_, index) => {
         return index >= firstSelectedIndex;
       })
@@ -45,6 +55,13 @@
   }
 
   const onClose = () => dispatch('close');
+
+  function onEnvironmentChange() {
+    useLatest = true;
+    const count = Math.min(recentCount, filteredTimestamps.length);
+    selected = filteredTimestamps.slice(-count).map(t => t.key);
+    dispatch('change', selected);
+  }
 
   function updateIndex(key: BenchmarkIdentifier, checked: boolean) {
     if (checked) selected.push(key);
@@ -57,11 +74,14 @@
 
   const onRowPressed = (timestamp: TimestampViewModel) => {
     useLatest = false;
+    if (selected.some(key => timestamps.find(t => t.key === key)?.environmentKey !== timestamp.environmentKey)) {
+      selected = [];
+    }
     updateIndex(timestamp.key, !selected.includes(timestamp.key));
   };
 
   function onSelectAll() {
-    const targets = timestamps.map(t => t.key);
+    const targets = filteredTimestamps.map(t => t.key);
     let idx = targets.length - MAX_TIMESTAMPS;
     if (selected.length) {
       idx = Math.min(
@@ -86,6 +106,16 @@
         <th colspan="1000">
           <div class="row">
             <div>
+              <label for="environment">Comparable environment</label>
+              <select
+                id="environment"
+                bind:value={environmentKey}
+                on:change={onEnvironmentChange}
+              >
+                {#each environmentOptions as [key, label]}
+                  <option value={key}>{label}</option>
+                {/each}
+              </select>
               <label class="server-recent-count" for="use-latest">
                 <input
                   id="use-latest"
@@ -125,11 +155,13 @@
         <th>Git SHA</th>
         <th>Tag</th>
         <th>Build Hash</th>
+        <th>Environment</th>
+        <th>Suite</th>
         <th>#Error</th>
       </tr>
     </thead>
     <tbody>
-      {#each [...timestamps].reverse() as timestamp (timestamp.key)}
+      {#each [...filteredTimestamps].reverse() as timestamp (timestamp.key)}
         <TimestampTableRow
           {timestamp}
           hasError={loadErrors.includes(timestamp.key)}

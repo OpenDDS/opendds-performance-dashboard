@@ -113,12 +113,28 @@ export function getValidatedInitialData({
   timestamps = [],
   defaultCount = 2
 }: InitialDataValidationConfig): ValidationResults {
+  const requestedKeys = Array.isArray(initialData.selectedTimestamps)
+    ? initialData.selectedTimestamps
+    : [];
+  const requestedEnvironment = timestamps.find(timestamp =>
+    requestedKeys.includes(timestamp.key)
+  )?.environmentKey;
+  const defaultEnvironment =
+    requestedEnvironment || timestamps[timestamps.length - 1]?.environmentKey;
+  const comparableTimestamps = defaultEnvironment
+    ? timestamps.filter(
+        timestamp => timestamp.environmentKey === defaultEnvironment
+      )
+    : timestamps;
+
   /**
    * Function to Grab the fallback selected timestamps
    */
   const defaultSelected = (): BenchmarkIdentifier[] => {
-    const start = timestamps.length - defaultCount;
-    return timestamps.filter((_, idx) => idx > start).map(t => t.key);
+    const start = comparableTimestamps.length - defaultCount;
+    return comparableTimestamps
+      .filter((_, idx) => idx > start)
+      .map(t => t.key);
   };
 
   /**
@@ -126,8 +142,12 @@ export function getValidatedInitialData({
    */
   const requestedTimestampsExist = (): boolean => {
     if (!Array.isArray(selectedTimestamps)) return false;
-    return selectedTimestamps.every(key =>
-      timestamps.find(ts => ts.key === key)
+    const selected = selectedTimestamps
+      .map(key => timestamps.find(ts => ts.key === key))
+      .filter(Boolean);
+    return (
+      selected.length === selectedTimestamps.length &&
+      selected.every(ts => ts.environmentKey === selected[0]?.environmentKey)
     );
   };
 
@@ -168,8 +188,11 @@ export function getValidatedInitialData({
 
   if (unvalidated.latest && !isNaN(unvalidated.latest)) {
     const latest = Math.min(unvalidated.latest, MAX_TIMESTAMPS);
-    selectedTimestamps = timestamps
-      .slice(timestamps.length - latest, timestamps.length)
+    selectedTimestamps = comparableTimestamps
+      .slice(
+        comparableTimestamps.length - latest,
+        comparableTimestamps.length
+      )
       .map(t => t.key);
   }
 

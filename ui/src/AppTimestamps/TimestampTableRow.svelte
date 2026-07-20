@@ -37,6 +37,8 @@
     {/if}
   </td>
   <td class="hash">{timestamp.hash ? timestamp.hash : ''}</td>
+  <td>{timestamp.era || 'centipede'} / {timestamp.topology ? `${timestamp.topology.legCount}x${timestamp.topology.coresPerLeg}` : 'legacy'}</td>
+  <td>{timestamp.suite || ''}</td>
   <td class="error-count">
     {timestamp.errorCount ? timestamp.errorCount : ''}
   </td>

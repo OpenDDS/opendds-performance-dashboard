@@ -98,6 +98,13 @@ export type Run = {
   commit: GitSha;
   hash?: BuildHash;
   errors: number;
+  era?: 'centipede' | 'aws' | string;
+  suite?: 'validation' | 'core' | 'full' | string;
+  topology?: {
+    legCount: number;
+    coresPerLeg: number;
+  };
+  status?: 'QUEUED' | 'PROVISIONING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'TIMED_OUT';
 };
 
 export type RunIndex = Array<Run>;
@@ -142,6 +149,8 @@ export type TimestampViewModel = Omit<Run, 'errors'> & {
   dateTime: string;
   errorCount: number;
   tag?: GitHubTag;
+  environmentKey: string;
+  environmentLabel: string;
 };
 
 // some of the types used for the ts helper files
