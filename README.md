@@ -56,9 +56,20 @@ node tools/import-centipede.mjs path/to/recovered/bench2 path/to/output/bench2
 ## Deploying the control plane
 
 CDK deliberately has no default region, AMI, Availability Zone, or EC2 type.
-Choose a region that supports Transit Gateway multicast, use a pinned Linux AMI
-with AWS CLI v2, and confirm the instance type accepts the configured CPU
-options before enabling schedules.
+Choose a region that supports Transit Gateway multicast and confirm the
+instance type accepts the configured CPU options before enabling schedules.
+The release bundle is built on Amazon Linux 2023 and smoke-tested for missing
+shared libraries. Use the full AWS-maintained Amazon Linux 2023 x86-64 AMI,
+which includes AWS CLI v2, and pin the concrete AMI ID returned in the target
+region:
+
+```sh
+aws ssm get-parameter \
+  --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 \
+  --region "$CDK_DEFAULT_REGION" \
+  --query Parameter.Value \
+  --output text
+```
 
 ```sh
 export CDK_DEFAULT_ACCOUNT=123456789012

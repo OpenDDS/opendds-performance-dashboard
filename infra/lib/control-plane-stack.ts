@@ -124,10 +124,11 @@ export class ControlPlaneStack extends cdk.Stack {
     }));
     buildRole.addToPolicy(new iam.PolicyStatement({actions: ['sts:AssumeRole'], resources: [`arn:${this.partition}:iam::${this.account}:role/cdk-*`]}));
 
-    const image = codebuild.LinuxBuildImage.STANDARD_7_0;
+    const buildImage = codebuild.LinuxBuildImage.AMAZON_LINUX_2023_5;
+    const infrastructureImage = codebuild.LinuxBuildImage.STANDARD_7_0;
     const buildProject = new codebuild.Project(this, 'BuildOpenDds', {
       role: buildRole,
-      environment: {buildImage: image, computeType: codebuild.ComputeType.X2_LARGE},
+      environment: {buildImage, computeType: codebuild.ComputeType.X2_LARGE},
       timeout: cdk.Duration.hours(2),
       buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {build: {commands: [
         `git clone --filter=blob:none ${props.config.openDdsRepoUrl} OpenDDS`,
@@ -138,6 +139,8 @@ export class ControlPlaneStack extends cdk.Stack {
         'cd performance-tests/bench && perl install_bench.pl --dest "$CODEBUILD_SRC_DIR/bundle"',
         'cd "$CODEBUILD_SRC_DIR/OpenDDS" && find . -type f -perm -111 \\( -name DCPSInfoRepo -o -name RtpsRelay \\) -exec cp {} "$CODEBUILD_SRC_DIR/bundle/bin/" \\;',
         'find "$CODEBUILD_SRC_DIR/OpenDDS" -type f -name "*.so*" -exec cp -L {} "$CODEBUILD_SRC_DIR/bundle/lib/" \\;',
+        'cd "$CODEBUILD_SRC_DIR" && for executable in node_controller test_controller worker dashboard_summarizer DCPSInfoRepo RtpsRelay; do LD_LIBRARY_PATH="$CODEBUILD_SRC_DIR/bundle/lib" ldd "bundle/bin/$executable" | tee -a ldd.log; done',
+        '! grep -q "not found" "$CODEBUILD_SRC_DIR/ldd.log"',
         'cd "$CODEBUILD_SRC_DIR" && tar -czf bench.tar.gz bundle',
         'aws s3 cp bench.tar.gz "s3://$ARTIFACT_BUCKET/builds/$OPENDDS_COMMIT/bench.tar.gz"',
         `git clone --filter=blob:none ${props.config.nightlyRepoUrl} nightly`,
@@ -150,7 +153,7 @@ export class ControlPlaneStack extends cdk.Stack {
 
     const infraProject = new codebuild.Project(this, 'ManageRunStack', {
       role: buildRole,
-      environment: {buildImage: image, computeType: codebuild.ComputeType.SMALL},
+      environment: {buildImage: infrastructureImage, computeType: codebuild.ComputeType.SMALL},
       timeout: cdk.Duration.minutes(30),
       buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {build: {commands: [
         `git clone --depth 1 --branch ${props.config.dashboardRef} --single-branch ${props.config.dashboardRepoUrl} dashboard`,
