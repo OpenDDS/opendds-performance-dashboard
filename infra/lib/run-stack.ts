@@ -92,18 +92,35 @@ export class RunStack extends cdk.Stack {
       `flock /opt/opendds-config/.bootstrap.lock -c 'if [ ! -f /opt/opendds-config/.ready-${props.config.configCommit} ]; then tar -xzf /tmp/config.tar.gz -C /opt/opendds-config && touch /opt/opendds-config/.ready-${props.config.configCommit}; fi'`,
       // node_controller's default worker command uses $BENCH_ROOT/worker/worker,
       // while install_bench.pl installs the executable as $BENCH_ROOT/bin/worker.
-      // Preserve early worker stderr: worker can't write its configured log when
-      // opening the config, report, or log path itself is what failed.
+      // Preserve each worker's inputs and outputs before node_controller removes
+      // its per-worker temporary directory. This distinguishes data-plane test
+      // failures from failures returning reports over the control domain.
       'mkdir -p /opt/opendds-bench/worker',
       `cat > /opt/opendds-bench/worker/worker <<'WORKER_WRAPPER'
 #!/usr/bin/env bash
-error_log="/opt/opendds-config/worker-errors-${'$'}{HOSTNAME}.log"
-printf '%s worker args:' "${'$'}(date -u +%FT%TZ)" >> "${'$'}error_log"
-printf ' %q' "${'$'}@" >> "${'$'}error_log"
-printf '\n' >> "${'$'}error_log"
-/opt/opendds-bench/bin/worker "${'$'}@" 2>> "${'$'}error_log"
+diagnostic_dir="/opt/opendds-config/worker-diagnostics/${'$'}{HOSTNAME}-${'$'}${'$'}"
+mkdir -p "${'$'}diagnostic_dir"
+transcript="${'$'}diagnostic_dir/wrapper.log"
+config_path="${'$'}{1:-}"
+report_path=""
+log_path=""
+previous=""
+for argument in "${'$'}@"; do
+  case "${'$'}previous" in
+    --report) report_path="${'$'}argument" ;;
+    --log) log_path="${'$'}argument" ;;
+  esac
+  previous="${'$'}argument"
+done
+printf '%s worker args:' "${'$'}(date -u +%FT%TZ)" >> "${'$'}transcript"
+printf ' %q' "${'$'}@" >> "${'$'}transcript"
+printf '\n' >> "${'$'}transcript"
+cp "${'$'}config_path" "${'$'}diagnostic_dir/config.json" 2>> "${'$'}transcript" || true
+/opt/opendds-bench/bin/worker "${'$'}@" >> "${'$'}transcript" 2>&1
 exit_code=${'$'}?
-printf 'worker exit: %s\n' "${'$'}exit_code" >> "${'$'}error_log"
+printf '%s worker exit: %s\n' "${'$'}(date -u +%FT%TZ)" "${'$'}exit_code" >> "${'$'}transcript"
+if [ -n "${'$'}log_path" ]; then cp "${'$'}log_path" "${'$'}diagnostic_dir/worker.log" 2>> "${'$'}transcript" || true; fi
+if [ -n "${'$'}report_path" ]; then cp "${'$'}report_path" "${'$'}diagnostic_dir/report.json" 2>> "${'$'}transcript" || true; fi
 exit "${'$'}exit_code"
 WORKER_WRAPPER`,
       'chmod 755 /opt/opendds-bench/worker/worker',
@@ -158,7 +175,7 @@ WORKER_WRAPPER`,
       '/opt/opendds-config/scripts/run_aws_suite.sh',
       'suite_exit=$?',
       `aws s3 cp /tmp/node-controller.log "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/controller.log"`,
-      `aws s3 cp /opt/opendds-config "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-errors" --recursive --exclude '*' --include 'worker-errors-*.log'`,
+      `aws s3 cp /opt/opendds-config/worker-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-diagnostics" --recursive`,
       `if [ "$suite_exit" -ne 0 ]; then aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; fi`,
       'exit "$suite_exit"',
     );
