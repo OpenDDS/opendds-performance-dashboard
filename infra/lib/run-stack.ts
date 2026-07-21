@@ -95,10 +95,15 @@ export class RunStack extends cdk.Stack {
       'mkdir -p /opt/opendds-bench/worker',
       'ln -sf ../bin/worker /opt/opendds-bench/worker/worker',
       'cp /opt/opendds-config/control_opendds_config.ini /opt/opendds-bench/control_opendds_config.ini',
+      // Bench writes each allocated worker config under its process temp directory.
+      // Keep those paths on EFS so workers launched by remote node controllers can
+      // open the config and write their reports and logs at the same path.
+      'mkdir -p /opt/opendds-config/tmp',
       'export BENCH_ROOT=/opt/opendds-bench',
       'export PATH=$BENCH_ROOT/bin:$PATH',
       'export LD_LIBRARY_PATH=$BENCH_ROOT/lib',
       'export BENCH_CONFIG_DIR=/opt/opendds-config',
+      'export TMPDIR=/opt/opendds-config/tmp',
     );
 
     const legUserData = ec2.UserData.custom(commonUserData.render());
