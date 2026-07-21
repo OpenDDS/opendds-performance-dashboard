@@ -154,8 +154,13 @@ WORKER_WRAPPER`,
       'sleep 5',
       `kill -0 "$node_controller_pid" || { cat /tmp/node-controller.log; aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; exit 1; }`,
       'sleep 85',
+      'set +e',
       '/opt/opendds-config/scripts/run_aws_suite.sh',
+      'suite_exit=$?',
+      `aws s3 cp /tmp/node-controller.log "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/controller.log"`,
       `aws s3 cp /opt/opendds-config "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-errors" --recursive --exclude '*' --include 'worker-errors-*.log'`,
+      `if [ "$suite_exit" -ne 0 ]; then aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; fi`,
+      'exit "$suite_exit"',
     );
     const controller = new ec2.CfnInstance(this, 'Controller', {
       imageId: props.config.amiId,
