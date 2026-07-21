@@ -158,8 +158,9 @@ export class ControlPlaneStack extends cdk.Stack {
       buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {build: {commands: [
         `git clone --depth 1 --branch ${props.config.dashboardRef} --single-branch ${props.config.dashboardRepoUrl} dashboard`,
         'cd dashboard/infra && npm ci',
-        'npx cdk "$CDK_ACTION" "OpenDdsPerformanceRun-*" --require-approval never --force -c runId="$RUN_ID" -c suite="$SUITE" -c commitSha="$OPENDDS_COMMIT" -c configCommit="$CONFIG_COMMIT" -c instanceType="$INSTANCE_TYPE" -c amiId="$AMI_ID" -c availabilityZone="$AVAILABILITY_ZONE" -c artifactKey="builds/$OPENDDS_COMMIT/bench.tar.gz" -c configKey="configs/$CONFIG_COMMIT/config.tar.gz"',
+        'npx cdk "$CDK_ACTION" "OpenDdsPerformanceRun-*" --require-approval never --force -c stage="$STAGE" -c runId="$RUN_ID" -c suite="$SUITE" -c commitSha="$OPENDDS_COMMIT" -c configCommit="$CONFIG_COMMIT" -c instanceType="$INSTANCE_TYPE" -c amiId="$AMI_ID" -c availabilityZone="$AVAILABILITY_ZONE" -c artifactKey="builds/$OPENDDS_COMMIT/bench.tar.gz" -c configKey="configs/$CONFIG_COMMIT/config.tar.gz"',
       ]}}}),
+      environmentVariables: {STAGE: {value: props.stage}},
     });
 
     const invoke = (name: string, action: string) => new tasks.LambdaInvoke(this, name, {
