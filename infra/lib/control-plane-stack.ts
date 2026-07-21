@@ -124,14 +124,16 @@ export class ControlPlaneStack extends cdk.Stack {
     }));
     buildRole.addToPolicy(new iam.PolicyStatement({actions: ['sts:AssumeRole'], resources: [`arn:${this.partition}:iam::${this.account}:role/cdk-*`]}));
 
-    const buildImage = codebuild.LinuxBuildImage.AMAZON_LINUX_2023_5;
+    // Ubuntu 20.04 provides Xerces development packages and builds against an
+    // older glibc than the AL2023 benchmark AMI, preserving runtime compatibility.
+    const buildImage = codebuild.LinuxBuildImage.STANDARD_6_0;
     const infrastructureImage = codebuild.LinuxBuildImage.STANDARD_7_0;
     const buildProject = new codebuild.Project(this, 'BuildOpenDds', {
       role: buildRole,
       environment: {buildImage, computeType: codebuild.ComputeType.LARGE},
       timeout: cdk.Duration.hours(2),
       buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {
-        install: {commands: ['dnf install -y cmake openssl-devel xerces-c-devel']},
+        install: {commands: ['apt-get update', 'DEBIAN_FRONTEND=noninteractive apt-get install -y cmake libssl-dev libxerces-c-dev']},
         build: {commands: [
         `git clone --filter=blob:none ${props.config.openDdsRepoUrl} OpenDDS`,
         'cd OpenDDS && git checkout "$OPENDDS_COMMIT" && git submodule update --init --recursive',
