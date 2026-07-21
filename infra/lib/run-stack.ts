@@ -53,7 +53,7 @@ export class RunStack extends cdk.Stack {
     });
     const multicastDomain = new ec2.CfnTransitGatewayMulticastDomain(this, 'MulticastDomain', {
       transitGatewayId: transitGateway.ref,
-      options: {igmpv2Support: 'enable', staticSourcesSupport: 'disable', autoAcceptSharedAssociations: 'disable'},
+      options: {Igmpv2Support: 'enable', StaticSourcesSupport: 'disable', AutoAcceptSharedAssociations: 'disable'},
       tags: runTags(props.config),
     });
     multicastDomain.addDependency(transitGateway);
