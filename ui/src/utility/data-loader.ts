@@ -8,6 +8,7 @@ import type {
   StatProperties
 } from '../types';
 import {Cache, CACHE_TEN_MIN} from './caching';
+import {resultPath} from './result-path';
 import {resolveApiUrl} from './url-builder';
 
 const BASE_URL = resolveApiUrl(window.location);
@@ -86,7 +87,7 @@ export async function getEntry(
   id: BenchmarkIdentifier
 ): Promise<BenchmarkEntry> {
   return Cache.cache(id, async () => {
-    const data: Benchmark = await fetcher.get(`/raw/${id}/results.json`);
+    const data: Benchmark = await fetcher.get(resultPath(id));
     return {id: id, data};
   });
 }
