@@ -71,6 +71,10 @@ aws ssm get-parameter \
   --output text
 ```
 
+The release CodeBuild project uses the Linux `LARGE` class. This keeps an
+occasional build inexpensive and uses the standard account quota, at the cost
+of a longer compile than the `2XLARGE` class.
+
 ```sh
 export CDK_DEFAULT_ACCOUNT=123456789012
 export CDK_DEFAULT_REGION=us-east-2

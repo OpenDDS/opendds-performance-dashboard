@@ -128,7 +128,7 @@ export class ControlPlaneStack extends cdk.Stack {
     const infrastructureImage = codebuild.LinuxBuildImage.STANDARD_7_0;
     const buildProject = new codebuild.Project(this, 'BuildOpenDds', {
       role: buildRole,
-      environment: {buildImage, computeType: codebuild.ComputeType.X2_LARGE},
+      environment: {buildImage, computeType: codebuild.ComputeType.LARGE},
       timeout: cdk.Duration.hours(2),
       buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {build: {commands: [
         `git clone --filter=blob:none ${props.config.openDdsRepoUrl} OpenDDS`,
