@@ -90,10 +90,10 @@ export class RunStack extends cdk.Stack {
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.configKey} /tmp/config.tar.gz`,
       'tar -xzf /tmp/bench.tar.gz -C /opt/opendds-bench --strip-components=1',
       `flock /opt/opendds-config/.bootstrap.lock -c 'if [ ! -f /opt/opendds-config/.ready-${props.config.configCommit} ]; then tar -xzf /tmp/config.tar.gz -C /opt/opendds-config && touch /opt/opendds-config/.ready-${props.config.configCommit}; fi'`,
-      // Bench waits only three seconds for reliable control acknowledgments.
-      // Make fragmented scenario allocations and reports responsive enough for
-      // that fixed deadline across the transit-gateway multicast domain.
-      `flock /opt/opendds-config/.control.lock -c "grep -q '^ResponsiveMode=1$' /opt/opendds-config/control_opendds_config.ini || printf '\nheartbeat_period=100\nnak_response_delay=20\nResponsiveMode=1\n' >> /opt/opendds-config/control_opendds_config.ini"`,
+      // AWS Transit Gateway drops fragmented multicast IP packets. Keep RTPS
+      // messages below the path MTU so OpenDDS fragments large control samples
+      // at the RTPS layer instead of relying on IP fragmentation.
+      `flock /opt/opendds-config/.control.lock -c "grep -q '^max_message_size=1400$' /opt/opendds-config/control_opendds_config.ini || printf '\nmax_message_size=1400\nheartbeat_period=100\nnak_response_delay=20\nResponsiveMode=1\n' >> /opt/opendds-config/control_opendds_config.ini"`,
       // node_controller's default worker command uses $BENCH_ROOT/worker/worker,
       // while install_bench.pl installs the executable as $BENCH_ROOT/bin/worker.
       // Preserve each worker's inputs and outputs before node_controller removes
@@ -137,10 +137,12 @@ WORKER_WRAPPER`,
 
     const legUserData = ec2.UserData.custom(commonUserData.render());
     legUserData.addCommands(
-      `nohup /opt/opendds-bench/bin/node_controller daemon --name aws-leg-${props.config.stackRunId}-$RANDOM -DCPSConfigFile /opt/opendds-config/control_opendds_config.ini > /tmp/node-controller.log 2>&1 &`,
+      'mkdir -p /opt/opendds-config/node-controller-logs',
+      'node_controller_log="/opt/opendds-config/node-controller-logs/${HOSTNAME}.log"',
+      `nohup /opt/opendds-bench/bin/node_controller daemon --name aws-leg-${props.config.stackRunId}-$RANDOM -DCPSConfigFile /opt/opendds-config/control_opendds_config.ini > "$node_controller_log" 2>&1 &`,
       'node_controller_pid=$!',
       'sleep 5',
-      'kill -0 "$node_controller_pid" || { cat /tmp/node-controller.log; exit 1; }',
+      'kill -0 "$node_controller_pid" || { cat "$node_controller_log"; exit 1; }',
     );
     const legLaunchTemplate = new ec2.LaunchTemplate(this, 'LegLaunchTemplate', {
       machineImage,
@@ -170,15 +172,17 @@ WORKER_WRAPPER`,
     controllerUserData.addCommands(
       `export RUN_ID='${props.config.runId}' SUITE='${props.config.suite}' OPENDDS_COMMIT='${props.config.commitSha}' CONFIG_COMMIT='${props.config.configCommit}'`,
       `export ARTIFACT_BUCKET='${artifactBucket.bucketName}' RUN_TABLE='${table.tableName}' EXPECTED_LEGS='${props.config.topology.legCount}'`,
-      `nohup /opt/opendds-bench/bin/node_controller daemon --name aws-controller-${props.config.stackRunId} -DCPSConfigFile /opt/opendds-config/control_opendds_config.ini > /tmp/node-controller.log 2>&1 &`,
+      'mkdir -p /opt/opendds-config/node-controller-logs',
+      'node_controller_log="/opt/opendds-config/node-controller-logs/${HOSTNAME}.log"',
+      `nohup /opt/opendds-bench/bin/node_controller daemon --name aws-controller-${props.config.stackRunId} -DCPSConfigFile /opt/opendds-config/control_opendds_config.ini > "$node_controller_log" 2>&1 &`,
       'node_controller_pid=$!',
       'sleep 5',
-      `kill -0 "$node_controller_pid" || { cat /tmp/node-controller.log; aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; exit 1; }`,
+      `kill -0 "$node_controller_pid" || { cat "$node_controller_log"; aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; exit 1; }`,
       'sleep 85',
       'set +e',
       '/opt/opendds-config/scripts/run_aws_suite.sh',
       'suite_exit=$?',
-      `aws s3 cp /tmp/node-controller.log "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/controller.log"`,
+      `aws s3 cp /opt/opendds-config/node-controller-logs "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/node-controller-logs" --recursive`,
       `aws s3 cp /opt/opendds-config/worker-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-diagnostics" --recursive`,
       `if [ "$suite_exit" -ne 0 ]; then aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; fi`,
       'exit "$suite_exit"',
