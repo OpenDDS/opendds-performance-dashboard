@@ -122,7 +122,7 @@ export class RunStack extends cdk.Stack {
       `nohup /opt/opendds-bench/bin/node_controller daemon --name aws-controller-${props.config.stackRunId} -DCPSConfigFile /opt/opendds-config/control_opendds_config.ini > /tmp/node-controller.log 2>&1 &`,
       'node_controller_pid=$!',
       'sleep 5',
-      'kill -0 "$node_controller_pid" || { cat /tmp/node-controller.log; exit 1; }',
+      `kill -0 "$node_controller_pid" || { cat /tmp/node-controller.log; aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; exit 1; }`,
       'sleep 85',
       '/opt/opendds-config/scripts/run_aws_suite.sh',
     );
