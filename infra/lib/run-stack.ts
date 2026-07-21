@@ -77,6 +77,10 @@ export class RunStack extends cdk.Stack {
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.configKey} /tmp/config.tar.gz`,
       'tar -xzf /tmp/bench.tar.gz -C /opt/opendds-bench --strip-components=1',
       'tar -xzf /tmp/config.tar.gz -C /opt/opendds-config',
+      // node_controller's default worker command uses $BENCH_ROOT/worker/worker,
+      // while install_bench.pl installs the executable as $BENCH_ROOT/bin/worker.
+      'mkdir -p /opt/opendds-bench/worker',
+      'ln -sf ../bin/worker /opt/opendds-bench/worker/worker',
       'cp /opt/opendds-config/control_opendds_config.ini /opt/opendds-bench/control_opendds_config.ini',
       'export BENCH_ROOT=/opt/opendds-bench',
       'export PATH=$BENCH_ROOT/bin:$PATH',
