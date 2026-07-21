@@ -34,6 +34,7 @@ export class RunStack extends cdk.Stack {
 
     const role = new iam.Role(this, 'InstanceRole', {assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')});
     artifactBucket.grantReadWrite(role, `staging/${props.config.runId}/*`);
+    artifactBucket.grantReadWrite(role, `logs/${props.config.runId}/*`);
     artifactBucket.grantRead(role, props.config.artifactKey);
     artifactBucket.grantRead(role, props.config.configKey);
     table.grantReadWriteData(role);
@@ -76,6 +77,7 @@ export class RunStack extends cdk.Stack {
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.configKey} /tmp/config.tar.gz`,
       'tar -xzf /tmp/bench.tar.gz -C /opt/opendds-bench --strip-components=1',
       'tar -xzf /tmp/config.tar.gz -C /opt/opendds-config',
+      'cp /opt/opendds-config/control_opendds_config.ini /opt/opendds-bench/control_opendds_config.ini',
       'export BENCH_ROOT=/opt/opendds-bench',
       'export PATH=$BENCH_ROOT/bin:$PATH',
       'export LD_LIBRARY_PATH=$BENCH_ROOT/lib',
@@ -85,6 +87,9 @@ export class RunStack extends cdk.Stack {
     const legUserData = ec2.UserData.custom(commonUserData.render());
     legUserData.addCommands(
       `nohup /opt/opendds-bench/bin/node_controller daemon --name aws-leg-${props.config.stackRunId}-$RANDOM -DCPSConfigFile /opt/opendds-config/control_opendds_config.ini > /tmp/node-controller.log 2>&1 &`,
+      'node_controller_pid=$!',
+      'sleep 5',
+      'kill -0 "$node_controller_pid" || { cat /tmp/node-controller.log; exit 1; }',
     );
     const legLaunchTemplate = new ec2.LaunchTemplate(this, 'LegLaunchTemplate', {
       machineImage,
@@ -115,7 +120,10 @@ export class RunStack extends cdk.Stack {
       `export RUN_ID='${props.config.runId}' SUITE='${props.config.suite}' OPENDDS_COMMIT='${props.config.commitSha}' CONFIG_COMMIT='${props.config.configCommit}'`,
       `export ARTIFACT_BUCKET='${artifactBucket.bucketName}' RUN_TABLE='${table.tableName}' EXPECTED_LEGS='${props.config.topology.legCount}'`,
       `nohup /opt/opendds-bench/bin/node_controller daemon --name aws-controller-${props.config.stackRunId} -DCPSConfigFile /opt/opendds-config/control_opendds_config.ini > /tmp/node-controller.log 2>&1 &`,
-      'sleep 90',
+      'node_controller_pid=$!',
+      'sleep 5',
+      'kill -0 "$node_controller_pid" || { cat /tmp/node-controller.log; exit 1; }',
+      'sleep 85',
       '/opt/opendds-config/scripts/run_aws_suite.sh',
     );
     const controller = new ec2.CfnInstance(this, 'Controller', {
