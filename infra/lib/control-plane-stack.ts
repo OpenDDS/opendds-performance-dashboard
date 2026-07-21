@@ -136,7 +136,7 @@ export class ControlPlaneStack extends cdk.Stack {
         `git clone --filter=blob:none ${props.config.openDdsRepoUrl} OpenDDS`,
         'cd OpenDDS && git checkout "$OPENDDS_COMMIT" && git submodule update --init --recursive',
         './configure --optimize --no-debug --tests --rapidjson',
-        'make -j"$(nproc)" Bench_Worker Bench_node_controller Bench_test_controller Bench_report_parser Bench_dashboard_summarizer DCPSInfoRepo RtpsRelay',
+        'make -j"$(nproc)" Bench_Worker Bench_node_controller Bench_test_controller Bench_report_parser Bench_dashboard_summarizer DCPSInfoRepo_Main RtpsRelay',
         'export DDS_ROOT="$CODEBUILD_SRC_DIR/OpenDDS"',
         'cd performance-tests/bench && perl install_bench.pl --dest "$CODEBUILD_SRC_DIR/bundle"',
         'cd "$CODEBUILD_SRC_DIR/OpenDDS" && find . -type f -perm -111 \\( -name DCPSInfoRepo -o -name RtpsRelay \\) -exec cp {} "$CODEBUILD_SRC_DIR/bundle/bin/" \\;',
