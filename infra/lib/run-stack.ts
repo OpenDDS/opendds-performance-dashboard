@@ -92,8 +92,21 @@ export class RunStack extends cdk.Stack {
       `flock /opt/opendds-config/.bootstrap.lock -c 'if [ ! -f /opt/opendds-config/.ready-${props.config.configCommit} ]; then tar -xzf /tmp/config.tar.gz -C /opt/opendds-config && touch /opt/opendds-config/.ready-${props.config.configCommit}; fi'`,
       // node_controller's default worker command uses $BENCH_ROOT/worker/worker,
       // while install_bench.pl installs the executable as $BENCH_ROOT/bin/worker.
+      // Preserve early worker stderr: worker can't write its configured log when
+      // opening the config, report, or log path itself is what failed.
       'mkdir -p /opt/opendds-bench/worker',
-      'ln -sf ../bin/worker /opt/opendds-bench/worker/worker',
+      `cat > /opt/opendds-bench/worker/worker <<'WORKER_WRAPPER'
+#!/usr/bin/env bash
+error_log="/opt/opendds-config/worker-errors-${'$'}{HOSTNAME}.log"
+printf '%s worker args:' "${'$'}(date -u +%FT%TZ)" >> "${'$'}error_log"
+printf ' %q' "${'$'}@" >> "${'$'}error_log"
+printf '\n' >> "${'$'}error_log"
+/opt/opendds-bench/bin/worker "${'$'}@" 2>> "${'$'}error_log"
+exit_code=${'$'}?
+printf 'worker exit: %s\n' "${'$'}exit_code" >> "${'$'}error_log"
+exit "${'$'}exit_code"
+WORKER_WRAPPER`,
+      'chmod 755 /opt/opendds-bench/worker/worker',
       'cp /opt/opendds-config/control_opendds_config.ini /opt/opendds-bench/control_opendds_config.ini',
       // Bench writes each allocated worker config under its process temp directory.
       // Keep those paths on EFS so workers launched by remote node controllers can
@@ -147,6 +160,7 @@ export class RunStack extends cdk.Stack {
       `kill -0 "$node_controller_pid" || { cat /tmp/node-controller.log; aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; exit 1; }`,
       'sleep 85',
       '/opt/opendds-config/scripts/run_aws_suite.sh',
+      `aws s3 cp /opt/opendds-config "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-errors" --recursive --exclude '*' --include 'worker-errors-*.log'`,
     );
     const controller = new ec2.CfnInstance(this, 'Controller', {
       imageId: props.config.amiId,
