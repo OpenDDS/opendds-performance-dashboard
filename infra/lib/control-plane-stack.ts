@@ -26,7 +26,7 @@ export interface ControlPlaneStackProps extends cdk.StackProps {
 export class ControlPlaneStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ControlPlaneStackProps) {
     super(scope, id, props);
-    const bundleVersion = 'al2023-xerces-3.2.5-v2';
+    const bundleVersion = 'al2023-xerces-3.2.5-v3';
     const prefix = `/opendds-performance/${props.stage}`;
 
     const publicBucket = new s3.Bucket(this, 'PublicDashboard', {
@@ -147,7 +147,7 @@ export class ControlPlaneStack extends cdk.Stack {
         'make -j"$(nproc)" Bench_Worker Bench_node_controller Bench_test_controller Bench_report_parser Bench_dashboard_summarizer DCPSInfoRepo_Main RtpsRelay',
         'export DDS_ROOT="$CODEBUILD_SRC_DIR/OpenDDS"',
         'cd performance-tests/bench && perl install_bench.pl --dest "$CODEBUILD_SRC_DIR/bundle"',
-        'cp -L "$CODEBUILD_SRC_DIR"/xerces-install/lib/libxerces-c.so* "$CODEBUILD_SRC_DIR/bundle/lib/"',
+        'cp -L "$CODEBUILD_SRC_DIR"/xerces-install/lib/libxerces-c*.so* "$CODEBUILD_SRC_DIR/bundle/lib/"',
         'cd "$CODEBUILD_SRC_DIR/OpenDDS" && find . -type f -perm -111 \\( -name DCPSInfoRepo -o -name RtpsRelay \\) -exec cp {} "$CODEBUILD_SRC_DIR/bundle/bin/" \\;',
         'find "$CODEBUILD_SRC_DIR/OpenDDS" -type f -name "*.so*" -exec cp -L {} "$CODEBUILD_SRC_DIR/bundle/lib/" \\;',
         'cd "$CODEBUILD_SRC_DIR" && for executable in node_controller test_controller worker dashboard_summarizer DCPSInfoRepo RtpsRelay; do LD_LIBRARY_PATH="$CODEBUILD_SRC_DIR/bundle/lib" ldd "bundle/bin/$executable" | tee -a ldd.log; done',
