@@ -26,7 +26,7 @@ export interface ControlPlaneStackProps extends cdk.StackProps {
 export class ControlPlaneStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ControlPlaneStackProps) {
     super(scope, id, props);
-    const bundleVersion = 'al2023-xerces-3.2.5-v1';
+    const bundleVersion = 'al2023-xerces-3.2.5-v2';
     const prefix = `/opendds-performance/${props.stage}`;
 
     const publicBucket = new s3.Bucket(this, 'PublicDashboard', {
@@ -136,7 +136,7 @@ export class ControlPlaneStack extends cdk.Stack {
         install: {commands: [
           'dnf install -y cmake openssl-devel',
           'git clone --depth 1 --branch v3.2.5 --single-branch https://github.com/apache/xerces-c.git xerces-c',
-          'cmake -S xerces-c -B xerces-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$CODEBUILD_SRC_DIR/xerces-install"',
+          'cmake -S xerces-c -B xerces-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$CODEBUILD_SRC_DIR/xerces-install" -DCMAKE_INSTALL_LIBDIR=lib',
           'cmake --build xerces-build -j"$(nproc)"',
           'cmake --install xerces-build',
         ]},
