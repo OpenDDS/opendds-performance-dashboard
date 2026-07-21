@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as autoscaling from 'aws-cdk-lib/aws-autoscaling';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as efs from 'aws-cdk-lib/aws-efs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -67,16 +68,28 @@ export class RunStack extends cdk.Stack {
 
     const machineImage = ec2.MachineImage.genericLinux({[this.region]: props.config.amiId});
     const ebsKey = kms.Alias.fromAliasName(this, 'EbsKey', 'alias/aws/ebs');
+    const fileSystem = new efs.CfnFileSystem(this, 'SharedBenchConfig', {
+      encrypted: true,
+      throughputMode: 'bursting',
+      fileSystemTags: runTags(props.config),
+    });
+    const mountTarget = new efs.CfnMountTarget(this, 'SharedBenchConfigMount', {
+      fileSystemId: fileSystem.ref,
+      subnetId: subnet.subnetId,
+      securityGroups: [securityGroup.securityGroupId],
+    });
     const commonUserData = ec2.UserData.forLinux();
     commonUserData.addCommands(
       'set -euxo pipefail',
       'sysctl -w net.ipv4.conf.all.force_igmp_version=2',
       'sysctl -w net.ipv4.conf.default.force_igmp_version=2',
       'mkdir -p /opt/opendds-bench /opt/opendds-config',
+      `for attempt in {1..30}; do mount -t nfs4 -o nfsvers=4.1 ${fileSystem.ref}.efs.${this.region}.amazonaws.com:/ /opt/opendds-config && break; sleep 2; done`,
+      'mountpoint -q /opt/opendds-config',
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.artifactKey} /tmp/bench.tar.gz`,
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.configKey} /tmp/config.tar.gz`,
       'tar -xzf /tmp/bench.tar.gz -C /opt/opendds-bench --strip-components=1',
-      'tar -xzf /tmp/config.tar.gz -C /opt/opendds-config',
+      `flock /opt/opendds-config/.bootstrap.lock -c 'if [ ! -f /opt/opendds-config/.ready-${props.config.configCommit} ]; then tar -xzf /tmp/config.tar.gz -C /opt/opendds-config && touch /opt/opendds-config/.ready-${props.config.configCommit}; fi'`,
       // node_controller's default worker command uses $BENCH_ROOT/worker/worker,
       // while install_bench.pl installs the executable as $BENCH_ROOT/bin/worker.
       'mkdir -p /opt/opendds-bench/worker',
@@ -144,8 +157,10 @@ export class RunStack extends cdk.Stack {
       tags: [...runTags(props.config), {key: 'Name', value: `opendds-controller-${props.config.stackRunId}`}],
     });
     controller.addDependency(association);
+    controller.addDependency(mountTarget);
     controller.addDependency(profile);
     (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(association);
+    (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(mountTarget);
 
     new cdk.CfnOutput(this, 'RunId', {value: props.config.runId});
     new cdk.CfnOutput(this, 'ControllerInstanceId', {value: controller.ref});
