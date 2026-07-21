@@ -26,6 +26,7 @@ export interface ControlPlaneStackProps extends cdk.StackProps {
 export class ControlPlaneStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ControlPlaneStackProps) {
     super(scope, id, props);
+    const bundleVersion = 'al2023-xerces-3.2.5-v1';
     const prefix = `/opendds-performance/${props.stage}`;
 
     const publicBucket = new s3.Bucket(this, 'PublicDashboard', {
@@ -96,6 +97,7 @@ export class ControlPlaneStack extends cdk.Stack {
         PUBLIC_BUCKET: publicBucket.bucketName,
         STAGE: props.stage,
         HARD_BUDGET_USD: '100',
+        BUNDLE_VERSION: bundleVersion,
       },
     });
     table.grantReadWriteData(coordinator);
@@ -124,33 +126,38 @@ export class ControlPlaneStack extends cdk.Stack {
     }));
     buildRole.addToPolicy(new iam.PolicyStatement({actions: ['sts:AssumeRole'], resources: [`arn:${this.partition}:iam::${this.account}:role/cdk-*`]}));
 
-    // Ubuntu 20.04 provides Xerces development packages and builds against an
-    // older glibc than the AL2023 benchmark AMI, preserving runtime compatibility.
-    const buildImage = codebuild.LinuxBuildImage.STANDARD_6_0;
+    const buildImage = codebuild.LinuxBuildImage.AMAZON_LINUX_2023_5;
     const infrastructureImage = codebuild.LinuxBuildImage.STANDARD_7_0;
     const buildProject = new codebuild.Project(this, 'BuildOpenDds', {
       role: buildRole,
       environment: {buildImage, computeType: codebuild.ComputeType.LARGE},
       timeout: cdk.Duration.hours(2),
       buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {
-        install: {commands: ['apt-get update', 'DEBIAN_FRONTEND=noninteractive apt-get install -y cmake libssl-dev libxerces-c-dev']},
+        install: {commands: [
+          'dnf install -y cmake openssl-devel',
+          'git clone --depth 1 --branch v3.2.5 --single-branch https://github.com/apache/xerces-c.git xerces-c',
+          'cmake -S xerces-c -B xerces-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$CODEBUILD_SRC_DIR/xerces-install"',
+          'cmake --build xerces-build -j"$(nproc)"',
+          'cmake --install xerces-build',
+        ]},
         build: {commands: [
         `git clone --filter=blob:none ${props.config.openDdsRepoUrl} OpenDDS`,
         'cd OpenDDS && git checkout "$OPENDDS_COMMIT" && git submodule update --init --recursive',
-        './configure --optimize --no-debug --tests --rapidjson --security',
+        './configure --optimize --no-debug --tests --rapidjson --security --xerces3="$CODEBUILD_SRC_DIR/xerces-install"',
         'make -j"$(nproc)" Bench_Worker Bench_node_controller Bench_test_controller Bench_report_parser Bench_dashboard_summarizer DCPSInfoRepo_Main RtpsRelay',
         'export DDS_ROOT="$CODEBUILD_SRC_DIR/OpenDDS"',
         'cd performance-tests/bench && perl install_bench.pl --dest "$CODEBUILD_SRC_DIR/bundle"',
+        'cp -L "$CODEBUILD_SRC_DIR"/xerces-install/lib/libxerces-c.so* "$CODEBUILD_SRC_DIR/bundle/lib/"',
         'cd "$CODEBUILD_SRC_DIR/OpenDDS" && find . -type f -perm -111 \\( -name DCPSInfoRepo -o -name RtpsRelay \\) -exec cp {} "$CODEBUILD_SRC_DIR/bundle/bin/" \\;',
         'find "$CODEBUILD_SRC_DIR/OpenDDS" -type f -name "*.so*" -exec cp -L {} "$CODEBUILD_SRC_DIR/bundle/lib/" \\;',
         'cd "$CODEBUILD_SRC_DIR" && for executable in node_controller test_controller worker dashboard_summarizer DCPSInfoRepo RtpsRelay; do LD_LIBRARY_PATH="$CODEBUILD_SRC_DIR/bundle/lib" ldd "bundle/bin/$executable" | tee -a ldd.log; done',
         '! grep -q "not found" "$CODEBUILD_SRC_DIR/ldd.log"',
         'cd "$CODEBUILD_SRC_DIR" && tar -czf bench.tar.gz bundle',
-        'aws s3 cp bench.tar.gz "s3://$ARTIFACT_BUCKET/builds/$OPENDDS_COMMIT/bench.tar.gz"',
+        'aws s3 cp bench.tar.gz "s3://$ARTIFACT_BUCKET/builds/$BUNDLE_VERSION/$OPENDDS_COMMIT/bench.tar.gz"',
         `if aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "configs/$CONFIG_COMMIT/config.tar.gz" >/dev/null 2>&1; then echo "Using preloaded nightly config $CONFIG_COMMIT"; else git clone --filter=blob:none ${props.config.nightlyRepoUrl} nightly && cd nightly && git checkout "$CONFIG_COMMIT" && cd configs/bench && tar -czf "$CODEBUILD_SRC_DIR/config.tar.gz" . && aws s3 cp "$CODEBUILD_SRC_DIR/config.tar.gz" "s3://$ARTIFACT_BUCKET/configs/$CONFIG_COMMIT/config.tar.gz"; fi`,
         ]},
       }}),
-      environmentVariables: {ARTIFACT_BUCKET: {value: artifactBucket.bucketName}},
+      environmentVariables: {ARTIFACT_BUCKET: {value: artifactBucket.bucketName}, BUNDLE_VERSION: {value: bundleVersion}},
     });
 
     const infraProject = new codebuild.Project(this, 'ManageRunStack', {
@@ -160,9 +167,9 @@ export class ControlPlaneStack extends cdk.Stack {
       buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {build: {commands: [
         `git clone --depth 1 --branch ${props.config.dashboardRef} --single-branch ${props.config.dashboardRepoUrl} dashboard`,
         'cd dashboard/infra && npm ci',
-        'npx cdk "$CDK_ACTION" "OpenDdsPerformanceRun-*" --require-approval never --force -c stage="$STAGE" -c runId="$RUN_ID" -c suite="$SUITE" -c commitSha="$OPENDDS_COMMIT" -c configCommit="$CONFIG_COMMIT" -c instanceType="$INSTANCE_TYPE" -c amiId="$AMI_ID" -c availabilityZone="$AVAILABILITY_ZONE" -c artifactKey="builds/$OPENDDS_COMMIT/bench.tar.gz" -c configKey="configs/$CONFIG_COMMIT/config.tar.gz"',
+        'npx cdk "$CDK_ACTION" "OpenDdsPerformanceRun-*" --require-approval never --force -c stage="$STAGE" -c runId="$RUN_ID" -c suite="$SUITE" -c commitSha="$OPENDDS_COMMIT" -c configCommit="$CONFIG_COMMIT" -c instanceType="$INSTANCE_TYPE" -c amiId="$AMI_ID" -c availabilityZone="$AVAILABILITY_ZONE" -c artifactKey="builds/$BUNDLE_VERSION/$OPENDDS_COMMIT/bench.tar.gz" -c configKey="configs/$CONFIG_COMMIT/config.tar.gz"',
       ]}}}),
-      environmentVariables: {STAGE: {value: props.stage}},
+      environmentVariables: {STAGE: {value: props.stage}, BUNDLE_VERSION: {value: bundleVersion}},
     });
 
     const invoke = (name: string, action: string) => new tasks.LambdaInvoke(this, name, {

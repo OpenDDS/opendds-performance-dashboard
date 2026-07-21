@@ -12,6 +12,7 @@ const artifactBucket = process.env.ARTIFACT_BUCKET;
 const publicBucket = process.env.PUBLIC_BUCKET;
 const stage = process.env.STAGE ?? 'dev';
 const hardBudget = Number(process.env.HARD_BUDGET_USD ?? 100);
+const bundleVersion = process.env.BUNDLE_VERSION;
 const topologies = {
   validation: {legCount: 3, coresPerLeg: 2},
   core: {legCount: 12, coresPerLeg: 4},
@@ -96,7 +97,7 @@ async function artifact(input) {
   try {
     await s3.send(new HeadObjectCommand({
       Bucket: artifactBucket,
-      Key: `builds/${input.commitSha}/bench.tar.gz`,
+      Key: `builds/${bundleVersion}/${input.commitSha}/bench.tar.gz`,
     }));
     return {...input, bundleExists: true};
   } catch (error) {
