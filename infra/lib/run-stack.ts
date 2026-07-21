@@ -90,6 +90,10 @@ export class RunStack extends cdk.Stack {
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.configKey} /tmp/config.tar.gz`,
       'tar -xzf /tmp/bench.tar.gz -C /opt/opendds-bench --strip-components=1',
       `flock /opt/opendds-config/.bootstrap.lock -c 'if [ ! -f /opt/opendds-config/.ready-${props.config.configCommit} ]; then tar -xzf /tmp/config.tar.gz -C /opt/opendds-config && touch /opt/opendds-config/.ready-${props.config.configCommit}; fi'`,
+      // Bench waits only three seconds for reliable control acknowledgments.
+      // Make fragmented scenario allocations and reports responsive enough for
+      // that fixed deadline across the transit-gateway multicast domain.
+      `flock /opt/opendds-config/.control.lock -c "grep -q '^ResponsiveMode=1$' /opt/opendds-config/control_opendds_config.ini || printf '\nheartbeat_period=100\nnak_response_delay=20\nResponsiveMode=1\n' >> /opt/opendds-config/control_opendds_config.ini"`,
       // node_controller's default worker command uses $BENCH_ROOT/worker/worker,
       // while install_bench.pl installs the executable as $BENCH_ROOT/bin/worker.
       // Preserve each worker's inputs and outputs before node_controller removes
