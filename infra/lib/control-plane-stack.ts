@@ -131,11 +131,11 @@ export class ControlPlaneStack extends cdk.Stack {
       environment: {buildImage, computeType: codebuild.ComputeType.LARGE},
       timeout: cdk.Duration.hours(2),
       buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {
-        install: {commands: ['dnf install -y cmake']},
+        install: {commands: ['dnf install -y cmake openssl-devel xerces-c-devel']},
         build: {commands: [
         `git clone --filter=blob:none ${props.config.openDdsRepoUrl} OpenDDS`,
         'cd OpenDDS && git checkout "$OPENDDS_COMMIT" && git submodule update --init --recursive',
-        './configure --optimize --no-debug --tests --rapidjson',
+        './configure --optimize --no-debug --tests --rapidjson --security',
         'make -j"$(nproc)" Bench_Worker Bench_node_controller Bench_test_controller Bench_report_parser Bench_dashboard_summarizer DCPSInfoRepo_Main RtpsRelay',
         'export DDS_ROOT="$CODEBUILD_SRC_DIR/OpenDDS"',
         'cd performance-tests/bench && perl install_bench.pl --dest "$CODEBUILD_SRC_DIR/bundle"',
