@@ -92,6 +92,21 @@ async function status(input) {
   return {...input, runStatus: state, done: ['SUCCEEDED', 'FAILED', 'TIMED_OUT'].includes(state)};
 }
 
+async function artifact(input) {
+  try {
+    await s3.send(new HeadObjectCommand({
+      Bucket: artifactBucket,
+      Key: `builds/${input.commitSha}/bench.tar.gz`,
+    }));
+    return {...input, bundleExists: true};
+  } catch (error) {
+    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      return {...input, bundleExists: false};
+    }
+    throw error;
+  }
+}
+
 async function publish(input) {
   const key = `staging/${input.runId}/results.json`;
   await s3.send(new HeadObjectCommand({Bucket: artifactBucket, Key: key}));
@@ -178,6 +193,7 @@ async function reap() {
 export async function handler(event) {
   const {action, ...input} = event;
   if (action === 'acquire') return acquire(input);
+  if (action === 'artifact') return artifact(input);
   if (action === 'status') return status(input);
   if (action === 'publish') return publish(input);
   if (action === 'release') return release(input);

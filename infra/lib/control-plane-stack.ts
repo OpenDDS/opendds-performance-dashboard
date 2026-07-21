@@ -171,6 +171,7 @@ export class ControlPlaneStack extends cdk.Stack {
       payloadResponseOnly: true,
     });
     const acquire = new tasks.LambdaInvoke(this, 'Acquire lease and budget', {lambdaFunction: coordinator, payload: sfn.TaskInput.fromObject({action: 'acquire', 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride'}), payloadResponseOnly: true});
+    const artifact = invoke('Check release bundle', 'artifact');
     const build = new tasks.CodeBuildStartBuild(this, 'Build release bundle', {project: buildProject, integrationPattern: sfn.IntegrationPattern.RUN_JOB, resultPath: sfn.JsonPath.DISCARD, environmentVariablesOverride: {OPENDDS_COMMIT: {value: sfn.JsonPath.stringAt('$.commitSha')}, CONFIG_COMMIT: {value: sfn.JsonPath.stringAt('$.configCommit')}}});
     const deploy = new tasks.CodeBuildStartBuild(this, 'Deploy ephemeral run stack', {project: infraProject, integrationPattern: sfn.IntegrationPattern.RUN_JOB, resultPath: sfn.JsonPath.DISCARD, environmentVariablesOverride: stackEnvironment('deploy')});
     const wait = new sfn.Wait(this, 'Wait for controller', {time: sfn.WaitTime.duration(cdk.Duration.minutes(1))});
@@ -186,8 +187,11 @@ export class ControlPlaneStack extends cdk.Stack {
       .otherwise(wait));
     wait.next(check);
     const queuedWait = new sfn.Wait(this, 'Wait for active benchmark', {time: sfn.WaitTime.duration(cdk.Duration.minutes(5))});
+    const bundleRequired = new sfn.Choice(this, 'Release bundle required?')
+      .when(sfn.Condition.booleanEquals('$.bundleExists', true), deploy.next(wait))
+      .otherwise(build.next(deploy));
     const runRequired = new sfn.Choice(this, 'Run required?')
-      .when(sfn.Condition.booleanEquals('$.shouldRun', true), build.next(deploy).next(wait))
+      .when(sfn.Condition.booleanEquals('$.shouldRun', true), artifact.next(bundleRequired))
       .when(sfn.Condition.stringEquals('$.reason', 'busy'), queuedWait)
       .otherwise(new sfn.Succeed(this, 'Skipped'));
     queuedWait.next(acquire);
