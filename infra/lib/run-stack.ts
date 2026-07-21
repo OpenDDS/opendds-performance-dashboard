@@ -120,12 +120,19 @@ printf '%s worker args:' "${'$'}(date -u +%FT%TZ)" >> "${'$'}transcript"
 printf ' %q' "${'$'}@" >> "${'$'}transcript"
 printf '\n' >> "${'$'}transcript"
 cp "${'$'}config_path" "${'$'}diagnostic_dir/config.json" 2>> "${'$'}transcript" || true
-/opt/opendds-bench/bin/worker "${'$'}@" >> "${'$'}transcript" 2>&1
-exit_code=${'$'}?
-printf '%s worker exit: %s\n' "${'$'}(date -u +%FT%TZ)" "${'$'}exit_code" >> "${'$'}transcript"
-if [ -n "${'$'}log_path" ]; then cp "${'$'}log_path" "${'$'}diagnostic_dir/worker.log" 2>> "${'$'}transcript" || true; fi
-if [ -n "${'$'}report_path" ]; then cp "${'$'}report_path" "${'$'}diagnostic_dir/report.json" 2>> "${'$'}transcript" || true; fi
-exit "${'$'}exit_code"
+# node_controller collects statistics for the PID it spawns.  Preserve that PID
+# by replacing this wrapper with the real worker instead of waiting for it as a
+# child.  Symlink the worker outputs into the shared diagnostic directory so
+# node_controller can remove its temporary names without removing our copies.
+if [ -n "${'$'}log_path" ]; then
+  touch "${'$'}diagnostic_dir/worker.log"
+  ln -sf "${'$'}diagnostic_dir/worker.log" "${'$'}log_path"
+fi
+if [ -n "${'$'}report_path" ]; then
+  touch "${'$'}diagnostic_dir/report.json"
+  ln -sf "${'$'}diagnostic_dir/report.json" "${'$'}report_path"
+fi
+exec /opt/opendds-bench/bin/worker "${'$'}@"
 WORKER_WRAPPER`,
       'chmod 755 /opt/opendds-bench/worker/worker',
       'cp /opt/opendds-config/control_opendds_config.ini /opt/opendds-bench/control_opendds_config.ini',
