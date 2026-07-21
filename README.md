@@ -108,7 +108,8 @@ only in forks without broadening the production role trust policy. For the
 current `simpsont-oci` forks, deploy with:
 
 ```sh
-npx --prefix infra cdk deploy OpenDdsPerformance-fork \
+cd infra
+npx cdk deploy OpenDdsPerformance-fork \
   -c stage=fork \
   -c openDdsRepoUrl=https://github.com/simpsont-oci/OpenDDS.git \
   -c nightlyRepoUrl=https://github.com/OpenDDS/nightly.git \

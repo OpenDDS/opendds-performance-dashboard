@@ -72,6 +72,7 @@ export class ControlPlaneStack extends cdk.Stack {
     const securityGroup = new ec2.SecurityGroup(this, 'BenchSecurityGroup', {vpc, allowAllOutbound: false});
     securityGroup.addIngressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.allUdp(), 'Bench UDP within run subnet');
     securityGroup.addEgressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.allUdp(), 'Bench UDP within run subnet');
+    securityGroup.addEgressRule(ec2.Peer.ipv4('224.0.0.0/4'), ec2.Port.allUdp(), 'Bench UDP multicast');
     securityGroup.addIngressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.allTcp(), 'Bench TCP within run subnet');
     securityGroup.addEgressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.allTcp(), 'Bench TCP within run subnet');
     new ec2.CfnSecurityGroupIngress(this, 'IgmpIngress', {groupId: securityGroup.securityGroupId, ipProtocol: '2', cidrIp: '0.0.0.0/32'});
