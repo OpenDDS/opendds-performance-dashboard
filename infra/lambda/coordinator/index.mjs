@@ -138,6 +138,15 @@ async function release(input) {
   if (input.runId && input.commitSha && input.configCommit && input.suite) {
     const run = await ddb.send(new GetCommand({TableName: tableName, Key: {pk: 'RUN', sk: input.runId}}));
     if (run.Item?.status !== 'SUCCEEDED') {
+      if (!['FAILED', 'TIMED_OUT'].includes(run.Item?.status)) {
+        await ddb.send(new UpdateCommand({
+          TableName: tableName,
+          Key: {pk: 'RUN', sk: input.runId},
+          UpdateExpression: 'SET #status = :status',
+          ExpressionAttributeNames: {'#status': 'status'},
+          ExpressionAttributeValues: {':status': 'FAILED'},
+        }));
+      }
       await ddb.send(new DeleteCommand({
         TableName: tableName,
         Key: {pk: 'DEDUP', sk: `${input.commitSha}:${input.configCommit}:${input.suite}`},

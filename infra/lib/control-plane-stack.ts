@@ -143,10 +143,7 @@ export class ControlPlaneStack extends cdk.Stack {
         '! grep -q "not found" "$CODEBUILD_SRC_DIR/ldd.log"',
         'cd "$CODEBUILD_SRC_DIR" && tar -czf bench.tar.gz bundle',
         'aws s3 cp bench.tar.gz "s3://$ARTIFACT_BUCKET/builds/$OPENDDS_COMMIT/bench.tar.gz"',
-        `git clone --filter=blob:none ${props.config.nightlyRepoUrl} nightly`,
-        'cd nightly && git checkout "$CONFIG_COMMIT"',
-        'cd configs/bench && tar -czf "$CODEBUILD_SRC_DIR/config.tar.gz" .',
-        'aws s3 cp "$CODEBUILD_SRC_DIR/config.tar.gz" "s3://$ARTIFACT_BUCKET/configs/$CONFIG_COMMIT/config.tar.gz"',
+        `if aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "configs/$CONFIG_COMMIT/config.tar.gz" >/dev/null 2>&1; then echo "Using preloaded nightly config $CONFIG_COMMIT"; else git clone --filter=blob:none ${props.config.nightlyRepoUrl} nightly && cd nightly && git checkout "$CONFIG_COMMIT" && cd configs/bench && tar -czf "$CODEBUILD_SRC_DIR/config.tar.gz" . && aws s3 cp "$CODEBUILD_SRC_DIR/config.tar.gz" "s3://$ARTIFACT_BUCKET/configs/$CONFIG_COMMIT/config.tar.gz"; fi`,
       ]}}}),
       environmentVariables: {ARTIFACT_BUCKET: {value: artifactBucket.bucketName}},
     });

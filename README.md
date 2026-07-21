@@ -127,7 +127,10 @@ Fork OpenDDS workflows are manual-only by default. Set
 `PERFORMANCE_AUTOMATIC_RUNS=true` only after the validation suite has completed
 and cleaned up successfully. `PERFORMANCE_NIGHTLY_REPOSITORY_URL` and
 `PERFORMANCE_NIGHTLY_REF` are optional and default to the upstream nightly
-repository's `master` branch.
+repository's `master` branch. When nightly is private, set
+`PERFORMANCE_NIGHTLY_COMMIT` and preload
+`configs/<commit>/config.tar.gz` in the private artifact bucket; CodeBuild will
+reuse that immutable snapshot without requiring a GitHub token.
 
 Automatic runs reserve an estimated amount in the monthly ledger. They pause
 before exceeding $100; the infrastructure budget is also set to $100. Manual
