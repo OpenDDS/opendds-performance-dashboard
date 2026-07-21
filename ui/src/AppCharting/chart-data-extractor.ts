@@ -11,7 +11,9 @@ import type {
 } from '../types';
 import {configParamMap, sizeParamMap} from '../utility/param-map';
 
-export const MISSING_VALUE = -0.0000001;
+export const NOT_RUN_VALUE = -0.0000001;
+export const NOT_APPLICABLE_VALUE = -0.0000002;
+export const MISSING_VALUE = -0.0000003;
 export const BY_SIZE: ChartType = 'by size';
 export const BY_TIMESTAMP: ChartType = 'by timestamp';
 
@@ -86,7 +88,7 @@ export async function getChartDataBySize(
     const column: ChartingArray = [classNameFromBenchmarkKey(timestamp.key)];
 
     for (const size of sizes) {
-      let value: number = MISSING_VALUE;
+      let value: number = NOT_RUN_VALUE;
       const benchmark = benchmarkMap[timestamp.key];
       if (benchmark) {
         for (const [, sData] of Object.entries(benchmark).filter(
@@ -109,10 +111,16 @@ export async function getChartDataBySize(
             const sSize = sParams[sizeParamMap[sBase]];
             const sizeMatch = sSize && JSON.stringify(sSize) === size;
             if (sName === scenario && serverMatch && sizeMatch) {
+              value = MISSING_VALUE;
               const plotStatistic: PlotStatistic = <PlotStatistic>(
                 (<unknown>sData[plotType])
               );
-              if (plotStatistic && plotStatistic[statName]) {
+              if (plotStatistic?.count === 0) {
+                value = NOT_APPLICABLE_VALUE;
+              } else if (
+                plotStatistic &&
+                Object.prototype.hasOwnProperty.call(plotStatistic, statName)
+              ) {
                 value = plotStatistic[statName];
               }
             }
@@ -154,7 +162,7 @@ export async function getChartDataByTimestamp(
     const column: ChartingArray = [dataName];
 
     for (const timestamp of timestamps) {
-      let value: number = MISSING_VALUE;
+      let value: number = NOT_RUN_VALUE;
       const benchmark = benchmarkMap[timestamp.key];
       if (benchmark) {
         for (const [, sData] of Object.entries(benchmark).filter(
@@ -177,10 +185,16 @@ export async function getChartDataByTimestamp(
             const sSize = sParams[sizeParamMap[sBase]];
             const sizeMatch = sSize && JSON.stringify(sSize) === dataName;
             if (sName === scenario && serverMatch && sizeMatch) {
+              value = MISSING_VALUE;
               const plotStatistic: PlotStatistic = <PlotStatistic>(
                 (<unknown>sData[plotType])
               );
-              if (plotStatistic && plotStatistic[statName]) {
+              if (plotStatistic?.count === 0) {
+                value = NOT_APPLICABLE_VALUE;
+              } else if (
+                plotStatistic &&
+                Object.prototype.hasOwnProperty.call(plotStatistic, statName)
+              ) {
                 value = plotStatistic[statName];
               }
             }

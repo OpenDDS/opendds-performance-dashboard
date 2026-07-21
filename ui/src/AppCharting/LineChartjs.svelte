@@ -3,7 +3,9 @@
   import {
     BY_SIZE,
     classNameFromBenchmarkKey,
-    MISSING_VALUE
+    MISSING_VALUE,
+    NOT_APPLICABLE_VALUE,
+    NOT_RUN_VALUE
   } from './chart-data-extractor';
   import {DEFAULT_CHART_HEIGHT} from './chart-layout-helpers';
 
@@ -129,7 +131,11 @@
         const yValues = column.slice(1);
         xValues.forEach((x, index) => {
           const y = yValues[index];
-          if (y === MISSING_VALUE) {
+          if (y === NOT_RUN_VALUE) {
+            container.pointBackgroundColor[index] = '#6b7280';
+          } else if (y === NOT_APPLICABLE_VALUE) {
+            container.pointBackgroundColor[index] = '#d1d5db';
+          } else if (y === MISSING_VALUE) {
             container.pointBackgroundColor[index] = 'orange';
           }
           dataSet.push({x, y});
@@ -185,6 +191,15 @@
           tooltip: {
             callbacks: {
               label(context) {
+                if (context.parsed.y === NOT_RUN_VALUE) {
+                  return `${context.dataset.label}: not run in this suite`;
+                }
+                if (context.parsed.y === NOT_APPLICABLE_VALUE) {
+                  return `${context.dataset.label}: not applicable`;
+                }
+                if (context.parsed.y === MISSING_VALUE) {
+                  return `${context.dataset.label}: expected data is missing`;
+                }
                 context.formattedValue = yAxis.tick.format(context.parsed.y);
               },
               labelColor(context) {
@@ -216,4 +231,39 @@
 
 <div>
   <canvas id={CHART_ID} style={`min-height: ${DEFAULT_CHART_HEIGHT}px`}></canvas>
+  <div class="point-status-legend" aria-label="Special data point colors">
+    <span><i class="not-run"></i>Not run in suite</span>
+    <span><i class="not-applicable"></i>Not applicable</span>
+    <span><i class="missing"></i>Missing data</span>
+    <span><i class="error"></i>Scenario error</span>
+  </div>
 </div>
+
+<style>
+  .point-status-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  .point-status-legend span {
+    align-items: center;
+    display: inline-flex;
+    font-size: 0.8rem;
+    gap: 0.35rem;
+  }
+
+  .point-status-legend i {
+    border-radius: 50%;
+    display: inline-block;
+    height: 0.65rem;
+    width: 0.65rem;
+  }
+
+  .not-run { background: #6b7280; }
+  .not-applicable { background: #d1d5db; }
+  .missing { background: orange; }
+  .error { background: red; }
+</style>
