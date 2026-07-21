@@ -131,14 +131,20 @@
         const yValues = column.slice(1);
         xValues.forEach((x, index) => {
           const y = yValues[index];
+          let status = null;
           if (y === NOT_RUN_VALUE) {
             container.pointBackgroundColor[index] = '#6b7280';
+            status = 'not-run';
           } else if (y === NOT_APPLICABLE_VALUE) {
             container.pointBackgroundColor[index] = '#d1d5db';
+            status = 'not-applicable';
           } else if (y === MISSING_VALUE) {
             container.pointBackgroundColor[index] = 'orange';
+            status = 'missing';
           }
-          dataSet.push({x, y});
+          // Status sentinels are distinct in extracted data but should not
+          // create artificial slopes in the rendered chart.
+          dataSet.push({x, y: status ? NOT_RUN_VALUE : y, status});
         });
 
         container.data = dataSet;
@@ -191,13 +197,14 @@
           tooltip: {
             callbacks: {
               label(context) {
-                if (context.parsed.y === NOT_RUN_VALUE) {
+                const status = context.raw?.status;
+                if (status === 'not-run') {
                   return `${context.dataset.label}: not run in this suite`;
                 }
-                if (context.parsed.y === NOT_APPLICABLE_VALUE) {
+                if (status === 'not-applicable') {
                   return `${context.dataset.label}: not applicable`;
                 }
-                if (context.parsed.y === MISSING_VALUE) {
+                if (status === 'missing') {
                   return `${context.dataset.label}: expected data is missing`;
                 }
                 context.formattedValue = yAxis.tick.format(context.parsed.y);
