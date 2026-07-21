@@ -3,6 +3,7 @@ import * as autoscaling from 'aws-cdk-lib/aws-autoscaling';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as kms from 'aws-cdk-lib/aws-kms';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import {Construct} from 'constructs';
@@ -64,6 +65,7 @@ export class RunStack extends cdk.Stack {
     });
 
     const machineImage = ec2.MachineImage.genericLinux({[this.region]: props.config.amiId});
+    const ebsKey = kms.Alias.fromAliasName(this, 'EbsKey', 'alias/aws/ebs');
     const commonUserData = ec2.UserData.forLinux();
     commonUserData.addCommands(
       'set -euxo pipefail',
@@ -92,7 +94,7 @@ export class RunStack extends cdk.Stack {
       userData: legUserData,
       requireImdsv2: true,
       detailedMonitoring: false,
-      blockDevices: [{deviceName: '/dev/xvda', volume: ec2.BlockDeviceVolume.ebs(16, {encrypted: true, volumeType: ec2.EbsDeviceVolumeType.GP3})}],
+      blockDevices: [{deviceName: '/dev/xvda', volume: ec2.BlockDeviceVolume.ebs(16, {encrypted: true, kmsKey: ebsKey, volumeType: ec2.EbsDeviceVolumeType.GP3})}],
     });
     const cfnLaunchTemplate = legLaunchTemplate.node.defaultChild as ec2.CfnLaunchTemplate;
     cfnLaunchTemplate.addPropertyOverride('LaunchTemplateData.Placement.GroupName', placementGroup.ref);
@@ -126,7 +128,7 @@ export class RunStack extends cdk.Stack {
       metadataOptions: {httpTokens: 'required', httpEndpoint: 'enabled'},
       placementGroupName: placementGroup.ref,
       cpuOptions: {coreCount: props.config.topology.coresPerLeg, threadsPerCore: 1},
-      blockDeviceMappings: [{deviceName: '/dev/xvda', ebs: {volumeSize: 16, volumeType: 'gp3', encrypted: true, deleteOnTermination: true}}],
+      blockDeviceMappings: [{deviceName: '/dev/xvda', ebs: {volumeSize: 16, volumeType: 'gp3', encrypted: true, kmsKeyId: ebsKey.keyArn, deleteOnTermination: true}}],
       tags: [...runTags(props.config), {key: 'Name', value: `opendds-controller-${props.config.stackRunId}`}],
     });
     controller.addDependency(association);
