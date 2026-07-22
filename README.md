@@ -21,7 +21,7 @@ The supported automatic topologies are:
 
 | Suite | Legs | Physical cores per leg | Scenarios |
 | --- | ---: | ---: | ---: |
-| validation | 3 | 2 | 3 |
+| validation | 3 | 1 | 3 |
 | core | 12 | 4 | 15 |
 | full | 30 | 4 | 81 |
 
@@ -71,9 +71,9 @@ aws ssm get-parameter \
   --output text
 ```
 
-The release CodeBuild project uses the Linux `LARGE` class. This keeps an
-occasional build inexpensive and uses the standard account quota, at the cost
-of a longer compile than the `2XLARGE` class.
+Release bundles are built in the OpenDDS GitHub Actions workflow inside an
+Amazon Linux 2023 container and uploaded through GitHub OIDC. AWS CodeBuild is
+used only for the short-lived CDK deployment and teardown jobs.
 
 ```sh
 export CDK_DEFAULT_ACCOUNT=123456789012
@@ -90,11 +90,13 @@ Configure the OpenDDS repository variables from the stack outputs:
 - `PERFORMANCE_AWS_ROLE_ARN`
 - `PERFORMANCE_AWS_REGION`
 - `PERFORMANCE_STATE_MACHINE_ARN`
-- `PERFORMANCE_VALIDATION_INSTANCE_TYPE` (`c7i.xlarge` for the fork)
+- `PERFORMANCE_VALIDATION_INSTANCE_TYPE` (`c7i.large` for the fork)
 - `PERFORMANCE_CORE_INSTANCE_TYPE` (`c7i.2xlarge`)
 - `PERFORMANCE_FULL_INSTANCE_TYPE` (`c7i.2xlarge`)
 - `PERFORMANCE_AMI_ID`
 - `PERFORMANCE_AVAILABILITY_ZONE`
+- `PERFORMANCE_ARTIFACT_BUCKET`
+- `PERFORMANCE_BUNDLE_VERSION` (`al2023-xerces-3.2.5-v5`)
 
 Configure this repository's deployment variables with
 `DashboardDeployRoleArn`, `DashboardBucketName`, and

@@ -6,10 +6,14 @@ const require = createRequire(import.meta.url);
 require('ts-node/register/transpile-only');
 const cdk = require('aws-cdk-lib');
 const {loadControlPlaneConfig} = require('../lib/control-plane-config.ts');
+const {TOPOLOGIES} = require('../lib/config.ts');
 
 test('documented topology profiles remain below the multicast ceiling', () => {
-  const profiles = {validation: 3, core: 12, full: 30};
-  for (const count of Object.values(profiles)) assert.ok(count + 1 <= 100);
+  for (const topology of Object.values(TOPOLOGIES)) assert.ok(topology.legCount + 1 <= 100);
+});
+
+test('validation uses one physical core per inexpensive smoke-test instance', () => {
+  assert.deepEqual(TOPOLOGIES.validation, {legCount: 3, coresPerLeg: 1});
 });
 
 test('the unsupported 120-leg topology exceeds the multicast ceiling', () => {

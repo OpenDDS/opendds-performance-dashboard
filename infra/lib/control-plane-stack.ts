@@ -127,41 +127,7 @@ export class ControlPlaneStack extends cdk.Stack {
     }));
     buildRole.addToPolicy(new iam.PolicyStatement({actions: ['sts:AssumeRole'], resources: [`arn:${this.partition}:iam::${this.account}:role/cdk-*`]}));
 
-    const buildImage = codebuild.LinuxBuildImage.AMAZON_LINUX_2023_5;
     const infrastructureImage = codebuild.LinuxBuildImage.STANDARD_7_0;
-    const buildProject = new codebuild.Project(this, 'BuildOpenDds', {
-      role: buildRole,
-      environment: {buildImage, computeType: codebuild.ComputeType.LARGE},
-      timeout: cdk.Duration.hours(2),
-      buildSpec: codebuild.BuildSpec.fromObject({version: '0.2', phases: {
-        install: {commands: [
-          'dnf install -y cmake openssl-devel',
-          'git clone --depth 1 --branch v3.2.5 --single-branch https://github.com/apache/xerces-c.git xerces-c',
-          'cmake -S xerces-c -B xerces-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$CODEBUILD_SRC_DIR/xerces-install" -DCMAKE_INSTALL_LIBDIR=lib',
-          'cmake --build xerces-build -j"$(nproc)"',
-          'cmake --install xerces-build',
-        ]},
-        build: {commands: [
-        `git clone --filter=blob:none ${props.config.openDdsRepoUrl} OpenDDS`,
-        'cd OpenDDS && git checkout "$OPENDDS_COMMIT" && git submodule update --init --recursive',
-        './configure --optimize --no-debug --tests --rapidjson --security --xerces3="$CODEBUILD_SRC_DIR/xerces-install"',
-        'make -j"$(nproc)" Bench_Worker Bench_node_controller Bench_test_controller Bench_report_parser Bench_dashboard_summarizer DCPSInfoRepo_Main RtpsRelay',
-        'export DDS_ROOT="$CODEBUILD_SRC_DIR/OpenDDS"',
-        'cd performance-tests/bench && perl install_bench.pl --dest "$CODEBUILD_SRC_DIR/bundle"',
-        'cp -L "$CODEBUILD_SRC_DIR"/xerces-install/lib/libxerces-c*.so* "$CODEBUILD_SRC_DIR/bundle/lib/"',
-        `ldd "$CODEBUILD_SRC_DIR/xerces-install/lib/libxerces-c.so" | awk '/libicu/{print $3}' | xargs -r cp -L -t "$CODEBUILD_SRC_DIR/bundle/lib/"`,
-        'cd "$CODEBUILD_SRC_DIR/OpenDDS" && find . -type f -perm -111 \\( -name DCPSInfoRepo -o -name RtpsRelay \\) -exec cp {} "$CODEBUILD_SRC_DIR/bundle/bin/" \\;',
-        'find "$CODEBUILD_SRC_DIR/OpenDDS" \\( -type f -o -type l \\) -name "*.so*" -exec cp -L {} "$CODEBUILD_SRC_DIR/bundle/lib/" \\;',
-        'cd "$CODEBUILD_SRC_DIR" && for executable in node_controller test_controller worker dashboard_summarizer DCPSInfoRepo RtpsRelay; do LD_LIBRARY_PATH="$CODEBUILD_SRC_DIR/bundle/lib" ldd "bundle/bin/$executable" | tee -a ldd.log; done',
-        '! grep -q "not found" "$CODEBUILD_SRC_DIR/ldd.log"',
-        'cd "$CODEBUILD_SRC_DIR" && tar -czf bench.tar.gz bundle',
-        'aws s3 cp bench.tar.gz "s3://$ARTIFACT_BUCKET/builds/$BUNDLE_VERSION/$OPENDDS_COMMIT/bench.tar.gz"',
-        `if aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "configs/$CONFIG_COMMIT/config.tar.gz" >/dev/null 2>&1; then echo "Using preloaded nightly config $CONFIG_COMMIT"; else git clone --filter=blob:none ${props.config.nightlyRepoUrl} nightly && cd nightly && git checkout "$CONFIG_COMMIT" && cd configs/bench && tar -czf "$CODEBUILD_SRC_DIR/config.tar.gz" . && aws s3 cp "$CODEBUILD_SRC_DIR/config.tar.gz" "s3://$ARTIFACT_BUCKET/configs/$CONFIG_COMMIT/config.tar.gz"; fi`,
-        ]},
-      }}),
-      environmentVariables: {ARTIFACT_BUCKET: {value: artifactBucket.bucketName}, BUNDLE_VERSION: {value: bundleVersion}},
-    });
-
     const infraProject = new codebuild.Project(this, 'ManageRunStack', {
       role: buildRole,
       environment: {buildImage: infrastructureImage, computeType: codebuild.ComputeType.SMALL},
@@ -187,7 +153,6 @@ export class ControlPlaneStack extends cdk.Stack {
     });
     const acquire = new tasks.LambdaInvoke(this, 'Acquire lease and budget', {lambdaFunction: coordinator, payload: sfn.TaskInput.fromObject({action: 'acquire', 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride'}), payloadResponseOnly: true});
     const artifact = invoke('Check release bundle', 'artifact');
-    const build = new tasks.CodeBuildStartBuild(this, 'Build release bundle', {project: buildProject, integrationPattern: sfn.IntegrationPattern.RUN_JOB, resultPath: sfn.JsonPath.DISCARD, environmentVariablesOverride: {OPENDDS_COMMIT: {value: sfn.JsonPath.stringAt('$.commitSha')}, CONFIG_COMMIT: {value: sfn.JsonPath.stringAt('$.configCommit')}}});
     const deploy = new tasks.CodeBuildStartBuild(this, 'Deploy ephemeral run stack', {project: infraProject, integrationPattern: sfn.IntegrationPattern.RUN_JOB, resultPath: sfn.JsonPath.DISCARD, environmentVariablesOverride: stackEnvironment('deploy')});
     const wait = new sfn.Wait(this, 'Wait for controller', {time: sfn.WaitTime.duration(cdk.Duration.minutes(1))});
     const check = invoke('Check run status', 'status');
@@ -202,17 +167,17 @@ export class ControlPlaneStack extends cdk.Stack {
       .otherwise(wait));
     wait.next(check);
     const queuedWait = new sfn.Wait(this, 'Wait for active benchmark', {time: sfn.WaitTime.duration(cdk.Duration.minutes(5))});
+    const releaseMissingBundle = invoke('Release missing bundle lease', 'release');
+    const missingBundle = releaseMissingBundle.next(new sfn.Fail(this, 'Release bundle missing', {cause: 'Build and upload the commit release bundle from GitHub Actions before submitting the benchmark'}));
     const bundleRequired = new sfn.Choice(this, 'Release bundle required?')
       .when(sfn.Condition.booleanEquals('$.bundleExists', true), deploy.next(wait))
-      .otherwise(build.next(deploy));
+      .otherwise(missingBundle);
     const runRequired = new sfn.Choice(this, 'Run required?')
       .when(sfn.Condition.booleanEquals('$.shouldRun', true), artifact.next(bundleRequired))
       .when(sfn.Condition.stringEquals('$.reason', 'busy'), queuedWait)
       .otherwise(new sfn.Succeed(this, 'Skipped'));
     queuedWait.next(acquire);
     const definition = acquire.next(runRequired);
-    const releaseBuildFailure = invoke('Release build failure lease', 'release');
-    build.addCatch(releaseBuildFailure.next(new sfn.Fail(this, 'Release build failed')), {resultPath: '$.failure'});
     deploy.addCatch(destroyFailure, {resultPath: '$.failure'});
     check.addCatch(destroyFailure, {resultPath: '$.failure'});
     publish.addCatch(destroyFailure, {resultPath: '$.failure'});
@@ -221,6 +186,8 @@ export class ControlPlaneStack extends cdk.Stack {
     const oidc = new iam.OpenIdConnectProvider(this, 'GitHubOidc', {url: 'https://token.actions.githubusercontent.com', clientIds: ['sts.amazonaws.com']});
     const triggerRole = new iam.Role(this, 'GitHubTriggerRole', {assumedBy: new iam.WebIdentityPrincipal(oidc.openIdConnectProviderArn, {StringEquals: {'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'}, StringLike: {'token.actions.githubusercontent.com:sub': props.config.openDdsOidcSubject}})});
     stateMachine.grantStartExecution(triggerRole);
+    artifactBucket.grantRead(triggerRole, `builds/${bundleVersion}/*`);
+    triggerRole.addToPolicy(new iam.PolicyStatement({actions: ['s3:PutObject'], resources: [artifactBucket.arnForObjects(`builds/${bundleVersion}/*`)]}));
     const dashboardDeployRole = new iam.Role(this, 'DashboardDeployRole', {assumedBy: new iam.WebIdentityPrincipal(oidc.openIdConnectProviderArn, {StringEquals: {'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'}, StringLike: {'token.actions.githubusercontent.com:sub': props.config.dashboardOidcSubject}})});
     publicBucket.grantReadWrite(dashboardDeployRole);
     dashboardDeployRole.addToPolicy(new iam.PolicyStatement({actions: ['cloudfront:CreateInvalidation'], resources: [distribution.distributionArn]}));
@@ -232,6 +199,8 @@ export class ControlPlaneStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'DashboardUrl', {value: `https://${distribution.distributionDomainName}/bench2/`});
     new cdk.CfnOutput(this, 'StateMachineArn', {value: stateMachine.stateMachineArn});
     new cdk.CfnOutput(this, 'GitHubRoleArn', {value: triggerRole.roleArn});
+    new cdk.CfnOutput(this, 'ArtifactBucketName', {value: artifactBucket.bucketName});
+    new cdk.CfnOutput(this, 'BundleVersion', {value: bundleVersion});
     new cdk.CfnOutput(this, 'DashboardDeployRoleArn', {value: dashboardDeployRole.roleArn});
     new cdk.CfnOutput(this, 'DashboardBucketName', {value: publicBucket.bucketName});
     new cdk.CfnOutput(this, 'CloudFrontDistributionId', {value: distribution.distributionId});
