@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc --noEmit",
     "synth": "cdk synth",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "control-plane": "node ../tools/control-plane.mjs"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.200.0",

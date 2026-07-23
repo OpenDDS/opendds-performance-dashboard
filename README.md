@@ -85,6 +85,39 @@ npx --prefix infra cdk bootstrap aws://$CDK_DEFAULT_ACCOUNT/$CDK_DEFAULT_REGION
 npx --prefix infra cdk deploy OpenDdsPerformance-dev -c stage=dev
 ```
 
+For a reproducible account bootstrap, use the lifecycle helper instead. It
+derives immutable GitHub owner/repository IDs, bootstraps CDK, deploys the
+stack, reads its outputs, and can install the resulting GitHub Actions
+Variables in both repositories:
+
+```sh
+node tools/control-plane.mjs deploy \
+  --stage fork \
+  --region us-east-2 \
+  --opendds-repo simpsont-oci/OpenDDS \
+  --opendds-ref aws-performance-testing \
+  --dashboard-repo simpsont-oci/opendds-performance-dashboard \
+  --dashboard-ref aws-performance-testing \
+  --nightly-repo OpenDDS/nightly \
+  --availability-zone us-east-2a \
+  --configure-github
+```
+
+This requires authenticated `aws` and `gh` CLIs. The OpenDDS role is restricted
+to `--opendds-ref`; the dashboard role is restricted to `--dashboard-ref`.
+Rerun `configure-github` without deploying when only repository Variables need
+to be repaired:
+
+```sh
+node tools/control-plane.mjs configure-github \
+  --stage fork \
+  --region us-east-2 \
+  --opendds-repo simpsont-oci/OpenDDS \
+  --opendds-ref aws-performance-testing \
+  --dashboard-repo simpsont-oci/opendds-performance-dashboard \
+  --dashboard-ref aws-performance-testing
+```
+
 Configure the OpenDDS repository variables from the stack outputs:
 
 - `PERFORMANCE_AWS_ROLE_ARN`
@@ -140,6 +173,35 @@ before exceeding $100; the infrastructure budget is also set to $100. Manual
 workflow dispatch can explicitly override the ledger gate. Before production,
 add account notification subscribers at $50, $80, and $100 because email/SNS
 destinations are intentionally not embedded in portable infrastructure.
+
+### Safe teardown and redeployment
+
+Destroy the persistent control plane with:
+
+```sh
+node tools/control-plane.mjs destroy \
+  --stage fork \
+  --region us-east-2 \
+  --yes
+```
+
+The helper refuses to proceed while the state machine has a running execution
+or an ephemeral `OpenDdsPerformanceRun-*` stack exists. Before deletion it
+records stack outputs and retained physical resource IDs under
+`infra/.state/`. That directory is ignored by Git.
+
+The public dashboard bucket, private artifact bucket, and DynamoDB run table
+have CloudFormation `Retain` policies. Safe teardown therefore removes the
+control plane, networking, CloudFront distribution, IAM roles, and
+orchestration, but does not erase benchmark history or build artifacts.
+Deleting retained data is intentionally not implemented by the helper.
+
+Running `deploy` again creates a fresh control plane and fresh data stores, then
+updates GitHub Variables when `--configure-github` is supplied. The retained
+stores are not automatically adopted by a new stack. Keep the teardown
+manifest if later migration or explicit recovery of historical data is
+required. Finally, dispatch the dashboard repository's `Deploy Dashboard`
+workflow to publish the UI into the new bucket.
 
 ## Comparable result eras
 
