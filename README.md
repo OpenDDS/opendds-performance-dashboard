@@ -118,6 +118,21 @@ node tools/control-plane.mjs configure-github \
   --dashboard-ref aws-performance-testing
 ```
 
+Audit the control plane without changing AWS:
+
+```sh
+node tools/control-plane.mjs status \
+  --stage fork \
+  --region us-east-2
+```
+
+The report includes the persistent stack, running Step Functions executions,
+non-deleted run stacks, tagged EC2 instances, and tagged Transit Gateways.
+`--fail-on-active` exits with status 2 when any ephemeral resource is present,
+which is useful after a run should have completed. The manually dispatched
+`Audit Performance Infrastructure` workflow performs this check using
+short-lived GitHub OIDC credentials.
+
 Configure the OpenDDS repository variables from the stack outputs:
 
 - `PERFORMANCE_AWS_ROLE_ARN`

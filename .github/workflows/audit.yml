@@ -1,0 +1,29 @@
+name: Audit Performance Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: CDK stage to audit
+        required: true
+        default: fork
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Audit ephemeral resources
+        run: |
+          node tools/control-plane.mjs status \
+            --stage "${{ inputs.stage }}" \
+            --region "${{ vars.AWS_REGION }}" \
+            --fail-on-active

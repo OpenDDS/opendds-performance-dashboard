@@ -3,6 +3,9 @@ import {execFileSync} from 'node:child_process';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import process from 'node:process';
+import {
+  activeRunStacks, assertSafeToDestroy, auditHasActiveResources, outputMap,
+} from './control-plane-lib.mjs';
 
 const root = resolve(dirname(new URL(import.meta.url).pathname), '..');
 const infra = resolve(root, 'infra');
@@ -35,7 +38,36 @@ function subject(repo, ref) {
 }
 function stackOutputs(stack, region) {
   const result = run('aws', ['cloudformation', 'describe-stacks', '--region', region, '--stack-name', stack], {json: true});
-  return Object.fromEntries(result.Stacks[0].Outputs.map(({OutputKey, OutputValue}) => [OutputKey, OutputValue]));
+  return outputMap(result.Stacks[0]);
+}
+function audit(stage, region) {
+  const stack = `OpenDdsPerformance-${stage}`;
+  const described = run('aws', ['cloudformation', 'describe-stacks', '--region', region,
+    '--stack-name', stack], {json: true}).Stacks[0];
+  const outputs = outputMap(described);
+  const executions = run('aws', ['stepfunctions', 'list-executions', '--region', region,
+    '--state-machine-arn', outputs.StateMachineArn, '--status-filter', 'RUNNING'], {json: true}).executions;
+  const runStacks = activeRunStacks(run('aws', ['cloudformation', 'list-stacks', '--region', region],
+    {json: true}).StackSummaries);
+  const instances = run('aws', ['ec2', 'describe-instances', '--region', region, '--filters',
+    'Name=tag-key,Values=OpenDdsPerformanceRun',
+    'Name=instance-state-name,Values=pending,running,stopping,stopped'], {json: true})
+    .Reservations.flatMap(({Instances}) => Instances).map(instance => ({
+      instanceId: instance.InstanceId, state: instance.State.Name, type: instance.InstanceType,
+      runId: instance.Tags?.find(({Key}) => Key === 'OpenDdsPerformanceRun')?.Value,
+    }));
+  const transitGateways = run('aws', ['ec2', 'describe-transit-gateways', '--region', region,
+    '--filters', 'Name=tag-key,Values=OpenDdsPerformanceRun',
+    'Name=state,Values=pending,available,modifying,deleting'], {json: true}).TransitGateways
+    .map(gateway => ({
+      transitGatewayId: gateway.TransitGatewayId, state: gateway.State,
+      runId: gateway.Tags?.find(({Key}) => Key === 'OpenDdsPerformanceRun')?.Value,
+    }));
+  return {
+    checkedAt: new Date().toISOString(), stage, region,
+    controlPlane: {stack, status: described.StackStatus, dashboardUrl: outputs.DashboardUrl},
+    executions, runStacks, instances, transitGateways,
+  };
 }
 function setVariable(repo, name, value) {
   run('gh', ['variable', 'set', name, '--repo', repo, '--body', String(value)]);
@@ -49,10 +81,12 @@ function usage() {
     [--nightly-repo OWNER/REPO] [--availability-zone AZ] [--configure-github]
 
   node tools/control-plane.mjs configure-github <same options>
+  node tools/control-plane.mjs status --stage STAGE --region REGION [--fail-on-active]
   node tools/control-plane.mjs destroy --stage STAGE --region REGION --yes
 
 Deploy bootstraps CDK and deploys the persistent stack. --configure-github copies
 CloudFormation outputs and runtime defaults into GitHub Actions Variables.
+Status is read-only; --fail-on-active makes it suitable for an orphan audit.
 Destroy refuses to proceed with active executions/run stacks and retains data.`);
 }
 
@@ -120,6 +154,10 @@ if (!command || flag('help') || command === 'help') {
 } else if (command === 'configure-github') {
   const s = settings();
   configure(s, stackOutputs(`OpenDdsPerformance-${s.stage}`, s.region));
+} else if (command === 'status') {
+  const result = audit(required('stage'), required('region'));
+  console.log(JSON.stringify(result, null, 2));
+  if (flag('fail-on-active') && auditHasActiveResources(result)) process.exitCode = 2;
 } else if (command === 'destroy') {
   const stage = required('stage');
   const region = required('region');
@@ -128,11 +166,9 @@ if (!command || flag('help') || command === 'help') {
   const outputs = stackOutputs(stack, region);
   const executions = run('aws', ['stepfunctions', 'list-executions', '--region', region,
     '--state-machine-arn', outputs.StateMachineArn, '--status-filter', 'RUNNING'], {json: true}).executions;
-  const stacks = run('aws', ['cloudformation', 'list-stacks', '--region', region], {json: true}).StackSummaries
-    .filter(value => value.StackName.startsWith('OpenDdsPerformanceRun-') && value.StackStatus !== 'DELETE_COMPLETE');
-  if (executions.length || stacks.length) {
-    throw new Error(`refusing destroy: ${executions.length} running execution(s), ${stacks.length} run stack(s)`);
-  }
+  const stacks = activeRunStacks(run('aws', ['cloudformation', 'list-stacks', '--region', region],
+    {json: true}).StackSummaries);
+  assertSafeToDestroy(executions, stacks);
   const resources = run('aws', ['cloudformation', 'describe-stack-resources', '--region', region,
     '--stack-name', stack], {json: true}).StackResources;
   const retained = resources.filter(({LogicalResourceId}) =>

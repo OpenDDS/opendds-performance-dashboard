@@ -191,6 +191,14 @@ export class ControlPlaneStack extends cdk.Stack {
     const dashboardDeployRole = new iam.Role(this, 'DashboardDeployRole', {assumedBy: new iam.WebIdentityPrincipal(oidc.openIdConnectProviderArn, {StringEquals: {'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'}, StringLike: {'token.actions.githubusercontent.com:sub': props.config.dashboardOidcSubject}})});
     publicBucket.grantReadWrite(dashboardDeployRole);
     dashboardDeployRole.addToPolicy(new iam.PolicyStatement({actions: ['cloudfront:CreateInvalidation'], resources: [distribution.distributionArn]}));
+    dashboardDeployRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['cloudformation:DescribeStacks', 'cloudformation:ListStacks', 'ec2:DescribeInstances', 'ec2:DescribeTransitGateways'],
+      resources: ['*'],
+    }));
+    dashboardDeployRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['states:ListExecutions'],
+      resources: [stateMachine.stateMachineArn],
+    }));
 
     for (const [name, value] of Object.entries({artifactBucket: artifactBucket.bucketName, publicBucket: publicBucket.bucketName, runTable: table.tableName, vpcId: vpc.vpcId, subnetId: vpc.isolatedSubnets[0].subnetId, routeTableId: vpc.isolatedSubnets[0].routeTable.routeTableId, securityGroupId: securityGroup.securityGroupId})) {
       new ssm.StringParameter(this, `Parameter${name}`, {parameterName: `${prefix}/${name}`, stringValue: value});
