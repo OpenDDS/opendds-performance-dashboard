@@ -22,6 +22,7 @@ The supported automatic topologies are:
 | Suite | Legs | Physical cores per leg | Scenarios |
 | --- | ---: | ---: | ---: |
 | validation | 3 | 1 | 3 |
+| standard | 6 | 2 | 10 |
 | core | 12 | 4 | 15 |
 | full | 30 | 4 | 81 |
 
@@ -141,6 +142,7 @@ Configure the OpenDDS repository variables from the stack outputs:
 - `PERFORMANCE_AWS_REGION`
 - `PERFORMANCE_STATE_MACHINE_ARN`
 - `PERFORMANCE_VALIDATION_INSTANCE_TYPE` (`c7i.large` for the fork)
+- `PERFORMANCE_STANDARD_INSTANCE_TYPE` (`c7i.xlarge`)
 - `PERFORMANCE_CORE_INSTANCE_TYPE` (`c7i.2xlarge`)
 - `PERFORMANCE_FULL_INSTANCE_TYPE` (`c7i.2xlarge`)
 - `PERFORMANCE_AMI_ID`

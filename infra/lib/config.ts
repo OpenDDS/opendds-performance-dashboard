@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 
-export type Suite = 'validation' | 'core' | 'full';
+export type Suite = 'validation' | 'standard' | 'core' | 'full';
 
 export interface Topology {
   readonly legCount: number;
@@ -24,6 +24,7 @@ export interface RunConfig {
 
 export const TOPOLOGIES: Record<Suite, Topology> = {
   validation: {legCount: 3, coresPerLeg: 1},
+  standard: {legCount: 6, coresPerLeg: 2},
   core: {legCount: 12, coresPerLeg: 4},
   full: {legCount: 30, coresPerLeg: 4},
 };

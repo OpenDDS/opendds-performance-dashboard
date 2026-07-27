@@ -116,6 +116,7 @@ function configure(s, outputs) {
     PERFORMANCE_AMI_ID: ami,
     PERFORMANCE_AVAILABILITY_ZONE: az,
     PERFORMANCE_VALIDATION_INSTANCE_TYPE: option('validation-instance-type', 'c7i.large'),
+    PERFORMANCE_STANDARD_INSTANCE_TYPE: option('standard-instance-type', 'c7i.xlarge'),
     PERFORMANCE_CORE_INSTANCE_TYPE: option('core-instance-type', 'c7i.2xlarge'),
     PERFORMANCE_FULL_INSTANCE_TYPE: option('full-instance-type', 'c7i.2xlarge'),
   };
