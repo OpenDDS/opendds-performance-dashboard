@@ -100,6 +100,8 @@ node tools/control-plane.mjs deploy \
   --dashboard-ref aws-performance-testing \
   --nightly-repo OpenDDS/nightly \
   --availability-zone us-east-2a \
+  --budget-usd 100 \
+  --budget-email performance-operator@example.com \
   --configure-github
 ```
 
@@ -184,10 +186,11 @@ repository's `master` branch. When nightly is private, set
 reuse that immutable snapshot without requiring a GitHub token.
 
 Automatic runs reserve an estimated amount in the monthly ledger. They pause
-before exceeding $100; the infrastructure budget is also set to $100. Manual
-workflow dispatch can explicitly override the ledger gate. Before production,
-add account notification subscribers at $50, $80, and $100 because email/SNS
-destinations are intentionally not embedded in portable infrastructure.
+before exceeding the configured `--budget-usd`; the AWS Budget uses the same
+monthly limit. Manual workflow dispatch can explicitly override the ledger
+gate. When `--budget-email` is supplied, AWS sends actual-spend notifications
+at 50%, 80%, and 100% of the limit. The address is deployment configuration and
+is not embedded in the portable CDK defaults.
 
 ### Safe teardown and redeployment
 

@@ -37,3 +37,20 @@ test('repository contexts reject shell metacharacters', () => {
   const app = new cdk.App({context: {openDdsRepoUrl: 'https://github.com/example/repo.git; echo unsafe'}});
   assert.throws(() => loadControlPlaneConfig(app), /HTTPS github.com repository URL/);
 });
+
+test('budget configuration is portable and validated', () => {
+  const configured = loadControlPlaneConfig(new cdk.App({context: {
+    budgetUsd: '25',
+    budgetEmail: 'bench@example.com',
+  }}));
+  assert.equal(configured.budgetUsd, 25);
+  assert.equal(configured.budgetEmail, 'bench@example.com');
+  assert.throws(
+    () => loadControlPlaneConfig(new cdk.App({context: {budgetUsd: '0'}})),
+    /positive number/,
+  );
+  assert.throws(
+    () => loadControlPlaneConfig(new cdk.App({context: {budgetEmail: 'invalid'}})),
+    /valid email address/,
+  );
+});

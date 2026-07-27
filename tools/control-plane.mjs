@@ -79,6 +79,7 @@ function usage() {
     --opendds-repo OWNER/REPO --opendds-ref BRANCH \\
     --dashboard-repo OWNER/REPO --dashboard-ref BRANCH \\
     [--nightly-repo OWNER/REPO] [--availability-zone AZ] [--configure-github]
+    [--budget-usd USD] [--budget-email ADDRESS]
 
   node tools/control-plane.mjs configure-github <same options>
   node tools/control-plane.mjs status --stage STAGE --region REGION [--fail-on-active]
@@ -142,7 +143,10 @@ if (!command || flag('help') || command === 'help') {
     '-c', `dashboardRef=${s.dashboardRef}`,
     '-c', `openDdsOidcSubject=${subject(s.openDdsRepo, s.openDdsRef)}`,
     '-c', `dashboardOidcSubject=${subject(s.dashboardRepo, s.dashboardRef)}`,
+    '-c', `budgetUsd=${option('budget-usd', '100')}`,
   ];
+  const budgetEmail = option('budget-email');
+  if (budgetEmail) context.push('-c', `budgetEmail=${budgetEmail}`);
   const env = {CDK_DEFAULT_ACCOUNT: account, CDK_DEFAULT_REGION: s.region};
   run('npm', ['ci'], {cwd: infra});
   run('npm', ['run', 'build'], {cwd: infra});

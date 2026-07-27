@@ -7,6 +7,8 @@ export interface ControlPlaneConfig {
   readonly dashboardRef: string;
   readonly openDdsOidcSubject: string;
   readonly dashboardOidcSubject: string;
+  readonly budgetUsd: number;
+  readonly budgetEmail?: string;
 }
 
 const defaults: ControlPlaneConfig = {
@@ -16,9 +18,10 @@ const defaults: ControlPlaneConfig = {
   dashboardRef: 'master',
   openDdsOidcSubject: 'repo:OpenDDS/OpenDDS:*',
   dashboardOidcSubject: 'repo:OpenDDS/opendds-performance-dashboard:ref:refs/heads/master',
+  budgetUsd: 100,
 };
 
-function context(app: cdk.App, name: keyof ControlPlaneConfig): string {
+function context(app: cdk.App, name: keyof ControlPlaneConfig): unknown {
   return app.node.tryGetContext(name) ?? defaults[name];
 }
 
@@ -44,12 +47,24 @@ function validateSubject(name: string, value: string): string {
 }
 
 export function loadControlPlaneConfig(app: cdk.App): ControlPlaneConfig {
+  const budgetUsd = Number(context(app, 'budgetUsd'));
+  if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) {
+    throw new Error('budgetUsd must be a positive number');
+  }
+  const budgetEmailValue = context(app, 'budgetEmail');
+  const budgetEmail = budgetEmailValue === undefined || budgetEmailValue === ''
+    ? undefined : String(budgetEmailValue);
+  if (budgetEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(budgetEmail)) {
+    throw new Error('budgetEmail must be a valid email address');
+  }
   return {
-    openDdsRepoUrl: validateRepositoryUrl('openDdsRepoUrl', context(app, 'openDdsRepoUrl')),
-    nightlyRepoUrl: validateRepositoryUrl('nightlyRepoUrl', context(app, 'nightlyRepoUrl')),
-    dashboardRepoUrl: validateRepositoryUrl('dashboardRepoUrl', context(app, 'dashboardRepoUrl')),
-    dashboardRef: validateRef(context(app, 'dashboardRef')),
-    openDdsOidcSubject: validateSubject('openDdsOidcSubject', context(app, 'openDdsOidcSubject')),
-    dashboardOidcSubject: validateSubject('dashboardOidcSubject', context(app, 'dashboardOidcSubject')),
+    openDdsRepoUrl: validateRepositoryUrl('openDdsRepoUrl', String(context(app, 'openDdsRepoUrl'))),
+    nightlyRepoUrl: validateRepositoryUrl('nightlyRepoUrl', String(context(app, 'nightlyRepoUrl'))),
+    dashboardRepoUrl: validateRepositoryUrl('dashboardRepoUrl', String(context(app, 'dashboardRepoUrl'))),
+    dashboardRef: validateRef(String(context(app, 'dashboardRef'))),
+    openDdsOidcSubject: validateSubject('openDdsOidcSubject', String(context(app, 'openDdsOidcSubject'))),
+    dashboardOidcSubject: validateSubject('dashboardOidcSubject', String(context(app, 'dashboardOidcSubject'))),
+    budgetUsd,
+    budgetEmail,
   };
 }

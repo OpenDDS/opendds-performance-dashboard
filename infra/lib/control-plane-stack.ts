@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import {createHash} from 'node:crypto';
 import * as cdk from 'aws-cdk-lib';
 import * as budgets from 'aws-cdk-lib/aws-budgets';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
@@ -97,7 +98,7 @@ export class ControlPlaneStack extends cdk.Stack {
         ARTIFACT_BUCKET: artifactBucket.bucketName,
         PUBLIC_BUCKET: publicBucket.bucketName,
         STAGE: props.stage,
-        HARD_BUDGET_USD: '100',
+        HARD_BUDGET_USD: String(props.config.budgetUsd),
         BUNDLE_VERSION: bundleVersion,
       },
     });
@@ -203,7 +204,31 @@ export class ControlPlaneStack extends cdk.Stack {
     for (const [name, value] of Object.entries({artifactBucket: artifactBucket.bucketName, publicBucket: publicBucket.bucketName, runTable: table.tableName, vpcId: vpc.vpcId, subnetId: vpc.isolatedSubnets[0].subnetId, routeTableId: vpc.isolatedSubnets[0].routeTable.routeTableId, securityGroupId: securityGroup.securityGroupId})) {
       new ssm.StringParameter(this, `Parameter${name}`, {parameterName: `${prefix}/${name}`, stringValue: value});
     }
-    new budgets.CfnBudget(this, 'Budget', {budget: {budgetType: 'COST', timeUnit: 'MONTHLY', budgetLimit: {amount: 100, unit: 'USD'}, budgetName: `OpenDDS Performance ${props.stage}`}});
+    const budgetNotifications = props.config.budgetEmail
+      ? [50, 80, 100].map(threshold => ({
+          notification: {
+            comparisonOperator: 'GREATER_THAN',
+            notificationType: 'ACTUAL',
+            threshold,
+            thresholdType: 'PERCENTAGE',
+          },
+          subscribers: [{address: props.config.budgetEmail!, subscriptionType: 'EMAIL'}],
+        }))
+      : undefined;
+    const budgetRevision = createHash('sha256')
+      .update(JSON.stringify({usd: props.config.budgetUsd, email: props.config.budgetEmail ?? ''}))
+      .digest('hex').slice(0, 8);
+    new budgets.CfnBudget(this, 'Budget', {
+      budget: {
+        budgetType: 'COST',
+        timeUnit: 'MONTHLY',
+        budgetLimit: {amount: props.config.budgetUsd, unit: 'USD'},
+        // Subscriber changes replace AWS::Budgets::Budget. A revision suffix
+        // lets CloudFormation create the replacement before deleting the old.
+        budgetName: `OpenDDS Performance ${props.stage} ${budgetRevision}`,
+      },
+      notificationsWithSubscribers: budgetNotifications,
+    });
     new cdk.CfnOutput(this, 'DashboardUrl', {value: `https://${distribution.distributionDomainName}/bench2/`});
     new cdk.CfnOutput(this, 'StateMachineArn', {value: stateMachine.stateMachineArn});
     new cdk.CfnOutput(this, 'GitHubRoleArn', {value: triggerRole.roleArn});
