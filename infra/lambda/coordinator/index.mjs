@@ -40,7 +40,12 @@ async function acquire(input) {
   if (JSON.stringify(input.topology) !== JSON.stringify(expectedTopology)) {
     throw new Error(`Topology for ${input.suite} must be ${JSON.stringify(expectedTopology)}`);
   }
-  const runKey = `${input.commitSha}:${input.configCommit}:${input.suite}`;
+  if (input.repeatNonce && !/^[A-Za-z0-9_-]{1,64}$/.test(input.repeatNonce)) {
+    throw new Error('repeatNonce contains unsupported characters');
+  }
+  const runKey = [
+    input.commitSha, input.configCommit, input.suite, input.repeatNonce,
+  ].filter(Boolean).join(':');
   const existing = await ddb.send(new GetCommand({TableName: tableName, Key: {pk: 'DEDUP', sk: runKey}}));
   if (existing.Item) return {...input, shouldRun: false, reason: 'duplicate', runId: existing.Item.runId};
 
