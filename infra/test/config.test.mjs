@@ -16,6 +16,10 @@ test('validation uses one physical core per inexpensive smoke-test instance', ()
   assert.deepEqual(TOPOLOGIES.validation, {legCount: 3, coresPerLeg: 1});
 });
 
+test('large-message diagnostics reuse the inexpensive validation topology', () => {
+  assert.deepEqual(TOPOLOGIES['large-message'], {legCount: 3, coresPerLeg: 1});
+});
+
 test('standard suite adds moderate scale without the core-suite cost jump', () => {
   assert.deepEqual(TOPOLOGIES.standard, {legCount: 6, coresPerLeg: 2});
 });
