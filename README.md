@@ -17,6 +17,12 @@ Instances have no public IP, SSH key, Internet route, or NAT Gateway. They use
 free S3 and DynamoDB gateway endpoints for artifacts and status. An hourly
 reaper deletes run stacks older than twelve hours as a backstop.
 
+Before starting Bench, every instance enables `chronyd` and waits until its
+system clock is within 1 ms of the Amazon Time Sync Service. A node that cannot
+synchronize within one minute fails initialization. The source, offset, clock
+status, and service status are retained with the run under
+`logs/<run-id>/clock-diagnostics/`.
+
 The supported automatic topologies are:
 
 | Suite | Legs | Physical cores per leg | Scenarios |

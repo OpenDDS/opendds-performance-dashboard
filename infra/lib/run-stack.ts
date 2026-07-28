@@ -12,6 +12,24 @@ import {RunConfig} from './config';
 
 export interface RunStackProps extends cdk.StackProps { readonly config: RunConfig; }
 
+export function clockSyncCommands(): string[] {
+  return [
+    'clock_evidence_dir=/tmp/opendds-clock-diagnostics',
+    'mkdir -p "$clock_evidence_dir"',
+    'systemctl enable --now chronyd',
+    'chronyc tracking | tee "$clock_evidence_dir/tracking-before.txt"',
+    'chronyc sources -v | tee "$clock_evidence_dir/sources-before.txt"',
+    // Try twice per second for one minute. A zero max-skew disables that
+    // separate limit; the system-clock correction must be at most 1 ms.
+    'chronyc waitsync 120 0.001 0 0.5 | tee "$clock_evidence_dir/waitsync.txt"',
+    `chronyc sources -n | awk '$1 == "^*" && $2 == "169.254.169.123" { found=1 } END { exit !found }'`,
+    'chronyc tracking | tee "$clock_evidence_dir/tracking-after.txt"',
+    'chronyc sources -v | tee "$clock_evidence_dir/sources-after.txt"',
+    'timedatectl show --all > "$clock_evidence_dir/timedatectl.txt"',
+    'systemctl status --no-pager chronyd > "$clock_evidence_dir/chronyd-status.txt"',
+  ];
+}
+
 export class RunStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: RunStackProps) {
     super(scope, id, props);
@@ -81,11 +99,14 @@ export class RunStack extends cdk.Stack {
     const commonUserData = ec2.UserData.forLinux();
     commonUserData.addCommands(
       'set -euxo pipefail',
+      ...clockSyncCommands(),
       'sysctl -w net.ipv4.conf.all.force_igmp_version=2',
       'sysctl -w net.ipv4.conf.default.force_igmp_version=2',
       'mkdir -p /opt/opendds-bench /opt/opendds-config',
       `for attempt in {1..30}; do mount -t nfs4 -o nfsvers=4.1 ${fileSystem.ref}.efs.${this.region}.amazonaws.com:/ /opt/opendds-config && break; sleep 2; done`,
       'mountpoint -q /opt/opendds-config',
+      'mkdir -p "/opt/opendds-config/clock-diagnostics/$HOSTNAME"',
+      'cp -a "$clock_evidence_dir/." "/opt/opendds-config/clock-diagnostics/$HOSTNAME/"',
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.artifactKey} /tmp/bench.tar.gz`,
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.configKey} /tmp/config.tar.gz`,
       'tar -xzf /tmp/bench.tar.gz -C /opt/opendds-bench --strip-components=1',
@@ -190,6 +211,7 @@ WORKER_WRAPPER`,
       '/opt/opendds-config/scripts/run_aws_suite.sh',
       'suite_exit=$?',
       `aws s3 cp /opt/opendds-config/node-controller-logs "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/node-controller-logs" --recursive`,
+      `aws s3 cp /opt/opendds-config/clock-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/clock-diagnostics" --recursive`,
       `aws s3 cp /opt/opendds-config/worker-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-diagnostics" --recursive`,
       `if [ "$suite_exit" -ne 0 ]; then aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; fi`,
       'exit "$suite_exit"',
