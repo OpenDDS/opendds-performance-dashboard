@@ -29,10 +29,11 @@ The supported automatic topologies are:
 
 | Suite | Legs | Physical cores per leg | Scenarios |
 | --- | ---: | ---: | ---: |
-| validation | 3 | 1 | 3 |
-| standard | 6 | 2 | 10 |
-| core | 12 | 4 | 15 |
-| full | 30 | 4 | 81 |
+| validation | 3 | 1 | 2 |
+| large-message | 3 | 1 | 2 |
+| standard | 6 | 2 | 7 |
+| core | 12 | 4 | 11 |
+| full | 30 | 4 | 69 |
 
 The historical 120-leg topology is intentionally unsupported because the
 controller plus legs would exceed AWS's limit of 100 receivers in one Transit
