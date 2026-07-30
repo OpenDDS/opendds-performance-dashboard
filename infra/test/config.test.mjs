@@ -6,7 +6,22 @@ const require = createRequire(import.meta.url);
 require('ts-node/register/transpile-only');
 const cdk = require('aws-cdk-lib');
 const {loadControlPlaneConfig} = require('../lib/control-plane-config.ts');
-const {TOPOLOGIES} = require('../lib/config.ts');
+const {loadRunConfig, TOPOLOGIES} = require('../lib/config.ts');
+
+function runContext(overrides = {}) {
+  return {
+    runId: 'test-run',
+    suite: 'validation',
+    commitSha: 'abc123',
+    configCommit: 'def456',
+    instanceType: 'c7i.large',
+    amiId: 'ami-123',
+    availabilityZone: 'us-east-2a',
+    artifactKey: 'builds/test/bench.tar.gz',
+    configKey: 'configs/test/config.tar.gz',
+    ...overrides,
+  };
+}
 
 test('documented topology profiles remain below the multicast ceiling', () => {
   for (const topology of Object.values(TOPOLOGIES)) assert.ok(topology.legCount + 1 <= 100);
@@ -26,6 +41,19 @@ test('standard suite adds moderate scale without the core-suite cost jump', () =
 
 test('the unsupported 120-leg topology exceeds the multicast ceiling', () => {
   assert.ok(120 + 1 > 100);
+});
+
+test('static multicast registration is opt-in and strictly boolean', () => {
+  assert.equal(loadRunConfig(new cdk.App({context: runContext()})).staticMulticastRegistration, false);
+  assert.equal(loadRunConfig(new cdk.App({
+    context: runContext({staticMulticastRegistration: 'true'}),
+  })).staticMulticastRegistration, true);
+  assert.throws(
+    () => loadRunConfig(new cdk.App({
+      context: runContext({staticMulticastRegistration: 'yes'}),
+    })),
+    /must be true or false/,
+  );
 });
 
 test('fork repository URLs and immutable OIDC subjects are accepted', () => {

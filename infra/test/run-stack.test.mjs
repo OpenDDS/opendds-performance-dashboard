@@ -6,8 +6,10 @@ const require = createRequire(import.meta.url);
 require('ts-node/register/transpile-only');
 const {
   clockSyncCommands,
+  awsDiscoveryConfigCommands,
   multicastReceiverCommands,
   multicastSenderCommands,
+  staticMulticastRegistrationCommands,
 } = require('../lib/run-stack.ts');
 
 test('instances must synchronize their clocks before starting Bench', () => {
@@ -64,11 +66,19 @@ test('RTPS echo workers enable focused discovery diagnostics', () => {
   assert.match(source, /prop\.get\("value"\) == "rtps_disc"/);
 });
 
-test('RTPS echo workers constrain internal SEDP messages', () => {
-  const source = require('node:fs').readFileSync(
-    require.resolve('../lib/run-stack.ts'),
-    'utf8',
-  );
-  assert.match(source, /"SedpMaxMessageSize", "value": "1400"/);
-  assert.doesNotMatch(source, /SedpResponsiveMode/);
+test('all AWS RTPS discovery configurations constrain internal SEDP messages', () => {
+  const commands = awsDiscoveryConfigCommands();
+  assert.ok(commands.some(command => command.includes('startswith("rtps_discovery/")')));
+  assert.ok(commands.some(command => command.includes('"SedpMaxMessageSize", "value": "1400"')));
+  assert.ok(commands.some(command => command.includes('os.walk(root)')));
+  assert.ok(!commands.some(command => command.includes('SedpResponsiveMode')));
+});
+
+test('optional static registration covers OpenDDS data and control multicast groups', () => {
+  const commands = staticMulticastRegistrationCommands('tgw-mcast-domain');
+  assert.ok(commands.some(command => command.includes('register-transit-gateway-multicast-group-members')));
+  assert.ok(commands.some(command => command.includes('search-transit-gateway-multicast-groups')));
+  assert.ok(commands.some(command => command.includes('239.255.0.1 239.255.42.31')));
+  assert.ok(commands.some(command => command.includes('X-aws-ec2-metadata-token')));
+  assert.ok(commands.some(command => command.includes('static-registration-eni.txt')));
 });

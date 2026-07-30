@@ -125,6 +125,77 @@ PY`,
   ];
 }
 
+export function awsDiscoveryConfigCommands(): string[] {
+  return [
+    `cat > /tmp/configure-aws-discovery.py <<'PY'
+import json
+import os
+import sys
+
+root = sys.argv[1]
+changed_files = 0
+changed_sections = 0
+for directory, _, filenames in os.walk(root):
+    for filename in filenames:
+        if not filename.endswith(".json"):
+            continue
+        path = os.path.join(directory, filename)
+        try:
+            with open(path) as stream:
+                config = json.load(stream)
+        except (OSError, ValueError):
+            continue
+        changed = False
+        for section in config.get("process", {}).get("config_sections", []):
+            if not section.get("name", "").startswith("rtps_discovery/"):
+                continue
+            section_changed = False
+            properties = section.setdefault("properties", [])
+            sedp_max = next(
+                (prop for prop in properties if prop.get("name") == "SedpMaxMessageSize"),
+                None,
+            )
+            if sedp_max is None:
+                properties.append({"name": "SedpMaxMessageSize", "value": "1400"})
+                changed = True
+                section_changed = True
+            elif sedp_max.get("value") != "1400":
+                sedp_max["value"] = "1400"
+                changed = True
+                section_changed = True
+            if section_changed:
+                changed_sections += 1
+        if changed:
+            with open(path, "w") as stream:
+                json.dump(config, stream, indent=2)
+                stream.write("\\n")
+            changed_files += 1
+print(f"Configured SedpMaxMessageSize=1400 in {changed_sections} RTPS discovery sections across {changed_files} files")
+PY`,
+  ];
+}
+
+export function staticMulticastRegistrationCommands(multicastDomainId: string): string[] {
+  return [
+    'imdsv2_token="$(curl -fsS -X PUT -H \'X-aws-ec2-metadata-token-ttl-seconds: 21600\' http://169.254.169.254/latest/api/token)"',
+    'metadata_mac="$(curl -fsS -H "X-aws-ec2-metadata-token: $imdsv2_token" http://169.254.169.254/latest/meta-data/network/interfaces/macs/ | head -1)"',
+    'network_interface_id="$(curl -fsS -H "X-aws-ec2-metadata-token: $imdsv2_token" "http://169.254.169.254/latest/meta-data/network/interfaces/macs/${metadata_mac}interface-id")"',
+    '[[ "$network_interface_id" == eni-* ]]',
+    `multicast_domain_id='${multicastDomainId}'`,
+    'for multicast_group in 239.255.0.1 239.255.42.31; do',
+    '  aws ec2 register-transit-gateway-multicast-group-members --transit-gateway-multicast-domain-id "$multicast_domain_id" --group-ip-address "$multicast_group" --network-interface-ids "$network_interface_id"',
+    '  registered=0',
+    '  for attempt in {1..120}; do',
+    '    registered="$(aws ec2 search-transit-gateway-multicast-groups --transit-gateway-multicast-domain-id "$multicast_domain_id" --filters "Name=group-ip-address,Values=$multicast_group" "Name=network-interface-id,Values=$network_interface_id" --query \'length(MulticastGroups[?GroupMember==`true`])\' --output text)"',
+    '    [[ "$registered" -ge 1 ]] && break',
+    '    sleep 0.5',
+    '  done',
+    '  [[ "$registered" -ge 1 ]]',
+    'done',
+    'printf \'%s\\n\' "$network_interface_id" > "$network_evidence_dir/static-registration-eni.txt"',
+  ];
+}
+
 export class RunStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: RunStackProps) {
     super(scope, id, props);
@@ -152,6 +223,15 @@ export class RunStack extends cdk.Stack {
     artifactBucket.grantRead(role, props.config.artifactKey);
     artifactBucket.grantRead(role, props.config.configKey);
     table.grantReadWriteData(role);
+    if (props.config.staticMulticastRegistration) {
+      role.addToPolicy(new iam.PolicyStatement({
+        actions: [
+          'ec2:RegisterTransitGatewayMulticastGroupMembers',
+          'ec2:SearchTransitGatewayMulticastGroups',
+        ],
+        resources: ['*'],
+      }));
+    }
     const profile = new iam.CfnInstanceProfile(this, 'InstanceProfile', {roles: [role.roleName]});
 
     const placementGroup = new ec2.CfnPlacementGroup(this, 'PlacementGroup', {strategy: 'cluster'});
@@ -260,22 +340,9 @@ if is_echo_rtps:
     else:
         properties.append({"name": "DCPSDebugLevel", "value": "6"})
     properties.append({"name": "DCPSTransportDebugLevel", "value": "2"})
-    discovery = next(
-        section for section in sections
-        if section.get("name") == "rtps_discovery/rtps_disc"
-    )
-    discovery_properties = discovery.setdefault("properties", [])
-    sedp_max = next(
-        (prop for prop in discovery_properties if prop.get("name") == "SedpMaxMessageSize"),
-        None,
-    )
-    if sedp_max:
-        sedp_max["value"] = "1400"
-    else:
-        discovery_properties.append({"name": "SedpMaxMessageSize", "value": "1400"})
     with open(path, "w") as stream:
         json.dump(config, stream, indent=2)
-    print("Enabled focused RTPS discovery diagnostics and SedpMaxMessageSize=1400")
+    print("Enabled focused RTPS discovery diagnostics")
 PY
 cp "${'$'}config_path" "${'$'}diagnostic_dir/config.json" 2>> "${'$'}transcript" || true
 # node_controller collects statistics for the PID it spawns.  Preserve that PID
@@ -299,6 +366,10 @@ WORKER_WRAPPER`,
       'export LD_LIBRARY_PATH=$BENCH_ROOT/lib',
       'export BENCH_CONFIG_DIR=/opt/opendds-config',
       ...multicastReceiverCommands(),
+      ...awsDiscoveryConfigCommands(),
+      ...(props.config.staticMulticastRegistration
+        ? staticMulticastRegistrationCommands(multicastDomain.ref)
+        : []),
     );
 
     const legUserData = ec2.UserData.custom(commonUserData.render());
@@ -346,6 +417,7 @@ WORKER_WRAPPER`,
       `kill -0 "$node_controller_pid" || { cat "$node_controller_log"; aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; exit 1; }`,
       ...multicastSenderCommands(),
       'sleep 85',
+      'python3 /tmp/configure-aws-discovery.py /opt/opendds-config/config',
       'set +e',
       '/opt/opendds-config/scripts/run_aws_suite.sh',
       'suite_exit=$?',

@@ -34,6 +34,7 @@ const environmentHash = input => createHash('sha256')
     amiId: input.amiId,
     topology: input.topology,
     configCommit: input.configCommit,
+    staticMulticastRegistration: input.staticMulticastRegistration ?? false,
   }))
   .digest('hex').slice(0, 32);
 
@@ -110,6 +111,7 @@ async function acquire(input) {
     Item: {
       pk: 'RUN', sk: runId, runId, date: timestamp, commit: input.commitSha,
       configCommit: input.configCommit, suite: input.suite, topology: input.topology,
+      staticMulticastRegistration: input.staticMulticastRegistration ?? false,
       hash, era: 'aws', status: 'QUEUED', errors: 0, estimatedCostUsd: estimatedCost,
     },
   }));

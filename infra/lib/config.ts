@@ -19,6 +19,7 @@ export interface RunConfig {
   readonly availabilityZone: string;
   readonly artifactKey: string;
   readonly configKey: string;
+  readonly staticMulticastRegistration: boolean;
   readonly maxRunMinutes: number;
 }
 
@@ -36,6 +37,13 @@ function required(app: cdk.App, name: string): string {
     throw new Error(`Missing required CDK context value: ${name}`);
   }
   return value;
+}
+
+function booleanContext(app: cdk.App, name: string): boolean {
+  const value = app.node.tryGetContext(name);
+  if (value === undefined || value === false || value === 'false') return false;
+  if (value === true || value === 'true') return true;
+  throw new Error(`${name} must be true or false`);
 }
 
 export function stackSafeRunId(runId: string): string {
@@ -65,6 +73,7 @@ export function loadRunConfig(app: cdk.App): RunConfig {
     availabilityZone: required(app, 'availabilityZone'),
     artifactKey: required(app, 'artifactKey'),
     configKey: required(app, 'configKey'),
+    staticMulticastRegistration: booleanContext(app, 'staticMulticastRegistration'),
     maxRunMinutes: Number(app.node.tryGetContext('maxRunMinutes') ?? 420),
   };
 }
