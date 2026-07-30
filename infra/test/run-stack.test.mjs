@@ -63,3 +63,12 @@ test('RTPS echo workers enable focused discovery diagnostics', () => {
   assert.match(source, /DCPSTransportDebugLevel/);
   assert.match(source, /prop\.get\("value"\) == "rtps_disc"/);
 });
+
+test('RTPS echo workers constrain internal SEDP messages', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/run-stack.ts'),
+    'utf8',
+  );
+  assert.match(source, /"SedpMaxMessageSize", "value": "1400"/);
+  assert.doesNotMatch(source, /SedpResponsiveMode/);
+});

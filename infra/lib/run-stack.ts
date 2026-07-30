@@ -260,9 +260,22 @@ if is_echo_rtps:
     else:
         properties.append({"name": "DCPSDebugLevel", "value": "6"})
     properties.append({"name": "DCPSTransportDebugLevel", "value": "2"})
+    discovery = next(
+        section for section in sections
+        if section.get("name") == "rtps_discovery/rtps_disc"
+    )
+    discovery_properties = discovery.setdefault("properties", [])
+    sedp_max = next(
+        (prop for prop in discovery_properties if prop.get("name") == "SedpMaxMessageSize"),
+        None,
+    )
+    if sedp_max:
+        sedp_max["value"] = "1400"
+    else:
+        discovery_properties.append({"name": "SedpMaxMessageSize", "value": "1400"})
     with open(path, "w") as stream:
         json.dump(config, stream, indent=2)
-    print("Enabled focused RTPS discovery diagnostics")
+    print("Enabled focused RTPS discovery diagnostics and SedpMaxMessageSize=1400")
 PY
 cp "${'$'}config_path" "${'$'}diagnostic_dir/config.json" 2>> "${'$'}transcript" || true
 # node_controller collects statistics for the PID it spawns.  Preserve that PID
