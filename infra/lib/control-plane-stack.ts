@@ -106,6 +106,10 @@ export class ControlPlaneStack extends cdk.Stack {
     artifactBucket.grantRead(coordinator);
     publicBucket.grantReadWrite(coordinator);
     coordinator.addToRolePolicy(new iam.PolicyStatement({actions: ['cloudformation:DescribeStacks', 'cloudformation:DeleteStack'], resources: ['*']}));
+    coordinator.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ec2:DescribeInstanceTypes', 'servicequotas:GetServiceQuota'],
+      resources: ['*'],
+    }));
     new events.Rule(this, 'OrphanReaper', {
       schedule: events.Schedule.rate(cdk.Duration.hours(1)),
       targets: [new eventTargets.LambdaFunction(coordinator, {event: events.RuleTargetInput.fromObject({action: 'reap'})})],

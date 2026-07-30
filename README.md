@@ -200,6 +200,13 @@ gate. When `--budget-email` is supplied, AWS sends actual-spend notifications
 at 50%, 80%, and 100% of the limit. The address is deployment configuration and
 is not embedded in the portable CDK defaults.
 
+Before reserving budget or deploying a run stack, the coordinator reads the
+selected instance type's default vCPU count and the Region's applied
+`Running On-Demand Standard` EC2 quota. Runs requiring more vCPUs than the
+applied quota are skipped without creating ephemeral infrastructure. The
+calculation includes the controller as well as every leg and uses default
+instance vCPUs because EC2 quota accounting is unaffected by `CpuOptions`.
+
 ### Safe teardown and redeployment
 
 Destroy the persistent control plane with:

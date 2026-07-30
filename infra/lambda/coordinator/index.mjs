@@ -3,10 +3,15 @@ import {DynamoDBDocumentClient, DeleteCommand, GetCommand, PutCommand, ScanComma
 import {CopyObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client} from '@aws-sdk/client-s3';
 import {createHash} from 'node:crypto';
 import {CloudFormationClient, DeleteStackCommand, DescribeStacksCommand} from '@aws-sdk/client-cloudformation';
+import {DescribeInstanceTypesCommand, EC2Client} from '@aws-sdk/client-ec2';
+import {GetServiceQuotaCommand, ServiceQuotasClient} from '@aws-sdk/client-service-quotas';
+import {requiredFleetVcpus, STANDARD_ON_DEMAND_QUOTA_CODE} from './quota.mjs';
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({});
 const cloudformation = new CloudFormationClient({});
+const ec2 = new EC2Client({});
+const serviceQuotas = new ServiceQuotasClient({});
 const tableName = process.env.RUN_TABLE_NAME;
 const artifactBucket = process.env.ARTIFACT_BUCKET;
 const publicBucket = process.env.PUBLIC_BUCKET;
@@ -50,6 +55,29 @@ async function acquire(input) {
   ].filter(Boolean).join(':');
   const existing = await ddb.send(new GetCommand({TableName: tableName, Key: {pk: 'DEDUP', sk: runKey}}));
   if (existing.Item) return {...input, shouldRun: false, reason: 'duplicate', runId: existing.Item.runId};
+
+  const [instanceTypes, standardQuota] = await Promise.all([
+    ec2.send(new DescribeInstanceTypesCommand({InstanceTypes: [input.instanceType]})),
+    serviceQuotas.send(new GetServiceQuotaCommand({
+      ServiceCode: 'ec2',
+      QuotaCode: STANDARD_ON_DEMAND_QUOTA_CODE,
+    })),
+  ]);
+  const instanceVcpus = instanceTypes.InstanceTypes?.[0]?.VCpuInfo?.DefaultVCpus;
+  const quotaVcpus = standardQuota.Quota?.Value;
+  if (!Number.isFinite(quotaVcpus)) {
+    throw new Error('Could not determine the applied On-Demand Standard vCPU quota');
+  }
+  const requiredVcpus = requiredFleetVcpus(instanceVcpus, input.topology);
+  if (requiredVcpus > quotaVcpus) {
+    return {
+      ...input,
+      shouldRun: false,
+      reason: 'quota',
+      requiredVcpus,
+      quotaVcpus,
+    };
+  }
 
   const month = monthKey();
   const budget = await ddb.send(new GetCommand({TableName: tableName, Key: {pk: 'BUDGET', sk: month}}));
