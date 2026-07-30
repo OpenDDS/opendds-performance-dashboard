@@ -216,6 +216,15 @@ export class RunStack extends cdk.Stack {
       routeTableId: parameter('routeTableId'),
     });
     const securityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, 'SecurityGroup', parameter('securityGroupId'));
+    const ec2ApiEndpoint = props.config.staticMulticastRegistration
+      ? new ec2.InterfaceVpcEndpoint(this, 'Ec2ApiEndpoint', {
+        vpc,
+        service: ec2.InterfaceVpcEndpointAwsService.EC2,
+        subnets: {subnets: [subnet]},
+        securityGroups: [securityGroup],
+        privateDnsEnabled: true,
+      })
+      : undefined;
 
     const role = new iam.Role(this, 'InstanceRole', {assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')});
     artifactBucket.grantReadWrite(role, `staging/${props.config.runId}/*`);
@@ -444,8 +453,12 @@ WORKER_WRAPPER`,
     controller.addDependency(association);
     controller.addDependency(mountTarget);
     controller.addDependency(profile);
+    if (ec2ApiEndpoint) controller.node.addDependency(ec2ApiEndpoint);
     (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(association);
     (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(mountTarget);
+    if (ec2ApiEndpoint) {
+      (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(ec2ApiEndpoint.node.defaultChild as ec2.CfnVPCEndpoint);
+    }
 
     new cdk.CfnOutput(this, 'RunId', {value: props.config.runId});
     new cdk.CfnOutput(this, 'ControllerInstanceId', {value: controller.ref});

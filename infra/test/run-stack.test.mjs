@@ -82,3 +82,13 @@ test('optional static registration covers OpenDDS data and control multicast gro
   assert.ok(commands.some(command => command.includes('X-aws-ec2-metadata-token')));
   assert.ok(commands.some(command => command.includes('static-registration-eni.txt')));
 });
+
+test('static registration gets temporary private access to the EC2 API', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/run-stack.ts'),
+    'utf8',
+  );
+  assert.match(source, /InterfaceVpcEndpointAwsService\.EC2/);
+  assert.match(source, /props\.config\.staticMulticastRegistration/);
+  assert.match(source, /privateDnsEnabled: true/);
+});
