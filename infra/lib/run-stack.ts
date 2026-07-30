@@ -177,41 +177,7 @@ PY`,
 
 export function multicastGroupDiscoveryCommands(): string[] {
   return [
-    `cat > /tmp/discover-aws-multicast-groups.py <<'PY'
-import ipaddress
-import os
-import re
-import sys
-
-roots = sys.argv[1:]
-# OpenDDS uses this SPDP group when an RTPS discovery section doesn't provide
-# an explicit InteropMulticastOverride.
-groups = {ipaddress.ip_address("239.255.0.1")}
-address_pattern = re.compile(r"(?<![0-9.])(?:\\d{1,3}\\.){3}\\d{1,3}(?![0-9.])")
-paths = []
-for root in roots:
-    if os.path.isdir(root):
-        for directory, _, filenames in os.walk(root):
-            paths.extend(os.path.join(directory, filename) for filename in filenames)
-    else:
-        paths.append(root)
-for path in paths:
-    try:
-        with open(path, errors="ignore") as stream:
-            contents = stream.read()
-    except OSError:
-        continue
-    for candidate in address_pattern.findall(contents):
-        try:
-            address = ipaddress.ip_address(candidate)
-        except ValueError:
-            continue
-        if address.is_multicast:
-            groups.add(address)
-for address in sorted(groups, key=int):
-    print(address)
-PY`,
-    'python3 /tmp/discover-aws-multicast-groups.py /opt/opendds-config/config /opt/opendds-config/control_opendds_config.ini > /tmp/aws-multicast-groups.txt',
+    'python3 /opt/opendds-config/scripts/discover_aws_multicast_groups.py /opt/opendds-config/config /opt/opendds-config/control_opendds_config.ini > /tmp/aws-multicast-groups.txt',
     '[[ -s /tmp/aws-multicast-groups.txt ]]',
   ];
 }

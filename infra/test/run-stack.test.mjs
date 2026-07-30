@@ -78,8 +78,7 @@ test('all AWS RTPS discovery configurations constrain internal SEDP messages', (
 test('optional static registration covers OpenDDS data and control multicast groups', () => {
   const discovery = multicastGroupDiscoveryCommands();
   const commands = staticMulticastRegistrationCommands('tgw-mcast-domain');
-  assert.ok(discovery.some(command => command.includes('address.is_multicast')));
-  assert.ok(discovery.some(command => command.includes('239.255.0.1')));
+  assert.ok(discovery.some(command => command.includes('discover_aws_multicast_groups.py')));
   assert.ok(discovery.some(command => command.includes('/opt/opendds-config/config')));
   assert.ok(commands.some(command => command.includes('register-transit-gateway-multicast-group-members')));
   assert.ok(commands.some(command => command.includes('search-transit-gateway-multicast-groups')));
