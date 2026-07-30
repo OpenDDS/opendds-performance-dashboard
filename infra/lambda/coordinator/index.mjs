@@ -202,7 +202,11 @@ async function release(input) {
       }
       await ddb.send(new DeleteCommand({
         TableName: tableName,
-        Key: {pk: 'DEDUP', sk: `${input.commitSha}:${input.configCommit}:${input.suite}`},
+        Key: {
+          pk: 'DEDUP',
+          sk: [input.commitSha, input.configCommit, input.suite, input.repeatNonce]
+            .filter(Boolean).join(':'),
+        },
       }));
     }
   }

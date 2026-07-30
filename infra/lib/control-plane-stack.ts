@@ -153,7 +153,7 @@ export class ControlPlaneStack extends cdk.Stack {
 
     const invoke = (name: string, action: string) => new tasks.LambdaInvoke(this, name, {
       lambdaFunction: coordinator,
-      payload: sfn.TaskInput.fromObject({action, 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride', 'staticMulticastRegistration.$': '$.staticMulticastRegistration', 'runId.$': '$.runId'}),
+      payload: sfn.TaskInput.fromObject({action, 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride', 'staticMulticastRegistration.$': '$.staticMulticastRegistration', 'repeatNonce.$': '$.repeatNonce', 'runId.$': '$.runId'}),
       payloadResponseOnly: true,
     });
     const acquire = new tasks.LambdaInvoke(this, 'Acquire lease and budget', {lambdaFunction: coordinator, payload: sfn.TaskInput.fromObject({action: 'acquire', 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride', 'staticMulticastRegistration.$': '$.staticMulticastRegistration', 'repeatNonce.$': '$.repeatNonce'}), payloadResponseOnly: true});
