@@ -217,11 +217,12 @@ export class RunStack extends cdk.Stack {
     });
     const securityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, 'SecurityGroup', parameter('securityGroupId'));
     const ec2ApiEndpoint = props.config.staticMulticastRegistration
-      ? new ec2.InterfaceVpcEndpoint(this, 'Ec2ApiEndpoint', {
-        vpc,
-        service: ec2.InterfaceVpcEndpointAwsService.EC2,
-        subnets: {subnets: [subnet]},
-        securityGroups: [securityGroup],
+      ? new ec2.CfnVPCEndpoint(this, 'Ec2ApiEndpoint', {
+        vpcId: vpc.vpcId,
+        serviceName: `com.amazonaws.${this.region}.ec2`,
+        vpcEndpointType: 'Interface',
+        subnetIds: [subnet.subnetId],
+        securityGroupIds: [securityGroup.securityGroupId],
         privateDnsEnabled: true,
       })
       : undefined;
@@ -457,7 +458,7 @@ WORKER_WRAPPER`,
     (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(association);
     (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(mountTarget);
     if (ec2ApiEndpoint) {
-      (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(ec2ApiEndpoint.node.defaultChild as ec2.CfnVPCEndpoint);
+      (legs.node.defaultChild as autoscaling.CfnAutoScalingGroup).addDependency(ec2ApiEndpoint);
     }
 
     new cdk.CfnOutput(this, 'RunId', {value: props.config.runId});

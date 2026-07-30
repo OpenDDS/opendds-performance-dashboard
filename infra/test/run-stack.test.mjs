@@ -88,7 +88,8 @@ test('static registration gets temporary private access to the EC2 API', () => {
     require.resolve('../lib/run-stack.ts'),
     'utf8',
   );
-  assert.match(source, /InterfaceVpcEndpointAwsService\.EC2/);
+  assert.match(source, /new ec2\.CfnVPCEndpoint/);
+  assert.match(source, /com\.amazonaws\.\$\{this\.region\}\.ec2/);
   assert.match(source, /props\.config\.staticMulticastRegistration/);
   assert.match(source, /privateDnsEnabled: true/);
 });
