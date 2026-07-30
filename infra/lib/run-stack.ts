@@ -91,9 +91,11 @@ output = "/opt/opendds-config/network-diagnostics/multicast-send.jsonl"
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
 sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
-profiles = (("warmup-10pps", 50, 0.1), ("steady-100pps", 1000, 0.01),
+profiles = (("join-20pps", 100, 0.05), ("steady-100pps", 1000, 0.01),
             ("burst-1000pps", 5000, 0.001))
 with open(output, "w", buffering=1) as stream:
+    stream.write(json.dumps({"event": "sender-started", "sent_ns": time.time_ns()},
+                            separators=(",", ":")) + "\\n")
     for profile, count, interval in profiles:
         for sequence in range(count):
             sent_ns = time.time_ns()
@@ -109,12 +111,12 @@ with open(output, "w", buffering=1) as stream:
                 time.sleep(min(interval / 4, 0.001))
         time.sleep(2)
 PY`,
-    // Allow IGMP reports from every instance to reach the Transit Gateway
-    // before measuring the first low-rate profile.
+    // Start as soon as every local socket reports its join. This intentionally
+    // measures Transit Gateway IGMP convergence instead of hiding it behind a
+    // settling delay.
     'expected_receivers=$((EXPECTED_LEGS + 1))',
     'for attempt in {1..180}; do joined_receivers="$(find /opt/opendds-config/network-diagnostics -name multicast-receive.jsonl -exec grep -l \'"event": "joined"\' {} \\; | wc -l)"; [[ "$joined_receivers" -ge "$expected_receivers" ]] && break; sleep 0.5; done',
     '[[ "${joined_receivers:-0}" -ge "$expected_receivers" ]]',
-    'sleep 5',
     'python3 /tmp/opendds-multicast-sender.py',
     'sleep 2',
     'cat /proc/net/igmp > "$network_evidence_dir/igmp-after-send.txt"',
@@ -235,6 +237,33 @@ done
 printf '%s worker args:' "${'$'}(date -u +%FT%TZ)" >> "${'$'}transcript"
 printf ' %q' "${'$'}@" >> "${'$'}transcript"
 printf '\n' >> "${'$'}transcript"
+# Keep the large discovery scenario at its normal logging level, but capture
+# detailed SPDP/SEDP progress for the two-worker RTPS echo scenario.
+python3 - "${'$'}config_path" >> "${'$'}transcript" 2>&1 <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path) as stream:
+    config = json.load(stream)
+sections = config.get("process", {}).get("config_sections", [])
+is_echo_rtps = any(
+    prop.get("name") == "DCPSDefaultDiscovery" and prop.get("value") == "rtps_disc"
+    for section in sections for prop in section.get("properties", [])
+)
+if is_echo_rtps:
+    common = next(section for section in sections if section.get("name") == "common")
+    properties = common.setdefault("properties", [])
+    debug = next((prop for prop in properties if prop.get("name") == "DCPSDebugLevel"), None)
+    if debug:
+        debug["value"] = "6"
+    else:
+        properties.append({"name": "DCPSDebugLevel", "value": "6"})
+    properties.append({"name": "DCPSTransportDebugLevel", "value": "2"})
+    with open(path, "w") as stream:
+        json.dump(config, stream, indent=2)
+    print("Enabled focused RTPS discovery diagnostics")
+PY
 cp "${'$'}config_path" "${'$'}diagnostic_dir/config.json" 2>> "${'$'}transcript" || true
 # node_controller collects statistics for the PID it spawns.  Preserve that PID
 # by replacing this wrapper with the real worker instead of waiting for it as a

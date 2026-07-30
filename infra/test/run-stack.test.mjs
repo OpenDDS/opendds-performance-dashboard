@@ -46,9 +46,20 @@ test('each instance records multicast membership and sequenced packets', () => {
 
 test('controller measures low, medium, and burst multicast delivery', () => {
   const commands = multicastSenderCommands();
-  assert.ok(commands.some(command => command.includes('warmup-10pps')));
+  assert.ok(commands.some(command => command.includes('join-20pps')));
   assert.ok(commands.some(command => command.includes('steady-100pps')));
   assert.ok(commands.some(command => command.includes('burst-1000pps')));
   assert.ok(commands.some(command => command.includes('expected_receivers')));
   assert.ok(commands.some(command => command.includes('1400 - len(message)')));
+  assert.ok(!commands.includes('sleep 5'));
+});
+
+test('RTPS echo workers enable focused discovery diagnostics', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/run-stack.ts'),
+    'utf8',
+  );
+  assert.match(source, /Enabled focused RTPS discovery diagnostics/);
+  assert.match(source, /DCPSTransportDebugLevel/);
+  assert.match(source, /prop\.get\("value"\) == "rtps_disc"/);
 });
