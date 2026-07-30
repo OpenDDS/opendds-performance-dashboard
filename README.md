@@ -18,10 +18,12 @@ free S3 and DynamoDB gateway endpoints for artifacts and status. An hourly
 reaper deletes run stacks older than twelve hours as a backstop.
 
 Before starting Bench, every instance enables `chronyd` and waits until its
-system clock is within 1 ms of the Amazon Time Sync Service. A node that cannot
-synchronize within one minute fails initialization. The source, offset, clock
-status, and service status are retained with the run under
-`logs/<run-id>/clock-diagnostics/`.
+system clock is within 1 ms of the Amazon Time Sync Service with a frequency
+skew estimate at or below 100 ppm. A node that cannot satisfy both conditions
+within two minutes fails initialization. The source, offset, clock status, and
+service status are retained with the run under
+`logs/<run-id>/clock-diagnostics/`; tracking and source state are sampled every
+30 seconds throughout the suite.
 
 The supported automatic topologies are:
 

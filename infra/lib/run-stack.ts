@@ -19,9 +19,10 @@ export function clockSyncCommands(): string[] {
     'systemctl enable --now chronyd',
     'chronyc tracking | tee "$clock_evidence_dir/tracking-before.txt"',
     'chronyc sources -v | tee "$clock_evidence_dir/sources-before.txt"',
-    // Try twice per second for one minute. A zero max-skew disables that
-    // separate limit; the system-clock correction must be at most 1 ms.
-    'chronyc waitsync 120 0.001 0 0.5 | tee "$clock_evidence_dir/waitsync.txt"',
+    // Try twice per second for two minutes. Require both a system-clock
+    // correction of at most 1 ms and a settled frequency-skew estimate of at
+    // most 100 ppm before any Bench process can start.
+    'chronyc waitsync 240 0.001 100 0.5 | tee "$clock_evidence_dir/waitsync.txt"',
     `chronyc sources -n | awk '$1 == "^*" && $2 == "169.254.169.123" { found=1 } END { exit !found }'`,
     'chronyc tracking | tee "$clock_evidence_dir/tracking-after.txt"',
     'chronyc sources -v | tee "$clock_evidence_dir/sources-after.txt"',
@@ -107,6 +108,8 @@ export class RunStack extends cdk.Stack {
       'mountpoint -q /opt/opendds-config',
       'mkdir -p "/opt/opendds-config/clock-diagnostics/$HOSTNAME"',
       'cp -a "$clock_evidence_dir/." "/opt/opendds-config/clock-diagnostics/$HOSTNAME/"',
+      'clock_monitor_log="/opt/opendds-config/clock-diagnostics/$HOSTNAME/monitor.log"',
+      `nohup bash -c 'while true; do date -u +%FT%TZ; chronyc tracking; chronyc sources -n; sleep 30; done' > "$clock_monitor_log" 2>&1 &`,
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.artifactKey} /tmp/bench.tar.gz`,
       `aws s3 cp s3://${artifactBucket.bucketName}/${props.config.configKey} /tmp/config.tar.gz`,
       'tar -xzf /tmp/bench.tar.gz -C /opt/opendds-bench --strip-components=1',
