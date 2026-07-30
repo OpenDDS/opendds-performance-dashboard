@@ -31,6 +31,98 @@ export function clockSyncCommands(): string[] {
   ];
 }
 
+export function multicastReceiverCommands(): string[] {
+  return [
+    'network_evidence_dir="/opt/opendds-config/network-diagnostics/$HOSTNAME"',
+    'mkdir -p "$network_evidence_dir"',
+    `cat > /tmp/opendds-multicast-receiver.py <<'PY'
+import json
+import os
+import socket
+import struct
+import time
+
+group = "239.255.42.99"
+port = 45999
+host = socket.gethostname()
+output = os.path.join(os.environ["network_evidence_dir"], "multicast-receive.jsonl")
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sock.bind(("", port))
+sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
+                struct.pack("=4s4s", socket.inet_aton(group), socket.inet_aton("0.0.0.0")))
+with open(output, "a", buffering=1) as stream:
+    stream.write(json.dumps({"event": "joined", "host": host, "wall_ns": time.time_ns(),
+                             "monotonic_ns": time.monotonic_ns(), "group": group, "port": port}) + "\\n")
+    while True:
+        payload, address = sock.recvfrom(65535)
+        received_ns = time.time_ns()
+        try:
+            message = json.loads(payload.rstrip(b" ").decode())
+        except Exception as error:
+            message = {"decode_error": str(error), "payload_size": len(payload)}
+        message.update({"event": "received", "receiver": host, "source": address[0],
+                        "received_ns": received_ns, "payload_size": len(payload)})
+        stream.write(json.dumps(message, separators=(",", ":")) + "\\n")
+PY`,
+    'export network_evidence_dir',
+    'nohup python3 /tmp/opendds-multicast-receiver.py > "$network_evidence_dir/receiver.stdout" 2>&1 &',
+    'echo "$!" > "$network_evidence_dir/receiver.pid"',
+    'for attempt in {1..20}; do grep -q \'"event": "joined"\' "$network_evidence_dir/multicast-receive.jsonl" 2>/dev/null && break; sleep 0.25; done',
+    'grep -q \'"event": "joined"\' "$network_evidence_dir/multicast-receive.jsonl"',
+    'cat /proc/net/igmp > "$network_evidence_dir/igmp-after-join.txt"',
+    'ip maddr show > "$network_evidence_dir/maddr-after-join.txt"',
+    'nstat -az > "$network_evidence_dir/nstat-before.txt" 2>&1 || true',
+    `nohup bash -c 'while true; do date -u +%FT%TZ; cat /proc/net/igmp; ip maddr show; nstat -az; sleep 5; done' > "$network_evidence_dir/network-monitor.log" 2>&1 &`,
+  ];
+}
+
+export function multicastSenderCommands(): string[] {
+  return [
+    `cat > /tmp/opendds-multicast-sender.py <<'PY'
+import json
+import os
+import socket
+import time
+
+group = "239.255.42.99"
+port = 45999
+output = "/opt/opendds-config/network-diagnostics/multicast-send.jsonl"
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
+profiles = (("warmup-10pps", 50, 0.1), ("steady-100pps", 1000, 0.01),
+            ("burst-1000pps", 5000, 0.001))
+with open(output, "w", buffering=1) as stream:
+    for profile, count, interval in profiles:
+        for sequence in range(count):
+            sent_ns = time.time_ns()
+            message = json.dumps({"profile": profile, "sequence": sequence,
+                                  "sent_ns": sent_ns}, separators=(",", ":")).encode()
+            payload = message + b" " * (1400 - len(message))
+            sock.sendto(payload, (group, port))
+            stream.write(json.dumps({"profile": profile, "sequence": sequence,
+                                     "sent_ns": sent_ns, "payload_size": len(payload)},
+                                    separators=(",", ":")) + "\\n")
+            target = sent_ns + int(interval * 1_000_000_000)
+            while time.time_ns() < target:
+                time.sleep(min(interval / 4, 0.001))
+        time.sleep(2)
+PY`,
+    // Allow IGMP reports from every instance to reach the Transit Gateway
+    // before measuring the first low-rate profile.
+    'expected_receivers=$((EXPECTED_LEGS + 1))',
+    'for attempt in {1..180}; do joined_receivers="$(find /opt/opendds-config/network-diagnostics -name multicast-receive.jsonl -exec grep -l \'"event": "joined"\' {} \\; | wc -l)"; [[ "$joined_receivers" -ge "$expected_receivers" ]] && break; sleep 0.5; done',
+    '[[ "${joined_receivers:-0}" -ge "$expected_receivers" ]]',
+    'sleep 5',
+    'python3 /tmp/opendds-multicast-sender.py',
+    'sleep 2',
+    'cat /proc/net/igmp > "$network_evidence_dir/igmp-after-send.txt"',
+    'ip maddr show > "$network_evidence_dir/maddr-after-send.txt"',
+    'nstat -az > "$network_evidence_dir/nstat-after-send.txt" 2>&1 || true',
+  ];
+}
+
 export class RunStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: RunStackProps) {
     super(scope, id, props);
@@ -164,6 +256,7 @@ WORKER_WRAPPER`,
       'export PATH=$BENCH_ROOT/bin:$PATH',
       'export LD_LIBRARY_PATH=$BENCH_ROOT/lib',
       'export BENCH_CONFIG_DIR=/opt/opendds-config',
+      ...multicastReceiverCommands(),
     );
 
     const legUserData = ec2.UserData.custom(commonUserData.render());
@@ -209,6 +302,7 @@ WORKER_WRAPPER`,
       'node_controller_pid=$!',
       'sleep 5',
       `kill -0 "$node_controller_pid" || { cat "$node_controller_log"; aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; exit 1; }`,
+      ...multicastSenderCommands(),
       'sleep 85',
       'set +e',
       '/opt/opendds-config/scripts/run_aws_suite.sh',
@@ -216,6 +310,7 @@ WORKER_WRAPPER`,
       `aws s3 cp /opt/opendds-config/node-controller-logs "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/node-controller-logs" --recursive`,
       `aws s3 cp /opt/opendds-config/clock-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/clock-diagnostics" --recursive`,
       `aws s3 cp /opt/opendds-config/worker-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-diagnostics" --recursive`,
+      `aws s3 cp /opt/opendds-config/network-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/network-diagnostics" --recursive`,
       `if [ "$suite_exit" -ne 0 ]; then aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; fi`,
       'exit "$suite_exit"',
     );

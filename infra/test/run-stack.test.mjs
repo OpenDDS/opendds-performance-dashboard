@@ -4,7 +4,11 @@ import {createRequire} from 'node:module';
 
 const require = createRequire(import.meta.url);
 require('ts-node/register/transpile-only');
-const {clockSyncCommands} = require('../lib/run-stack.ts');
+const {
+  clockSyncCommands,
+  multicastReceiverCommands,
+  multicastSenderCommands,
+} = require('../lib/run-stack.ts');
 
 test('instances must synchronize their clocks before starting Bench', () => {
   const commands = clockSyncCommands();
@@ -31,4 +35,20 @@ test('run stack samples clock state throughout benchmark execution', () => {
   );
   assert.match(source, /clock_monitor_log/);
   assert.match(source, /sleep 30/);
+});
+
+test('each instance records multicast membership and sequenced packets', () => {
+  const commands = multicastReceiverCommands();
+  assert.ok(commands.some(command => command.includes('IP_ADD_MEMBERSHIP')));
+  assert.ok(commands.some(command => command.includes('/proc/net/igmp')));
+  assert.ok(commands.some(command => command.includes('multicast-receive.jsonl')));
+});
+
+test('controller measures low, medium, and burst multicast delivery', () => {
+  const commands = multicastSenderCommands();
+  assert.ok(commands.some(command => command.includes('warmup-10pps')));
+  assert.ok(commands.some(command => command.includes('steady-100pps')));
+  assert.ok(commands.some(command => command.includes('burst-1000pps')));
+  assert.ok(commands.some(command => command.includes('expected_receivers')));
+  assert.ok(commands.some(command => command.includes('1400 - len(message)')));
 });
