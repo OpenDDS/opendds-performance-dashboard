@@ -7,6 +7,7 @@ require('ts-node/register/transpile-only');
 const {
   clockSyncCommands,
   awsDiscoveryConfigCommands,
+  multicastGroupDiscoveryCommands,
   multicastReceiverCommands,
   multicastSenderCommands,
   staticMulticastRegistrationCommands,
@@ -75,12 +76,14 @@ test('all AWS RTPS discovery configurations constrain internal SEDP messages', (
 });
 
 test('optional static registration covers OpenDDS data and control multicast groups', () => {
+  const discovery = multicastGroupDiscoveryCommands();
   const commands = staticMulticastRegistrationCommands('tgw-mcast-domain');
+  assert.ok(discovery.some(command => command.includes('address.is_multicast')));
+  assert.ok(discovery.some(command => command.includes('239.255.0.1')));
+  assert.ok(discovery.some(command => command.includes('/opt/opendds-config/config')));
   assert.ok(commands.some(command => command.includes('register-transit-gateway-multicast-group-members')));
   assert.ok(commands.some(command => command.includes('search-transit-gateway-multicast-groups')));
-  assert.ok(commands.some(command =>
-    command.includes('239.255.0.1 239.255.42.31 239.255.42.53'),
-  ));
+  assert.ok(commands.some(command => command.includes('/tmp/aws-multicast-groups.txt')));
   assert.ok(commands.some(command => command.includes('X-aws-ec2-metadata-token')));
   assert.ok(commands.some(command => command.includes('static-registration-eni.txt')));
 });
@@ -92,6 +95,6 @@ test('static registration gets temporary private access to the EC2 API', () => {
   );
   assert.match(source, /new ec2\.CfnVPCEndpoint/);
   assert.match(source, /com\.amazonaws\.\$\{this\.region\}\.ec2/);
-  assert.match(source, /props\.config\.staticMulticastRegistration/);
+  assert.match(source, /props\.config\.dynamicMulticastRegistration/);
   assert.match(source, /privateDnsEnabled: true/);
 });

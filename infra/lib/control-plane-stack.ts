@@ -141,7 +141,7 @@ export class ControlPlaneStack extends cdk.Stack {
         'if aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "configs/$CONFIG_COMMIT/config.tar.gz" >/dev/null 2>&1; then echo "Using preloaded nightly config $CONFIG_COMMIT"; else git clone --filter=blob:none "$NIGHTLY_REPO_URL" nightly && cd nightly && git checkout "$CONFIG_COMMIT" && cd configs/bench && tar -czf "$CODEBUILD_SRC_DIR/config.tar.gz" . && aws s3 cp "$CODEBUILD_SRC_DIR/config.tar.gz" "s3://$ARTIFACT_BUCKET/configs/$CONFIG_COMMIT/config.tar.gz" && cd "$CODEBUILD_SRC_DIR"; fi',
         `git clone --depth 1 --branch ${props.config.dashboardRef} --single-branch ${props.config.dashboardRepoUrl} dashboard`,
         'cd dashboard/infra && npm ci',
-        'npx cdk "$CDK_ACTION" "OpenDdsPerformanceRun-*" --require-approval never --force -c stage="$STAGE" -c runId="$RUN_ID" -c suite="$SUITE" -c commitSha="$OPENDDS_COMMIT" -c configCommit="$CONFIG_COMMIT" -c instanceType="$INSTANCE_TYPE" -c amiId="$AMI_ID" -c availabilityZone="$AVAILABILITY_ZONE" -c staticMulticastRegistration="$STATIC_MULTICAST_REGISTRATION" -c artifactKey="builds/$BUNDLE_VERSION/$OPENDDS_COMMIT/bench.tar.gz" -c configKey="configs/$CONFIG_COMMIT/config.tar.gz"',
+        'npx cdk "$CDK_ACTION" "OpenDdsPerformanceRun-*" --require-approval never --force -c stage="$STAGE" -c runId="$RUN_ID" -c suite="$SUITE" -c commitSha="$OPENDDS_COMMIT" -c configCommit="$CONFIG_COMMIT" -c instanceType="$INSTANCE_TYPE" -c amiId="$AMI_ID" -c availabilityZone="$AVAILABILITY_ZONE" -c dynamicMulticastRegistration="$DYNAMIC_MULTICAST_REGISTRATION" -c artifactKey="builds/$BUNDLE_VERSION/$OPENDDS_COMMIT/bench.tar.gz" -c configKey="configs/$CONFIG_COMMIT/config.tar.gz"',
       ]}}}),
       environmentVariables: {
         STAGE: {value: props.stage},
@@ -153,10 +153,10 @@ export class ControlPlaneStack extends cdk.Stack {
 
     const invoke = (name: string, action: string) => new tasks.LambdaInvoke(this, name, {
       lambdaFunction: coordinator,
-      payload: sfn.TaskInput.fromObject({action, 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride', 'staticMulticastRegistration.$': '$.staticMulticastRegistration', 'repeatNonce.$': '$.repeatNonce', 'runId.$': '$.runId'}),
+      payload: sfn.TaskInput.fromObject({action, 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride', 'dynamicMulticastRegistration.$': '$.dynamicMulticastRegistration', 'repeatNonce.$': '$.repeatNonce', 'runId.$': '$.runId'}),
       payloadResponseOnly: true,
     });
-    const acquire = new tasks.LambdaInvoke(this, 'Acquire lease and budget', {lambdaFunction: coordinator, payload: sfn.TaskInput.fromObject({action: 'acquire', 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride', 'staticMulticastRegistration.$': '$.staticMulticastRegistration', 'repeatNonce.$': '$.repeatNonce'}), payloadResponseOnly: true});
+    const acquire = new tasks.LambdaInvoke(this, 'Acquire lease and budget', {lambdaFunction: coordinator, payload: sfn.TaskInput.fromObject({action: 'acquire', 'commitSha.$': '$.commitSha', 'configCommit.$': '$.configCommit', 'suite.$': '$.suite', 'instanceType.$': '$.instanceType', 'amiId.$': '$.amiId', 'availabilityZone.$': '$.availabilityZone', 'topology.$': '$.topology', 'estimatedCostUsd.$': '$.estimatedCostUsd', 'manualOverride.$': '$.manualOverride', 'dynamicMulticastRegistration.$': '$.dynamicMulticastRegistration', 'repeatNonce.$': '$.repeatNonce'}), payloadResponseOnly: true});
     const artifact = invoke('Check release bundle', 'artifact');
     const deploy = new tasks.CodeBuildStartBuild(this, 'Deploy ephemeral run stack', {project: infraProject, integrationPattern: sfn.IntegrationPattern.RUN_JOB, resultPath: sfn.JsonPath.DISCARD, environmentVariablesOverride: stackEnvironment('deploy')});
     const wait = new sfn.Wait(this, 'Wait for controller', {time: sfn.WaitTime.duration(cdk.Duration.minutes(1))});
@@ -244,7 +244,7 @@ export class ControlPlaneStack extends cdk.Stack {
 
     function stackEnvironment(action: string): Record<string, codebuild.BuildEnvironmentVariable> {
       return {
-        CDK_ACTION: {value: action}, RUN_ID: {value: sfn.JsonPath.stringAt('$.runId')}, SUITE: {value: sfn.JsonPath.stringAt('$.suite')}, OPENDDS_COMMIT: {value: sfn.JsonPath.stringAt('$.commitSha')}, CONFIG_COMMIT: {value: sfn.JsonPath.stringAt('$.configCommit')}, INSTANCE_TYPE: {value: sfn.JsonPath.stringAt('$.instanceType')}, AMI_ID: {value: sfn.JsonPath.stringAt('$.amiId')}, AVAILABILITY_ZONE: {value: sfn.JsonPath.stringAt('$.availabilityZone')}, STATIC_MULTICAST_REGISTRATION: {value: sfn.JsonPath.stringAt('States.Format(\'{}\', $.staticMulticastRegistration)')},
+        CDK_ACTION: {value: action}, RUN_ID: {value: sfn.JsonPath.stringAt('$.runId')}, SUITE: {value: sfn.JsonPath.stringAt('$.suite')}, OPENDDS_COMMIT: {value: sfn.JsonPath.stringAt('$.commitSha')}, CONFIG_COMMIT: {value: sfn.JsonPath.stringAt('$.configCommit')}, INSTANCE_TYPE: {value: sfn.JsonPath.stringAt('$.instanceType')}, AMI_ID: {value: sfn.JsonPath.stringAt('$.amiId')}, AVAILABILITY_ZONE: {value: sfn.JsonPath.stringAt('$.availabilityZone')}, DYNAMIC_MULTICAST_REGISTRATION: {value: sfn.JsonPath.stringAt('States.Format(\'{}\', $.dynamicMulticastRegistration)')},
       };
     }
   }

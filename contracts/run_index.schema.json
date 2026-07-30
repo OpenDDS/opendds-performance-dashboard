@@ -13,6 +13,7 @@
       "errors": {"type": "integer", "minimum": 0},
       "era": {"type": "string"},
       "suite": {"type": "string"},
+      "multicastRegistration": {"enum": ["static", "dynamic"]},
       "status": {"enum": ["QUEUED", "PROVISIONING", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT"]},
       "topology": {
         "type": "object",

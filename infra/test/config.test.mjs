@@ -43,14 +43,14 @@ test('the unsupported 120-leg topology exceeds the multicast ceiling', () => {
   assert.ok(120 + 1 > 100);
 });
 
-test('static multicast registration is opt-in and strictly boolean', () => {
-  assert.equal(loadRunConfig(new cdk.App({context: runContext()})).staticMulticastRegistration, false);
+test('dynamic multicast registration is opt-in and strictly boolean', () => {
+  assert.equal(loadRunConfig(new cdk.App({context: runContext()})).dynamicMulticastRegistration, false);
   assert.equal(loadRunConfig(new cdk.App({
-    context: runContext({staticMulticastRegistration: 'true'}),
-  })).staticMulticastRegistration, true);
+    context: runContext({dynamicMulticastRegistration: 'true'}),
+  })).dynamicMulticastRegistration, true);
   assert.throws(
     () => loadRunConfig(new cdk.App({
-      context: runContext({staticMulticastRegistration: 'yes'}),
+      context: runContext({dynamicMulticastRegistration: 'yes'}),
     })),
     /must be true or false/,
   );

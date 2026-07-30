@@ -195,6 +195,14 @@ repository's `master` branch. When nightly is private, set
 `configs/<commit>/config.tar.gz` in the private artifact bucket; CodeBuild will
 reuse that immutable snapshot without requiring a GitHub token.
 
+AWS runs statically register multicast membership by default so Transit
+Gateway join convergence doesn't become part of OpenDDS discovery timing.
+The workflow's `dynamic_multicast_registration` input opts into IGMP-only
+membership for cloud-network diagnostics. Static runs derive explicit group
+addresses from the pinned Bench configuration bundle and add OpenDDS's
+implicit default SPDP group. The selected mode is part of the environment hash,
+published run metadata, and dashboard environment filter.
+
 Automatic runs reserve an estimated amount in the monthly ledger. They pause
 before exceeding the configured `--budget-usd`; the AWS Budget uses the same
 monthly limit. Manual workflow dispatch can explicitly override the ledger

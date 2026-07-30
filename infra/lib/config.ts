@@ -19,7 +19,7 @@ export interface RunConfig {
   readonly availabilityZone: string;
   readonly artifactKey: string;
   readonly configKey: string;
-  readonly staticMulticastRegistration: boolean;
+  readonly dynamicMulticastRegistration: boolean;
   readonly maxRunMinutes: number;
 }
 
@@ -73,7 +73,7 @@ export function loadRunConfig(app: cdk.App): RunConfig {
     availabilityZone: required(app, 'availabilityZone'),
     artifactKey: required(app, 'artifactKey'),
     configKey: required(app, 'configKey'),
-    staticMulticastRegistration: booleanContext(app, 'staticMulticastRegistration'),
+    dynamicMulticastRegistration: booleanContext(app, 'dynamicMulticastRegistration'),
     maxRunMinutes: Number(app.node.tryGetContext('maxRunMinutes') ?? 420),
   };
 }

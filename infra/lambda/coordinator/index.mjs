@@ -34,7 +34,7 @@ const environmentHash = input => createHash('sha256')
     amiId: input.amiId,
     topology: input.topology,
     configCommit: input.configCommit,
-    staticMulticastRegistration: input.staticMulticastRegistration ?? false,
+    multicastRegistration: input.dynamicMulticastRegistration ? 'dynamic' : 'static',
   }))
   .digest('hex').slice(0, 32);
 
@@ -111,7 +111,7 @@ async function acquire(input) {
     Item: {
       pk: 'RUN', sk: runId, runId, date: timestamp, commit: input.commitSha,
       configCommit: input.configCommit, suite: input.suite, topology: input.topology,
-      staticMulticastRegistration: input.staticMulticastRegistration ?? false,
+      multicastRegistration: input.dynamicMulticastRegistration ? 'dynamic' : 'static',
       hash, era: 'aws', status: 'QUEUED', errors: 0, estimatedCostUsd: estimatedCost,
     },
   }));
@@ -173,8 +173,14 @@ async function publish(input) {
     runItems.push(...(runs.Items ?? []));
     exclusiveStartKey = runs.LastEvaluatedKey;
   } while (exclusiveStartKey);
-  const index = runItems.map(({runId: key, date, commit, hash, errors, era, suite, topology, status}) =>
-    ({key, date, commit, hash, errors, era, suite, topology, status}))
+  const index = runItems.map(({
+    runId: key, date, commit, hash, errors, era, suite, topology, status,
+    multicastRegistration, staticMulticastRegistration,
+  }) => ({
+    key, date, commit, hash, errors, era, suite, topology, status,
+    multicastRegistration: multicastRegistration ??
+      (era === 'aws' ? (staticMulticastRegistration ? 'static' : 'dynamic') : undefined),
+  }))
     .sort((a, b) => a.date.localeCompare(b.date));
   await s3.send(new PutObjectCommand({
     Bucket: publicBucket,

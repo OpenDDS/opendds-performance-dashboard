@@ -100,6 +100,7 @@ export type Run = {
   errors: number;
   era?: 'centipede' | 'aws' | string;
   suite?: 'validation' | 'core' | 'full' | string;
+  multicastRegistration?: 'static' | 'dynamic';
   topology?: {
     legCount: number;
     coresPerLeg: number;

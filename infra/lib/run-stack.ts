@@ -175,6 +175,47 @@ PY`,
   ];
 }
 
+export function multicastGroupDiscoveryCommands(): string[] {
+  return [
+    `cat > /tmp/discover-aws-multicast-groups.py <<'PY'
+import ipaddress
+import os
+import re
+import sys
+
+roots = sys.argv[1:]
+# OpenDDS uses this SPDP group when an RTPS discovery section doesn't provide
+# an explicit InteropMulticastOverride.
+groups = {ipaddress.ip_address("239.255.0.1")}
+address_pattern = re.compile(r"(?<![0-9.])(?:\\d{1,3}\\.){3}\\d{1,3}(?![0-9.])")
+paths = []
+for root in roots:
+    if os.path.isdir(root):
+        for directory, _, filenames in os.walk(root):
+            paths.extend(os.path.join(directory, filename) for filename in filenames)
+    else:
+        paths.append(root)
+for path in paths:
+    try:
+        with open(path, errors="ignore") as stream:
+            contents = stream.read()
+    except OSError:
+        continue
+    for candidate in address_pattern.findall(contents):
+        try:
+            address = ipaddress.ip_address(candidate)
+        except ValueError:
+            continue
+        if address.is_multicast:
+            groups.add(address)
+for address in sorted(groups, key=int):
+    print(address)
+PY`,
+    'python3 /tmp/discover-aws-multicast-groups.py /opt/opendds-config/config /opt/opendds-config/control_opendds_config.ini > /tmp/aws-multicast-groups.txt',
+    '[[ -s /tmp/aws-multicast-groups.txt ]]',
+  ];
+}
+
 export function staticMulticastRegistrationCommands(multicastDomainId: string): string[] {
   return [
     'imdsv2_token="$(curl -fsS -X PUT -H \'X-aws-ec2-metadata-token-ttl-seconds: 21600\' http://169.254.169.254/latest/api/token)"',
@@ -182,9 +223,8 @@ export function staticMulticastRegistrationCommands(multicastDomainId: string): 
     'network_interface_id="$(curl -fsS -H "X-aws-ec2-metadata-token: $imdsv2_token" "http://169.254.169.254/latest/meta-data/network/interfaces/macs/${metadata_mac}interface-id")"',
     '[[ "$network_interface_id" == eni-* ]]',
     `multicast_domain_id='${multicastDomainId}'`,
-    // Default user-domain SPDP plus the Bench control domain's multicast
-    // transport and RTPS discovery groups.
-    'for multicast_group in 239.255.0.1 239.255.42.31 239.255.42.53; do',
+    'cp /tmp/aws-multicast-groups.txt "$network_evidence_dir/static-registration-groups.txt"',
+    'while IFS= read -r multicast_group; do',
     '  aws ec2 register-transit-gateway-multicast-group-members --transit-gateway-multicast-domain-id "$multicast_domain_id" --group-ip-address "$multicast_group" --network-interface-ids "$network_interface_id"',
     '  registered=0',
     '  for attempt in {1..120}; do',
@@ -193,7 +233,7 @@ export function staticMulticastRegistrationCommands(multicastDomainId: string): 
     '    sleep 0.5',
     '  done',
     '  [[ "$registered" -ge 1 ]]',
-    'done',
+    'done < /tmp/aws-multicast-groups.txt',
     'printf \'%s\\n\' "$network_interface_id" > "$network_evidence_dir/static-registration-eni.txt"',
   ];
 }
@@ -218,7 +258,7 @@ export class RunStack extends cdk.Stack {
       routeTableId: parameter('routeTableId'),
     });
     const securityGroup = ec2.SecurityGroup.fromSecurityGroupId(this, 'SecurityGroup', parameter('securityGroupId'));
-    const ec2ApiEndpoint = props.config.staticMulticastRegistration
+    const ec2ApiEndpoint = !props.config.dynamicMulticastRegistration
       ? new ec2.CfnVPCEndpoint(this, 'Ec2ApiEndpoint', {
         vpcId: vpc.vpcId,
         serviceName: `com.amazonaws.${this.region}.ec2`,
@@ -235,7 +275,7 @@ export class RunStack extends cdk.Stack {
     artifactBucket.grantRead(role, props.config.artifactKey);
     artifactBucket.grantRead(role, props.config.configKey);
     table.grantReadWriteData(role);
-    if (props.config.staticMulticastRegistration) {
+    if (!props.config.dynamicMulticastRegistration) {
       role.addToPolicy(new iam.PolicyStatement({
         actions: [
           'ec2:RegisterTransitGatewayMulticastGroupMembers',
@@ -379,7 +419,8 @@ WORKER_WRAPPER`,
       'export BENCH_CONFIG_DIR=/opt/opendds-config',
       ...multicastReceiverCommands(),
       ...awsDiscoveryConfigCommands(),
-      ...(props.config.staticMulticastRegistration
+      ...multicastGroupDiscoveryCommands(),
+      ...(!props.config.dynamicMulticastRegistration
         ? staticMulticastRegistrationCommands(multicastDomain.ref)
         : []),
     );
@@ -419,7 +460,7 @@ WORKER_WRAPPER`,
 
     const controllerUserData = ec2.UserData.custom(commonUserData.render());
     controllerUserData.addCommands(
-      `export RUN_ID='${props.config.runId}' SUITE='${props.config.suite}' OPENDDS_COMMIT='${props.config.commitSha}' CONFIG_COMMIT='${props.config.configCommit}'`,
+      `export RUN_ID='${props.config.runId}' SUITE='${props.config.suite}' OPENDDS_COMMIT='${props.config.commitSha}' CONFIG_COMMIT='${props.config.configCommit}' MULTICAST_REGISTRATION_MODE='${props.config.dynamicMulticastRegistration ? 'dynamic' : 'static'}'`,
       `export ARTIFACT_BUCKET='${artifactBucket.bucketName}' RUN_TABLE='${table.tableName}' EXPECTED_LEGS='${props.config.topology.legCount}'`,
       'mkdir -p /opt/opendds-config/node-controller-logs',
       'node_controller_log="/opt/opendds-config/node-controller-logs/${HOSTNAME}.log"',

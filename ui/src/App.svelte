@@ -168,6 +168,7 @@
           errors: errorCount,
           era = 'centipede',
           suite,
+          multicastRegistration,
           topology,
           status
         }: Run) => {
@@ -176,7 +177,9 @@
           const topologyLabel = topology
             ? `${topology.legCount}x${topology.coresPerLeg}`
             : 'legacy';
-          const environmentKey = `${era}:${hash || 'unknown'}:${topologyLabel}`;
+          const registrationLabel =
+            multicastRegistration || (era === 'aws' ? 'dynamic' : 'native');
+          const environmentKey = `${era}:${hash || 'unknown'}:${topologyLabel}:${registrationLabel}`;
           return {
             key,
             date,
@@ -187,10 +190,11 @@
             hash,
             era,
             suite,
+            multicastRegistration,
             topology,
             status,
             environmentKey,
-            environmentLabel: `${era} / ${topologyLabel} / ${hash ? hash.substring(0, 8) : 'unknown'}`,
+            environmentLabel: `${era} / ${topologyLabel} / ${registrationLabel} / ${hash ? hash.substring(0, 8) : 'unknown'}`,
             tag: keyedTags[commit]
           };
         }
