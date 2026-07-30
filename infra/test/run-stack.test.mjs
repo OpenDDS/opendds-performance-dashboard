@@ -78,7 +78,9 @@ test('optional static registration covers OpenDDS data and control multicast gro
   const commands = staticMulticastRegistrationCommands('tgw-mcast-domain');
   assert.ok(commands.some(command => command.includes('register-transit-gateway-multicast-group-members')));
   assert.ok(commands.some(command => command.includes('search-transit-gateway-multicast-groups')));
-  assert.ok(commands.some(command => command.includes('239.255.0.1 239.255.42.31')));
+  assert.ok(commands.some(command =>
+    command.includes('239.255.0.1 239.255.42.31 239.255.42.53'),
+  ));
   assert.ok(commands.some(command => command.includes('X-aws-ec2-metadata-token')));
   assert.ok(commands.some(command => command.includes('static-registration-eni.txt')));
 });

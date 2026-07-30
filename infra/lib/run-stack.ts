@@ -182,7 +182,9 @@ export function staticMulticastRegistrationCommands(multicastDomainId: string): 
     'network_interface_id="$(curl -fsS -H "X-aws-ec2-metadata-token: $imdsv2_token" "http://169.254.169.254/latest/meta-data/network/interfaces/macs/${metadata_mac}interface-id")"',
     '[[ "$network_interface_id" == eni-* ]]',
     `multicast_domain_id='${multicastDomainId}'`,
-    'for multicast_group in 239.255.0.1 239.255.42.31; do',
+    // Default user-domain SPDP plus the Bench control domain's multicast
+    // transport and RTPS discovery groups.
+    'for multicast_group in 239.255.0.1 239.255.42.31 239.255.42.53; do',
     '  aws ec2 register-transit-gateway-multicast-group-members --transit-gateway-multicast-domain-id "$multicast_domain_id" --group-ip-address "$multicast_group" --network-interface-ids "$network_interface_id"',
     '  registered=0',
     '  for attempt in {1..120}; do',
