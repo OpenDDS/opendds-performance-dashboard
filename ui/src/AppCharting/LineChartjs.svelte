@@ -84,7 +84,8 @@
         const label = bySize ? trimmedSize : formattedDateTime;
         className = formatTime(className);
         const index = xLabels.indexOf(label);
-        if (index && label && className) {
+        // index 0 is a valid (and common for a single-run chart) data point.
+        if (index >= 0 && label && className) {
           formattedErrors.push({index, label, className});
         }
       }

@@ -77,7 +77,10 @@
       columns: chartData.columns
     });
     if (typeof axis.y.label !== 'string') {
-      axis.y.label.text = getAxisYLabel(form, {statProperties});
+      axis.y.label.text = getAxisYLabel(form, {
+        statProperties,
+        columns: chartData.columns
+      });
     }
     if (typeof axis.x.label !== 'string') {
       axis.x.label.text = getAxisXLabel(form, {hasNodes});

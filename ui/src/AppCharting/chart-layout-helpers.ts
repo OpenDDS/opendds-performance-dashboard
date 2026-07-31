@@ -18,9 +18,7 @@ type HasUseTimeSeriesOptions = Pick<FormConfiguration, 'useTimeSeries'>;
 export const DEFAULT_CHART_HEIGHT = 500;
 
 const DEFAULT_Y_TICK_FORMAT = function format(value: number): string {
-  return Number.isInteger(value)
-    ? value.toString()
-    : parseFloat(value.toFixed(4)).toFixed(4);
+  return value.toFixed(4);
 };
 
 export function yAxisConfigurationFactory(): YAxisConfiguration {
@@ -116,11 +114,18 @@ export function getAxisYTickFormat(
 
 export function getAxisYLabel(
   {plotType, statName}: FormConfiguration,
-  {statProperties}: HasStatPropertiesOptions
+  {
+    statProperties,
+    columns
+  }: HasStatPropertiesOptions & Partial<HasColumnsOptions>
 ): string {
   if (!plotType) return '';
   const plotStatTypes = statProperties[plotType];
-  const unit = plotStatTypes ? plotStatTypes.units : '';
+  let unit = plotStatTypes ? plotStatTypes.units : '';
+  if (unit === 'seconds' && columns) {
+    const {max} = getMaxAndMinValues({columns});
+    unit = max < 3 ? 'milliseconds' : 'seconds';
+  }
   return [statName, unit].filter(i => i).join(' ');
 }
 
