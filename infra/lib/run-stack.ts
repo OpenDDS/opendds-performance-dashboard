@@ -298,6 +298,16 @@ export class RunStack extends cdk.Stack {
       'mkdir -p /opt/opendds-bench /opt/opendds-config',
       `for attempt in {1..30}; do mount -t nfs4 -o nfsvers=4.1 ${fileSystem.ref}.efs.${this.region}.amazonaws.com:/ /opt/opendds-config && break; sleep 2; done`,
       'mountpoint -q /opt/opendds-config',
+      ...(props.config.suite === 'relay-diagnostic'
+        ? [
+          'core_dir="/opt/opendds-config/core-diagnostics/$HOSTNAME"',
+          'mkdir -p "$core_dir"',
+          'chmod 1777 "$core_dir"',
+          'sysctl -w "kernel.core_pattern=$core_dir/core.%e.%p.%t"',
+          'ulimit -c unlimited',
+          'printf "core_pattern=%s\\ncore_limit=%s\\n" "$(cat /proc/sys/kernel/core_pattern)" "$(ulimit -c)" > "$core_dir/settings.txt"',
+        ]
+        : []),
       'mkdir -p "/opt/opendds-config/clock-diagnostics/$HOSTNAME"',
       'cp -a "$clock_evidence_dir/." "/opt/opendds-config/clock-diagnostics/$HOSTNAME/"',
       'clock_monitor_log="/opt/opendds-config/clock-diagnostics/$HOSTNAME/monitor.log"',
@@ -444,6 +454,9 @@ WORKER_WRAPPER`,
       `aws s3 cp /opt/opendds-config/clock-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/clock-diagnostics" --recursive`,
       `aws s3 cp /opt/opendds-config/worker-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-diagnostics" --recursive`,
       `aws s3 cp /opt/opendds-config/network-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/network-diagnostics" --recursive`,
+      ...(props.config.suite === 'relay-diagnostic'
+        ? [`aws s3 cp /opt/opendds-config/core-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/core-diagnostics" --recursive`]
+        : []),
       `if [ "$suite_exit" -ne 0 ]; then aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values '{":status":{"S":"FAILED"},":errors":{"N":"1"}}'; fi`,
       'exit "$suite_exit"',
     );

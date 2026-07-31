@@ -40,6 +40,17 @@ test('run stack samples clock state throughout benchmark execution', () => {
   assert.match(source, /sleep 30/);
 });
 
+test('relay diagnostic suite captures core dumps on shared storage', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/run-stack.ts'),
+    'utf8',
+  );
+  assert.match(source, /suite === 'relay-diagnostic'/);
+  assert.match(source, /kernel\.core_pattern/);
+  assert.match(source, /ulimit -c unlimited/);
+  assert.match(source, /core-diagnostics/);
+});
+
 test('each instance records multicast membership and sequenced packets', () => {
   const commands = multicastReceiverCommands();
   assert.ok(commands.some(command => command.includes('IP_ADD_MEMBERSHIP')));

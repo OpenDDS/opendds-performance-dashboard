@@ -31,6 +31,7 @@ The supported automatic topologies are:
 | --- | ---: | ---: | ---: |
 | validation | 3 | 1 | 2 |
 | large-message | 3 | 1 | 2 |
+| relay-diagnostic | 3 | 1 | 1 |
 | standard | 6 | 2 | 7 |
 | core | 12 | 4 | 11 |
 | full | 30 | 4 | 69 |
