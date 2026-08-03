@@ -22,6 +22,7 @@ const topologies = {
   validation: {legCount: 3, coresPerLeg: 1},
   'large-message': {legCount: 3, coresPerLeg: 1},
   'relay-diagnostic': {legCount: 3, coresPerLeg: 1},
+  'fan-diagnostic': {legCount: 12, coresPerLeg: 4},
   standard: {legCount: 6, coresPerLeg: 2},
   core: {legCount: 12, coresPerLeg: 4},
   full: {legCount: 30, coresPerLeg: 4},

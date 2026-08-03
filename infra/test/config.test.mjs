@@ -39,6 +39,10 @@ test('relay diagnostics reuse the inexpensive validation topology', () => {
   assert.deepEqual(TOPOLOGIES['relay-diagnostic'], {legCount: 3, coresPerLeg: 1});
 });
 
+test('fan diagnostics preserve the core topology for comparable worker placement', () => {
+  assert.deepEqual(TOPOLOGIES['fan-diagnostic'], {legCount: 12, coresPerLeg: 4});
+});
+
 test('standard suite adds moderate scale without the core-suite cost jump', () => {
   assert.deepEqual(TOPOLOGIES.standard, {legCount: 6, coresPerLeg: 2});
 });
