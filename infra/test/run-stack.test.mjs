@@ -108,6 +108,24 @@ test('network diagnostics summarize host counter deltas by scenario', () => {
   assert.match(summary, /end_offset_seconds/);
 });
 
+test('controller defers terminal status until diagnostics are uploaded', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/run-stack.ts'),
+    'utf8',
+  );
+  const defer = source.indexOf('DEFER_FINAL_STATUS=1');
+  const summarize = source.indexOf('...networkScenarioSummaryCommands()');
+  const networkUpload = source.indexOf('/network-diagnostics" --recursive || post_run_exit=1');
+  const finalStatus = source.indexOf('final_status=SUCCEEDED');
+  const terminalUpdate = source.indexOf('$final_status');
+  assert.ok(defer >= 0);
+  assert.ok(summarize > defer);
+  assert.ok(networkUpload > summarize);
+  assert.ok(finalStatus > networkUpload);
+  assert.ok(terminalUpdate > finalStatus);
+  assert.match(source, /post_run_exit=1/);
+});
+
 test('controller measures low, medium, and burst multicast delivery', () => {
   const commands = multicastSenderCommands();
   assert.ok(commands.some(command => command.includes('expected_receivers')));
