@@ -12,6 +12,17 @@ import {RunConfig} from './config';
 
 export interface RunStackProps extends cdk.StackProps { readonly config: RunConfig; }
 
+export function udpBufferTuningCommands(): string[] {
+  return [
+    // Keep the kernel ceiling above OpenDDS's 4 MiB socket requests. Linux can
+    // otherwise accept SO_RCVBUF/SO_SNDBUF while silently clamping the value.
+    'sysctl -w net.core.rmem_max=16777216',
+    'sysctl -w net.core.wmem_max=16777216',
+    'sysctl -w net.core.rmem_default=4194304',
+    'sysctl -w net.core.wmem_default=4194304',
+  ];
+}
+
 export function clockSyncCommands(): string[] {
   return [
     'clock_evidence_dir=/tmp/opendds-clock-diagnostics',
@@ -35,6 +46,59 @@ export function multicastReceiverCommands(): string[] {
   return [
     'network_evidence_dir="/opt/opendds-config/network-diagnostics/$HOSTNAME"',
     'mkdir -p "$network_evidence_dir"',
+    `cat > /tmp/opendds-host-network-monitor.py <<'PY'
+import json
+import os
+import time
+
+
+def protocol_counters(path):
+    result = {}
+    with open(path) as stream:
+        lines = [line.split() for line in stream]
+    for names, values in zip(lines[0::2], lines[1::2]):
+        if names and values and names[0] == values[0]:
+            result.update({names[0].rstrip(":") + name: int(value)
+                           for name, value in zip(names[1:], values[1:])})
+    return result
+
+
+def interface_counters():
+    result = {}
+    fields = ("rx_dropped", "rx_errors", "tx_dropped", "tx_errors")
+    for interface in os.listdir("/sys/class/net"):
+        if interface == "lo":
+            continue
+        for field in fields:
+            path = "/sys/class/net/%s/statistics/%s" % (interface, field)
+            with open(path) as stream:
+                result["interface_%s_%s" % (interface, field)] = int(stream.read())
+    return result
+
+
+def softnet_counters():
+    processed = dropped = time_squeeze = 0
+    with open("/proc/net/softnet_stat") as stream:
+        for line in stream:
+            fields = line.split()
+            processed += int(fields[0], 16)
+            dropped += int(fields[1], 16)
+            time_squeeze += int(fields[2], 16)
+    return {"softnet_processed": processed, "softnet_dropped": dropped,
+            "softnet_time_squeeze": time_squeeze}
+
+
+output = os.path.join(os.environ["network_evidence_dir"], "host-network-counters.jsonl")
+with open(output, "a", buffering=1) as stream:
+    while True:
+        counters = {"wall_ns": time.time_ns(), "monotonic_ns": time.monotonic_ns()}
+        counters.update(protocol_counters("/proc/net/snmp"))
+        counters.update(protocol_counters("/proc/net/netstat"))
+        counters.update(interface_counters())
+        counters.update(softnet_counters())
+        stream.write(json.dumps(counters, separators=(",", ":")) + "\\n")
+        time.sleep(5)
+PY`,
     `cat > /tmp/opendds-multicast-receiver.py <<'PY'
 import json
 import os
@@ -72,8 +136,13 @@ PY`,
     'grep -q \'"event": "joined"\' "$network_evidence_dir/multicast-receive.jsonl"',
     'cat /proc/net/igmp > "$network_evidence_dir/igmp-after-join.txt"',
     'ip maddr show > "$network_evidence_dir/maddr-after-join.txt"',
+    'sysctl net.core.rmem_max net.core.wmem_max net.core.rmem_default net.core.wmem_default > "$network_evidence_dir/socket-buffer-sysctls.txt"',
     'nstat -az > "$network_evidence_dir/nstat-before.txt" 2>&1 || true',
     `nohup bash -c 'while true; do date -u +%FT%TZ; cat /proc/net/igmp; ip maddr show; nstat -az; sleep 5; done' > "$network_evidence_dir/network-monitor.log" 2>&1 &`,
+    // ss -m exposes the effective receive/send buffer limits (rb/tb) granted
+    // to each UDP socket, not merely the values requested by its application.
+    `nohup bash -c 'while true; do date -u +%FT%TZ; ss -u -a -n -m -p; sleep 5; done' > "$network_evidence_dir/socket-monitor.log" 2>&1 &`,
+    'nohup python3 /tmp/opendds-host-network-monitor.py > "$network_evidence_dir/host-network-monitor.stdout" 2>&1 &',
   ];
 }
 
@@ -122,6 +191,62 @@ PY`,
     'cat /proc/net/igmp > "$network_evidence_dir/igmp-after-send.txt"',
     'ip maddr show > "$network_evidence_dir/maddr-after-send.txt"',
     'nstat -az > "$network_evidence_dir/nstat-after-send.txt" 2>&1 || true',
+  ];
+}
+
+export function networkScenarioSummaryCommands(): string[] {
+  return [
+    `cat > /tmp/summarize-opendds-network.py <<'PY'
+import datetime
+import glob
+import json
+import os
+import re
+
+root = "/opt/opendds-config"
+diagnostics = os.path.join(root, "network-diagnostics")
+scenarios = []
+for path in glob.glob(os.path.join(root, "result", "controller-diagnostics", "*.log")):
+    with open(path) as stream:
+        text = stream.read()
+    started = re.search(r"^Started at (\\S+)", text, re.MULTILINE)
+    ended = re.search(r"^Ended at (\\S+)", text, re.MULTILINE)
+    if started and ended:
+        to_ns = lambda value: int(datetime.datetime.fromisoformat(
+            value.replace("Z", "+00:00")).timestamp() * 1_000_000_000)
+        scenarios.append((os.path.basename(path)[:-4], to_ns(started.group(1)),
+                          to_ns(ended.group(1))))
+
+interesting = re.compile(
+    r"^(Udp(InErrors|RcvbufErrors|SndbufErrors|MemErrors)|"
+    r"Ip(InDiscards|OutDiscards|ReasmFails|FragFails)|"
+    r"softnet_(dropped|time_squeeze)|interface_.*_(dropped|errors))$")
+summary = {"sampling_interval_seconds": 5, "scenarios": {}}
+for scenario, started_ns, ended_ns in scenarios:
+    hosts = {}
+    for path in glob.glob(os.path.join(diagnostics, "*", "host-network-counters.jsonl")):
+        with open(path) as stream:
+            samples = [json.loads(line) for line in stream if line.strip()]
+        before = next((sample for sample in reversed(samples)
+                       if sample["wall_ns"] <= started_ns), None)
+        after = next((sample for sample in samples
+                      if sample["wall_ns"] >= ended_ns), None)
+        if not before or not after:
+            continue
+        delta = {key: after[key] - before.get(key, 0) for key in after
+                 if interesting.match(key) and after[key] - before.get(key, 0)}
+        hosts[os.path.basename(os.path.dirname(path))] = {
+            "sample_start_ns": before["wall_ns"],
+            "sample_end_ns": after["wall_ns"],
+            "delta": delta,
+        }
+    summary["scenarios"][scenario] = {
+        "started_ns": started_ns, "ended_ns": ended_ns, "hosts": hosts}
+
+with open(os.path.join(diagnostics, "scenario-network-summary.json"), "w") as stream:
+    json.dump(summary, stream, indent=2, sort_keys=True)
+PY`,
+    'python3 /tmp/summarize-opendds-network.py',
   ];
 }
 
@@ -293,6 +418,7 @@ export class RunStack extends cdk.Stack {
     commonUserData.addCommands(
       'set -euxo pipefail',
       ...clockSyncCommands(),
+      ...udpBufferTuningCommands(),
       'sysctl -w net.ipv4.conf.all.force_igmp_version=2',
       'sysctl -w net.ipv4.conf.default.force_igmp_version=2',
       'mkdir -p /opt/opendds-bench /opt/opendds-config',
@@ -319,7 +445,7 @@ export class RunStack extends cdk.Stack {
       // AWS Transit Gateway drops fragmented multicast IP packets. Keep RTPS
       // messages below the path MTU so OpenDDS fragments large control samples
       // at the RTPS layer instead of relying on IP fragmentation.
-      `flock /opt/opendds-config/.control.lock -c "grep -q '^max_message_size=1400$' /opt/opendds-config/control_opendds_config.ini || printf '\nmax_message_size=1400\nheartbeat_period=100\nnak_response_delay=20\nResponsiveMode=1\n' >> /opt/opendds-config/control_opendds_config.ini"`,
+      `flock /opt/opendds-config/.control.lock -c "grep -q '^max_message_size=1400$' /opt/opendds-config/control_opendds_config.ini || printf '\nmax_message_size=1400\nheartbeat_period=100\nnak_response_delay=20\nResponsiveMode=1\nsend_buffer_size=4194304\nrcv_buffer_size=4194304\n' >> /opt/opendds-config/control_opendds_config.ini"`,
       // node_controller's default worker command uses $BENCH_ROOT/worker/worker,
       // while install_bench.pl installs the executable as $BENCH_ROOT/bin/worker.
       // Preserve each worker's inputs and outputs before node_controller removes
@@ -450,6 +576,7 @@ WORKER_WRAPPER`,
       'set +e',
       '/opt/opendds-config/scripts/run_aws_suite.sh',
       'suite_exit=$?',
+      ...networkScenarioSummaryCommands(),
       `aws s3 cp /opt/opendds-config/node-controller-logs "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/node-controller-logs" --recursive`,
       `aws s3 cp /opt/opendds-config/clock-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/clock-diagnostics" --recursive`,
       `aws s3 cp /opt/opendds-config/worker-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-diagnostics" --recursive`,

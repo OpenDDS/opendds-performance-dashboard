@@ -10,8 +10,18 @@ const {
   multicastGroupDiscoveryCommands,
   multicastReceiverCommands,
   multicastSenderCommands,
+  networkScenarioSummaryCommands,
   staticMulticastRegistrationCommands,
+  udpBufferTuningCommands,
 } = require('../lib/run-stack.ts');
+
+test('UDP socket tuning leaves headroom above OpenDDS buffer requests', () => {
+  const commands = udpBufferTuningCommands();
+  assert.ok(commands.includes('sysctl -w net.core.rmem_max=16777216'));
+  assert.ok(commands.includes('sysctl -w net.core.wmem_max=16777216'));
+  assert.ok(commands.includes('sysctl -w net.core.rmem_default=4194304'));
+  assert.ok(commands.includes('sysctl -w net.core.wmem_default=4194304'));
+});
 
 test('instances must synchronize their clocks before starting Bench', () => {
   const commands = clockSyncCommands();
@@ -56,6 +66,28 @@ test('each instance records multicast membership and sequenced packets', () => {
   assert.ok(commands.some(command => command.includes('IP_ADD_MEMBERSHIP')));
   assert.ok(commands.some(command => command.includes('/proc/net/igmp')));
   assert.ok(commands.some(command => command.includes('multicast-receive.jsonl')));
+  assert.ok(commands.some(command => command.includes('socket-buffer-sysctls.txt')));
+  assert.ok(commands.some(command => command.includes('ss -u -a -n -m -p')));
+  assert.ok(commands.some(command => command.includes('host-network-counters.jsonl')));
+  assert.ok(commands.some(command => command.includes('/proc/net/softnet_stat')));
+  assert.ok(commands.some(command => command.includes('rx_dropped')));
+});
+
+test('control-plane RTPS transport requests explicit UDP buffers', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/run-stack.ts'),
+    'utf8',
+  );
+  assert.match(source, /send_buffer_size=4194304/);
+  assert.match(source, /rcv_buffer_size=4194304/);
+});
+
+test('network diagnostics summarize host counter deltas by scenario', () => {
+  const commands = networkScenarioSummaryCommands();
+  assert.ok(commands.some(command => command.includes('controller-diagnostics')));
+  assert.ok(commands.some(command => command.includes('host-network-counters.jsonl')));
+  assert.ok(commands.some(command => command.includes('RcvbufErrors')));
+  assert.ok(commands.some(command => command.includes('scenario-network-summary.json')));
 });
 
 test('controller measures low, medium, and burst multicast delivery', () => {
