@@ -81,6 +81,7 @@ test('each instance records multicast membership and sequenced packets', () => {
   assert.match(monitor, /host-network-counters\.jsonl/);
   assert.match(monitor, /\/proc\/net\/softnet_stat/);
   assert.match(monitor, /rx_dropped/);
+  assert.match(monitor, /Close after each sample/);
 });
 
 test('control-plane RTPS transport requests explicit UDP buffers', () => {
@@ -95,7 +96,7 @@ test('control-plane RTPS transport requests explicit UDP buffers', () => {
 test('network diagnostics summarize host counter deltas by scenario', () => {
   const commands = networkScenarioSummaryCommands();
   assert.ok(commands.includes('sleep 6'));
-  assert.ok(commands.includes('python3 /tmp/summarize-opendds-network.py'));
+  assert.ok(commands.includes('python3 /tmp/summarize-opendds-network.py || post_run_exit=1'));
   const summary = require('node:fs').readFileSync(
     require.resolve('../scripts/summarize_network.py'),
     'utf8',

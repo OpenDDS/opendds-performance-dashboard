@@ -89,7 +89,7 @@ export function networkScenarioSummaryCommands(): string[] {
   return [
     // Allow every host's five-second sampler to record a post-scenario value.
     'sleep 6',
-    'python3 /tmp/summarize-opendds-network.py',
+    'python3 /tmp/summarize-opendds-network.py || post_run_exit=1',
   ];
 }
 
@@ -403,7 +403,6 @@ WORKER_WRAPPER`,
       'suite_exit=$?',
       'post_run_exit=0',
       ...networkScenarioSummaryCommands(),
-      '[[ "$?" -eq 0 ]] || post_run_exit=1',
       `aws s3 cp /opt/opendds-config/node-controller-logs "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/node-controller-logs" --recursive || post_run_exit=1`,
       `aws s3 cp /opt/opendds-config/clock-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/clock-diagnostics" --recursive || post_run_exit=1`,
       `aws s3 cp /opt/opendds-config/worker-diagnostics "s3://${artifactBucket.bucketName}/logs/${props.config.runId}/worker-diagnostics" --recursive || post_run_exit=1`,
@@ -416,7 +415,8 @@ WORKER_WRAPPER`,
       'final_status=SUCCEEDED',
       'final_exit="$suite_exit"',
       'if [ "$suite_exit" -ne 0 ] || [ "$post_run_exit" -ne 0 ]; then final_status=FAILED; scenario_errors=$((scenario_errors + 1)); final_exit=1; fi',
-      `aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values "{\":status\":{\"S\":\"$final_status\"},\":errors\":{\"N\":\"$scenario_errors\"}}"`,
+      'printf \'{":status":{"S":"%s"},":errors":{"N":"%s"}}\\n\' "$final_status" "$scenario_errors" > /tmp/final-status-values.json',
+      `aws dynamodb update-item --table-name "$RUN_TABLE" --key '{"pk":{"S":"RUN"},"sk":{"S":"${props.config.runId}"}}' --update-expression 'SET #status = :status, errors = :errors' --expression-attribute-names '{"#status":"status"}' --expression-attribute-values file:///tmp/final-status-values.json`,
       'exit "$final_exit"',
     );
     const controller = new ec2.CfnInstance(this, 'Controller', {

@@ -42,12 +42,14 @@ def softnet_counters():
 
 
 output = os.path.join(os.environ["network_evidence_dir"], "host-network-counters.jsonl")
-with open(output, "a", buffering=1) as stream:
-    while True:
-        counters = {"wall_ns": time.time_ns(), "monotonic_ns": time.monotonic_ns()}
-        counters.update(protocol_counters("/proc/net/snmp"))
-        counters.update(protocol_counters("/proc/net/netstat"))
-        counters.update(interface_counters())
-        counters.update(softnet_counters())
+while True:
+    counters = {"wall_ns": time.time_ns(), "monotonic_ns": time.monotonic_ns()}
+    counters.update(protocol_counters("/proc/net/snmp"))
+    counters.update(protocol_counters("/proc/net/netstat"))
+    counters.update(interface_counters())
+    counters.update(softnet_counters())
+    # EFS provides close-to-open consistency. Close after each sample so the
+    # controller can observe current contents while the monitor continues.
+    with open(output, "a") as stream:
         stream.write(json.dumps(counters, separators=(",", ":")) + "\n")
-        time.sleep(5)
+    time.sleep(5)
