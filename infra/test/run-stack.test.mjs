@@ -67,6 +67,7 @@ test('each instance records multicast membership and sequenced packets', () => {
   assert.ok(commands.some(command => command.includes('socket-buffer-sysctls.txt')));
   assert.ok(commands.some(command => command.includes('ss -u -a -n -m -p')));
   assert.ok(commands.some(command => command.includes('systemd-run --unit=opendds-host-network-monitor')));
+  assert.ok(commands.some(command => command.includes('--property=Restart=always')));
   const receiver = require('node:fs').readFileSync(
     require.resolve('../scripts/multicast_receiver.py'),
     'utf8',
@@ -103,6 +104,8 @@ test('network diagnostics summarize host counter deltas by scenario', () => {
   assert.match(summary, /host-network-counters\.jsonl/);
   assert.match(summary, /RcvbufErrors/);
   assert.match(summary, /scenario-network-summary\.json/);
+  assert.match(summary, /complete_window/);
+  assert.match(summary, /end_offset_seconds/);
 });
 
 test('controller measures low, medium, and burst multicast delivery', () => {

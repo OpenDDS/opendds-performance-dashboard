@@ -65,7 +65,7 @@ export function multicastReceiverCommands(): string[] {
     `nohup bash -c 'while true; do date -u +%FT%TZ; ss -u -a -n -m -p; sleep 5; done' > "$network_evidence_dir/socket-monitor.log" 2>&1 &`,
     // Detach from cloud-final's execution context so leg samplers survive for
     // the whole scenario instead of exiting when instance bootstrap finishes.
-    'systemd-run --unit=opendds-host-network-monitor --collect --setenv=network_evidence_dir="$network_evidence_dir" /usr/bin/python3 /tmp/opendds-host-network-monitor.py',
+    'systemd-run --unit=opendds-host-network-monitor --collect --property=Restart=always --property=RestartSec=1 --setenv=network_evidence_dir="$network_evidence_dir" /usr/bin/python3 /tmp/opendds-host-network-monitor.py',
   ];
 }
 

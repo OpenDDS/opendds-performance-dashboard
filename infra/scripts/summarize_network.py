@@ -30,17 +30,21 @@ for scenario, started_ns, ended_ns in scenarios:
     for path in glob.glob(os.path.join(diagnostics, "*", "host-network-counters.jsonl")):
         with open(path) as stream:
             samples = [json.loads(line) for line in stream if line.strip()]
-        before = next((sample for sample in reversed(samples)
-                       if sample["wall_ns"] <= started_ns), None)
-        after = next((sample for sample in samples
-                      if sample["wall_ns"] >= ended_ns), None)
-        if not before or not after:
+        if not samples:
             continue
+        before = next((sample for sample in reversed(samples)
+                       if sample["wall_ns"] <= started_ns), samples[0])
+        after = next((sample for sample in samples
+                      if sample["wall_ns"] >= ended_ns), samples[-1])
         delta = {key: after[key] - before.get(key, 0) for key in after
                  if interesting.match(key) and after[key] - before.get(key, 0)}
         hosts[os.path.basename(os.path.dirname(path))] = {
             "sample_start_ns": before["wall_ns"],
             "sample_end_ns": after["wall_ns"],
+            "complete_window": (before["wall_ns"] <= started_ns and
+                                after["wall_ns"] >= ended_ns),
+            "start_offset_seconds": (before["wall_ns"] - started_ns) / 1_000_000_000,
+            "end_offset_seconds": (after["wall_ns"] - ended_ns) / 1_000_000_000,
             "delta": delta,
         }
     summary["scenarios"][scenario] = {
