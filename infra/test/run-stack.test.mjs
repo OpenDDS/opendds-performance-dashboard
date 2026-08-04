@@ -19,8 +19,8 @@ test('UDP socket tuning leaves headroom above OpenDDS buffer requests', () => {
   const commands = udpBufferTuningCommands();
   assert.ok(commands.includes('sysctl -w net.core.rmem_max=16777216'));
   assert.ok(commands.includes('sysctl -w net.core.wmem_max=16777216'));
-  assert.ok(commands.includes('sysctl -w net.core.rmem_default=4194304'));
-  assert.ok(commands.includes('sysctl -w net.core.wmem_default=4194304'));
+  assert.ok(commands.includes('sysctl -w net.core.rmem_default=16777216'));
+  assert.ok(commands.includes('sysctl -w net.core.wmem_default=16777216'));
 });
 
 test('instances must synchronize their clocks before starting Bench', () => {
@@ -66,6 +66,7 @@ test('each instance records multicast membership and sequenced packets', () => {
   assert.ok(commands.some(command => command.includes('/proc/net/igmp')));
   assert.ok(commands.some(command => command.includes('socket-buffer-sysctls.txt')));
   assert.ok(commands.some(command => command.includes('ss -u -a -n -m -p')));
+  assert.ok(commands.some(command => command.includes('systemd-run --unit=opendds-host-network-monitor')));
   const receiver = require('node:fs').readFileSync(
     require.resolve('../scripts/multicast_receiver.py'),
     'utf8',
@@ -86,12 +87,13 @@ test('control-plane RTPS transport requests explicit UDP buffers', () => {
     require.resolve('../lib/run-stack.ts'),
     'utf8',
   );
-  assert.match(source, /send_buffer_size=4194304/);
-  assert.match(source, /rcv_buffer_size=4194304/);
+  assert.match(source, /send_buffer_size=8388608/);
+  assert.match(source, /rcv_buffer_size=8388608/);
 });
 
 test('network diagnostics summarize host counter deltas by scenario', () => {
   const commands = networkScenarioSummaryCommands();
+  assert.ok(commands.includes('sleep 6'));
   assert.ok(commands.includes('python3 /tmp/summarize-opendds-network.py'));
   const summary = require('node:fs').readFileSync(
     require.resolve('../scripts/summarize_network.py'),

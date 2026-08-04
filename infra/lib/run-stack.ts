@@ -20,8 +20,10 @@ export function udpBufferTuningCommands(): string[] {
     // otherwise accept SO_RCVBUF/SO_SNDBUF while silently clamping the value.
     'sysctl -w net.core.rmem_max=16777216',
     'sysctl -w net.core.wmem_max=16777216',
-    'sysctl -w net.core.rmem_default=4194304',
-    'sysctl -w net.core.wmem_default=4194304',
+    // RTPS multicast sockets use the kernel default instead of the transport's
+    // explicit unicast request. Fan-in reports can burst at the controller.
+    'sysctl -w net.core.rmem_default=16777216',
+    'sysctl -w net.core.wmem_default=16777216',
   ];
 }
 
@@ -61,7 +63,9 @@ export function multicastReceiverCommands(): string[] {
     // ss -m exposes the effective receive/send buffer limits (rb/tb) granted
     // to each UDP socket, not merely the values requested by its application.
     `nohup bash -c 'while true; do date -u +%FT%TZ; ss -u -a -n -m -p; sleep 5; done' > "$network_evidence_dir/socket-monitor.log" 2>&1 &`,
-    'nohup python3 /tmp/opendds-host-network-monitor.py > "$network_evidence_dir/host-network-monitor.stdout" 2>&1 &',
+    // Detach from cloud-final's execution context so leg samplers survive for
+    // the whole scenario instead of exiting when instance bootstrap finishes.
+    'systemd-run --unit=opendds-host-network-monitor --collect --setenv=network_evidence_dir="$network_evidence_dir" /usr/bin/python3 /tmp/opendds-host-network-monitor.py',
   ];
 }
 
@@ -83,6 +87,8 @@ export function multicastSenderCommands(): string[] {
 
 export function networkScenarioSummaryCommands(): string[] {
   return [
+    // Allow every host's five-second sampler to record a post-scenario value.
+    'sleep 6',
     'python3 /tmp/summarize-opendds-network.py',
   ];
 }
@@ -261,7 +267,7 @@ export class RunStack extends cdk.Stack {
       // AWS Transit Gateway drops fragmented multicast IP packets. Keep RTPS
       // messages below the path MTU so OpenDDS fragments large control samples
       // at the RTPS layer instead of relying on IP fragmentation.
-      `flock /opt/opendds-config/.control.lock -c "grep -q '^max_message_size=1400$' /opt/opendds-config/control_opendds_config.ini || printf '\nmax_message_size=1400\nheartbeat_period=100\nnak_response_delay=20\nResponsiveMode=1\nsend_buffer_size=4194304\nrcv_buffer_size=4194304\n' >> /opt/opendds-config/control_opendds_config.ini"`,
+      `flock /opt/opendds-config/.control.lock -c "grep -q '^max_message_size=1400$' /opt/opendds-config/control_opendds_config.ini || printf '\nmax_message_size=1400\nheartbeat_period=100\nnak_response_delay=20\nResponsiveMode=1\nsend_buffer_size=8388608\nrcv_buffer_size=8388608\n' >> /opt/opendds-config/control_opendds_config.ini"`,
       // node_controller's default worker command uses $BENCH_ROOT/worker/worker,
       // while install_bench.pl installs the executable as $BENCH_ROOT/bin/worker.
       // Preserve each worker's inputs and outputs before node_controller removes
