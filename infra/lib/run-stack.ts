@@ -48,36 +48,6 @@ export function multicastReceiverCommands(): string[] {
   return [
     'network_evidence_dir="/opt/opendds-config/network-diagnostics/$HOSTNAME"',
     'mkdir -p "$network_evidence_dir"',
-    `cat > /tmp/opendds-multicast-receiver.py <<'PY'
-import json
-import os
-import socket
-import struct
-import time
-
-group = "239.255.42.99"
-port = 45999
-host = socket.gethostname()
-output = os.path.join(os.environ["network_evidence_dir"], "multicast-receive.jsonl")
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.bind(("", port))
-sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
-                struct.pack("=4s4s", socket.inet_aton(group), socket.inet_aton("0.0.0.0")))
-with open(output, "a", buffering=1) as stream:
-    stream.write(json.dumps({"event": "joined", "host": host, "wall_ns": time.time_ns(),
-                             "monotonic_ns": time.monotonic_ns(), "group": group, "port": port}) + "\\n")
-    while True:
-        payload, address = sock.recvfrom(65535)
-        received_ns = time.time_ns()
-        try:
-            message = json.loads(payload.rstrip(b" ").decode())
-        except Exception as error:
-            message = {"decode_error": str(error), "payload_size": len(payload)}
-        message.update({"event": "received", "receiver": host, "source": address[0],
-                        "received_ns": received_ns, "payload_size": len(payload)})
-        stream.write(json.dumps(message, separators=(",", ":")) + "\\n")
-PY`,
     'export network_evidence_dir',
     'nohup python3 /tmp/opendds-multicast-receiver.py > "$network_evidence_dir/receiver.stdout" 2>&1 &',
     'echo "$!" > "$network_evidence_dir/receiver.pid"',
@@ -97,38 +67,6 @@ PY`,
 
 export function multicastSenderCommands(): string[] {
   return [
-    `cat > /tmp/opendds-multicast-sender.py <<'PY'
-import json
-import os
-import socket
-import time
-
-group = "239.255.42.99"
-port = 45999
-output = "/opt/opendds-config/network-diagnostics/multicast-send.jsonl"
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
-sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
-profiles = (("join-20pps", 100, 0.05), ("steady-100pps", 1000, 0.01),
-            ("burst-1000pps", 5000, 0.001))
-with open(output, "w", buffering=1) as stream:
-    stream.write(json.dumps({"event": "sender-started", "sent_ns": time.time_ns()},
-                            separators=(",", ":")) + "\\n")
-    for profile, count, interval in profiles:
-        for sequence in range(count):
-            sent_ns = time.time_ns()
-            message = json.dumps({"profile": profile, "sequence": sequence,
-                                  "sent_ns": sent_ns}, separators=(",", ":")).encode()
-            payload = message + b" " * (1400 - len(message))
-            sock.sendto(payload, (group, port))
-            stream.write(json.dumps({"profile": profile, "sequence": sequence,
-                                     "sent_ns": sent_ns, "payload_size": len(payload)},
-                                    separators=(",", ":")) + "\\n")
-            target = sent_ns + int(interval * 1_000_000_000)
-            while time.time_ns() < target:
-                time.sleep(min(interval / 4, 0.001))
-        time.sleep(2)
-PY`,
     // Start as soon as every local socket reports its join. This intentionally
     // measures Transit Gateway IGMP convergence instead of hiding it behind a
     // settling delay.
@@ -150,53 +88,7 @@ export function networkScenarioSummaryCommands(): string[] {
 }
 
 export function awsDiscoveryConfigCommands(): string[] {
-  return [
-    `cat > /tmp/configure-aws-discovery.py <<'PY'
-import json
-import os
-import sys
-
-root = sys.argv[1]
-changed_files = 0
-changed_sections = 0
-for directory, _, filenames in os.walk(root):
-    for filename in filenames:
-        if not filename.endswith(".json"):
-            continue
-        path = os.path.join(directory, filename)
-        try:
-            with open(path) as stream:
-                config = json.load(stream)
-        except (OSError, ValueError):
-            continue
-        changed = False
-        for section in config.get("process", {}).get("config_sections", []):
-            if not section.get("name", "").startswith("rtps_discovery/"):
-                continue
-            section_changed = False
-            properties = section.setdefault("properties", [])
-            sedp_max = next(
-                (prop for prop in properties if prop.get("name") == "SedpMaxMessageSize"),
-                None,
-            )
-            if sedp_max is None:
-                properties.append({"name": "SedpMaxMessageSize", "value": "1400"})
-                changed = True
-                section_changed = True
-            elif sedp_max.get("value") != "1400":
-                sedp_max["value"] = "1400"
-                changed = True
-                section_changed = True
-            if section_changed:
-                changed_sections += 1
-        if changed:
-            with open(path, "w") as stream:
-                json.dump(config, stream, indent=2)
-                stream.write("\\n")
-            changed_files += 1
-print(f"Configured SedpMaxMessageSize=1400 in {changed_sections} RTPS discovery sections across {changed_files} files")
-PY`,
-  ];
+  return [];
 }
 
 export function multicastGroupDiscoveryCommands(): string[] {
@@ -266,8 +158,20 @@ export class RunStack extends cdk.Stack {
     const networkSummary = new assets.Asset(this, 'NetworkSummary', {
       path: path.join(__dirname, '../scripts/summarize_network.py'),
     });
+    const multicastReceiver = new assets.Asset(this, 'MulticastReceiver', {
+      path: path.join(__dirname, '../scripts/multicast_receiver.py'),
+    });
+    const multicastSender = new assets.Asset(this, 'MulticastSender', {
+      path: path.join(__dirname, '../scripts/multicast_sender.py'),
+    });
+    const configureAwsDiscovery = new assets.Asset(this, 'ConfigureAwsDiscovery', {
+      path: path.join(__dirname, '../scripts/configure_aws_discovery.py'),
+    });
     hostNetworkMonitor.grantRead(role);
     networkSummary.grantRead(role);
+    multicastReceiver.grantRead(role);
+    multicastSender.grantRead(role);
+    configureAwsDiscovery.grantRead(role);
     artifactBucket.grantReadWrite(role, `staging/${props.config.runId}/*`);
     artifactBucket.grantReadWrite(role, `logs/${props.config.runId}/*`);
     artifactBucket.grantRead(role, props.config.artifactKey);
@@ -331,6 +235,9 @@ export class RunStack extends cdk.Stack {
       'mkdir -p /opt/opendds-bench /opt/opendds-config',
       `aws s3 cp ${hostNetworkMonitor.s3ObjectUrl} /tmp/opendds-host-network-monitor.py`,
       `aws s3 cp ${networkSummary.s3ObjectUrl} /tmp/summarize-opendds-network.py`,
+      `aws s3 cp ${multicastReceiver.s3ObjectUrl} /tmp/opendds-multicast-receiver.py`,
+      `aws s3 cp ${multicastSender.s3ObjectUrl} /tmp/opendds-multicast-sender.py`,
+      `aws s3 cp ${configureAwsDiscovery.s3ObjectUrl} /tmp/configure-aws-discovery.py`,
       `for attempt in {1..30}; do mount -t nfs4 -o nfsvers=4.1 ${fileSystem.ref}.efs.${this.region}.amazonaws.com:/ /opt/opendds-config && break; sleep 2; done`,
       'mountpoint -q /opt/opendds-config',
       ...(props.config.suite === 'relay-diagnostic'

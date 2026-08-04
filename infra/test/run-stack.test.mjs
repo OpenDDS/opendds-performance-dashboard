@@ -63,11 +63,15 @@ test('relay diagnostic suite captures core dumps on shared storage', () => {
 
 test('each instance records multicast membership and sequenced packets', () => {
   const commands = multicastReceiverCommands();
-  assert.ok(commands.some(command => command.includes('IP_ADD_MEMBERSHIP')));
   assert.ok(commands.some(command => command.includes('/proc/net/igmp')));
-  assert.ok(commands.some(command => command.includes('multicast-receive.jsonl')));
   assert.ok(commands.some(command => command.includes('socket-buffer-sysctls.txt')));
   assert.ok(commands.some(command => command.includes('ss -u -a -n -m -p')));
+  const receiver = require('node:fs').readFileSync(
+    require.resolve('../scripts/multicast_receiver.py'),
+    'utf8',
+  );
+  assert.match(receiver, /IP_ADD_MEMBERSHIP/);
+  assert.match(receiver, /multicast-receive\.jsonl/);
   const monitor = require('node:fs').readFileSync(
     require.resolve('../scripts/host_network_monitor.py'),
     'utf8',
@@ -101,12 +105,16 @@ test('network diagnostics summarize host counter deltas by scenario', () => {
 
 test('controller measures low, medium, and burst multicast delivery', () => {
   const commands = multicastSenderCommands();
-  assert.ok(commands.some(command => command.includes('join-20pps')));
-  assert.ok(commands.some(command => command.includes('steady-100pps')));
-  assert.ok(commands.some(command => command.includes('burst-1000pps')));
   assert.ok(commands.some(command => command.includes('expected_receivers')));
-  assert.ok(commands.some(command => command.includes('1400 - len(message)')));
   assert.ok(!commands.includes('sleep 5'));
+  const sender = require('node:fs').readFileSync(
+    require.resolve('../scripts/multicast_sender.py'),
+    'utf8',
+  );
+  assert.match(sender, /join-20pps/);
+  assert.match(sender, /steady-100pps/);
+  assert.match(sender, /burst-1000pps/);
+  assert.match(sender, /1400 - len\(message\)/);
 });
 
 test('RTPS echo workers enable focused discovery diagnostics', () => {
@@ -120,11 +128,15 @@ test('RTPS echo workers enable focused discovery diagnostics', () => {
 });
 
 test('all AWS RTPS discovery configurations constrain internal SEDP messages', () => {
-  const commands = awsDiscoveryConfigCommands();
-  assert.ok(commands.some(command => command.includes('startswith("rtps_discovery/")')));
-  assert.ok(commands.some(command => command.includes('"SedpMaxMessageSize", "value": "1400"')));
-  assert.ok(commands.some(command => command.includes('os.walk(root)')));
-  assert.ok(!commands.some(command => command.includes('SedpResponsiveMode')));
+  assert.deepEqual(awsDiscoveryConfigCommands(), []);
+  const script = require('node:fs').readFileSync(
+    require.resolve('../scripts/configure_aws_discovery.py'),
+    'utf8',
+  );
+  assert.match(script, /startswith\("rtps_discovery\/"\)/);
+  assert.match(script, /"SedpMaxMessageSize", "value": "1400"/);
+  assert.match(script, /os\.walk\(root\)/);
+  assert.doesNotMatch(script, /SedpResponsiveMode/);
 });
 
 test('optional static registration covers OpenDDS data and control multicast groups', () => {
