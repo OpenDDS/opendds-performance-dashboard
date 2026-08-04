@@ -5,6 +5,7 @@ import glob
 import json
 import os
 import re
+import sys
 
 root = "/opt/opendds-config"
 diagnostics = os.path.join(root, "network-diagnostics")
@@ -24,7 +25,10 @@ interesting = re.compile(
     r"^(Udp(InErrors|RcvbufErrors|SndbufErrors|MemErrors)|"
     r"Ip(InDiscards|OutDiscards|ReasmFails|FragFails)|"
     r"softnet_(dropped|time_squeeze)|interface_.*_(dropped|errors))$")
-summary = {"sampling_interval_seconds": 5, "scenarios": {}}
+expected_hosts = int(os.environ.get("EXPECTED_LEGS", "0")) + 1
+summary = {"sampling_interval_seconds": 5, "expected_hosts": expected_hosts,
+           "scenarios": {}}
+coverage_errors = []
 for scenario, started_ns, ended_ns in scenarios:
     hosts = {}
     for path in glob.glob(os.path.join(diagnostics, "*", "host-network-counters.jsonl")):
@@ -47,8 +51,19 @@ for scenario, started_ns, ended_ns in scenarios:
             "end_offset_seconds": (after["wall_ns"] - ended_ns) / 1_000_000_000,
             "delta": delta,
         }
+    complete_hosts = sum(host["complete_window"] for host in hosts.values())
     summary["scenarios"][scenario] = {
-        "started_ns": started_ns, "ended_ns": ended_ns, "hosts": hosts}
+        "started_ns": started_ns, "ended_ns": ended_ns, "hosts": hosts,
+        "observed_hosts": len(hosts), "complete_hosts": complete_hosts}
+    if len(hosts) != expected_hosts or complete_hosts != expected_hosts:
+        coverage_errors.append(
+            "%s: expected %d complete hosts, observed %d with %d complete" %
+            (scenario, expected_hosts, len(hosts), complete_hosts))
 
 with open(os.path.join(diagnostics, "scenario-network-summary.json"), "w") as stream:
     json.dump(summary, stream, indent=2, sort_keys=True)
+
+if coverage_errors:
+    print("Incomplete network diagnostic coverage: " + "; ".join(coverage_errors),
+          file=sys.stderr)
+    sys.exit(1)

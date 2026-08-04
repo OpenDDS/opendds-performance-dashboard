@@ -106,6 +106,17 @@ test('network diagnostics summarize host counter deltas by scenario', () => {
   assert.match(summary, /scenario-network-summary\.json/);
   assert.match(summary, /complete_window/);
   assert.match(summary, /end_offset_seconds/);
+  assert.match(summary, /EXPECTED_LEGS/);
+  assert.match(summary, /coverage_errors/);
+  assert.match(summary, /sys\.exit\(1\)/);
+});
+
+test('shared EFS diagnostics use a short attribute-cache interval', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/run-stack.ts'),
+    'utf8',
+  );
+  assert.match(source, /nfsvers=4\.1,actimeo=1/);
 });
 
 test('controller defers terminal status until diagnostics are uploaded', () => {

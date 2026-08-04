@@ -244,7 +244,10 @@ export class RunStack extends cdk.Stack {
       `aws s3 cp ${multicastReceiver.s3ObjectUrl} /tmp/opendds-multicast-receiver.py`,
       `aws s3 cp ${multicastSender.s3ObjectUrl} /tmp/opendds-multicast-sender.py`,
       `aws s3 cp ${configureAwsDiscovery.s3ObjectUrl} /tmp/configure-aws-discovery.py`,
-      `for attempt in {1..30}; do mount -t nfs4 -o nfsvers=4.1 ${fileSystem.ref}.efs.${this.region}.amazonaws.com:/ /opt/opendds-config && break; sleep 2; done`,
+      // Diagnostic streams are written by every leg and read by the controller
+      // while still open.  Keep NFS attribute caching below the five-second
+      // sampling interval so the controller observes their current lengths.
+      `for attempt in {1..30}; do mount -t nfs4 -o nfsvers=4.1,actimeo=1 ${fileSystem.ref}.efs.${this.region}.amazonaws.com:/ /opt/opendds-config && break; sleep 2; done`,
       'mountpoint -q /opt/opendds-config',
       ...(props.config.suite === 'relay-diagnostic'
         ? [
