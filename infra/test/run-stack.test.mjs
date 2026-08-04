@@ -68,9 +68,13 @@ test('each instance records multicast membership and sequenced packets', () => {
   assert.ok(commands.some(command => command.includes('multicast-receive.jsonl')));
   assert.ok(commands.some(command => command.includes('socket-buffer-sysctls.txt')));
   assert.ok(commands.some(command => command.includes('ss -u -a -n -m -p')));
-  assert.ok(commands.some(command => command.includes('host-network-counters.jsonl')));
-  assert.ok(commands.some(command => command.includes('/proc/net/softnet_stat')));
-  assert.ok(commands.some(command => command.includes('rx_dropped')));
+  const monitor = require('node:fs').readFileSync(
+    require.resolve('../scripts/host_network_monitor.py'),
+    'utf8',
+  );
+  assert.match(monitor, /host-network-counters\.jsonl/);
+  assert.match(monitor, /\/proc\/net\/softnet_stat/);
+  assert.match(monitor, /rx_dropped/);
 });
 
 test('control-plane RTPS transport requests explicit UDP buffers', () => {
@@ -84,10 +88,15 @@ test('control-plane RTPS transport requests explicit UDP buffers', () => {
 
 test('network diagnostics summarize host counter deltas by scenario', () => {
   const commands = networkScenarioSummaryCommands();
-  assert.ok(commands.some(command => command.includes('controller-diagnostics')));
-  assert.ok(commands.some(command => command.includes('host-network-counters.jsonl')));
-  assert.ok(commands.some(command => command.includes('RcvbufErrors')));
-  assert.ok(commands.some(command => command.includes('scenario-network-summary.json')));
+  assert.ok(commands.includes('python3 /tmp/summarize-opendds-network.py'));
+  const summary = require('node:fs').readFileSync(
+    require.resolve('../scripts/summarize_network.py'),
+    'utf8',
+  );
+  assert.match(summary, /controller-diagnostics/);
+  assert.match(summary, /host-network-counters\.jsonl/);
+  assert.match(summary, /RcvbufErrors/);
+  assert.match(summary, /scenario-network-summary\.json/);
 });
 
 test('controller measures low, medium, and burst multicast delivery', () => {
