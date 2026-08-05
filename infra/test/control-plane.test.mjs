@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createRequire} from 'node:module';
 import {
   activeRunStacks, assertSafeToDestroy, auditHasActiveResources, outputMap,
 } from '../../tools/control-plane-lib.mjs';
+
+const require = createRequire(import.meta.url);
 
 test('CloudFormation outputs are mapped by key', () => {
   assert.deepEqual(outputMap({Outputs: [
@@ -29,4 +32,12 @@ test('audit detects any active ephemeral resource', () => {
   const empty = {executions: [], runStacks: [], instances: [], transitGateways: []};
   assert.equal(auditHasActiveResources(empty), false);
   assert.equal(auditHasActiveResources({...empty, instances: [{}]}), true);
+});
+
+test('run-stack teardown does not require a nightly config checkout', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/control-plane-stack.ts'),
+    'utf8',
+  );
+  assert.match(source, /if \[ "\$CDK_ACTION" = deploy \]; then if aws s3api head-object/);
 });
