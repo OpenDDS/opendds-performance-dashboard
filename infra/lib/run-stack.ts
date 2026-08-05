@@ -387,7 +387,7 @@ WORKER_WRAPPER`,
 
     const controllerUserData = ec2.UserData.custom(commonUserData.render());
     controllerUserData.addCommands(
-      `export RUN_ID='${props.config.runId}' SUITE='${props.config.suite}' OPENDDS_COMMIT='${props.config.commitSha}' CONFIG_COMMIT='${props.config.configCommit}' MULTICAST_REGISTRATION_MODE='${props.config.dynamicMulticastRegistration ? 'dynamic' : 'static'}'`,
+      `export RUN_ID='${props.config.runId}' SUITE='${props.config.suite}' OPENDDS_COMMIT='${props.config.commitSha}' CONFIG_COMMIT='${props.config.configCommit}' PERFORMANCE_ENVIRONMENT_NAME='${props.config.environmentName}' MULTICAST_REGISTRATION_MODE='${props.config.dynamicMulticastRegistration ? 'dynamic' : 'static'}'`,
       `export ARTIFACT_BUCKET='${artifactBucket.bucketName}' RUN_TABLE='${table.tableName}' EXPECTED_LEGS='${props.config.topology.legCount}' DEFER_FINAL_STATUS=1`,
       'mkdir -p /opt/opendds-config/node-controller-logs',
       'node_controller_log="/opt/opendds-config/node-controller-logs/${HOSTNAME}.log"',

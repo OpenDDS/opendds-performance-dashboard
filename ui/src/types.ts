@@ -103,6 +103,7 @@ export type Run = {
   hash?: BuildHash;
   errors: number;
   era?: 'centipede' | 'aws' | string;
+  environmentName?: string;
   suite?: 'validation' | 'core' | 'full' | string;
   multicastRegistration?: 'static' | 'dynamic';
   topology?: {

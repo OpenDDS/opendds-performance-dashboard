@@ -167,6 +167,7 @@
           hash,
           errors: errorCount,
           era = 'centipede',
+          environmentName,
           suite,
           multicastRegistration,
           topology,
@@ -189,12 +190,13 @@
             commit,
             hash,
             era,
+            environmentName,
             suite,
             multicastRegistration,
             topology,
             status,
             environmentKey,
-            environmentLabel: `${era} / ${topologyLabel} / ${registrationLabel} / ${hash ? hash.substring(0, 8) : 'unknown'}`,
+            environmentLabel: `${environmentName ? `${environmentName} / ` : ''}${era} / ${topologyLabel} / ${registrationLabel} / ${hash ? hash.substring(0, 8) : 'unknown'}`,
             tag: keyedTags[commit]
           };
         }

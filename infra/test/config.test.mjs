@@ -14,6 +14,7 @@ function runContext(overrides = {}) {
     suite: 'validation',
     commitSha: 'abc123',
     configCommit: 'def456',
+    environmentName: 'aws-bench-v1',
     instanceType: 'c7i.large',
     amiId: 'ami-123',
     availabilityZone: 'us-east-2a',

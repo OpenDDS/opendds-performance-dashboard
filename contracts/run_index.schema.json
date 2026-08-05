@@ -12,6 +12,7 @@
       "hash": {"type": "string"},
       "errors": {"type": "integer", "minimum": 0},
       "era": {"type": "string"},
+      "environmentName": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$"},
       "suite": {"type": "string"},
       "multicastRegistration": {"enum": ["static", "dynamic"]},
       "status": {"enum": ["QUEUED", "PROVISIONING", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT"]},

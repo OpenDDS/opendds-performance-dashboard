@@ -52,3 +52,14 @@ test('nightly publisher is restricted to immutable config objects', () => {
   assert.match(source, /arnForObjects\('configs\/\*'\)/);
   assert.doesNotMatch(source, /ConfigPublisherRole[\s\S]{0,500}s3:DeleteObject/);
 });
+
+test('named environments are carried through orchestration without replacing the exact hash', () => {
+  const source = require('node:fs').readFileSync(require.resolve('../lib/control-plane-stack.ts'), 'utf8');
+  const coordinator = require('node:fs').readFileSync(require.resolve('../lambda/coordinator/index.mjs'), 'utf8');
+  assert.match(source, /'environmentName\.\$': '\$\.environmentName'/);
+  assert.match(source, /ENVIRONMENT_NAME: \{value: sfn\.JsonPath\.stringAt\('\$\.environmentName'\)\}/);
+  assert.match(coordinator, /environmentName: input\.environmentName/);
+  const hashInput = coordinator.match(/const environmentHash = input =>([\s\S]*?)\.digest\('hex'\)/)?.[1] ?? '';
+  assert.notEqual(hashInput, '');
+  assert.doesNotMatch(hashInput, /environmentName/);
+});

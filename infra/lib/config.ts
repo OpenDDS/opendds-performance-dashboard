@@ -19,6 +19,7 @@ export interface RunConfig {
   readonly stackRunId: string;
   readonly commitSha: string;
   readonly configCommit: string;
+  readonly environmentName: string;
   readonly suite: Suite;
   readonly topology: Topology;
   readonly instanceType: string;
@@ -75,6 +76,7 @@ export function loadRunConfig(app: cdk.App): RunConfig {
     stackRunId: stackSafeRunId(runId),
     commitSha: required(app, 'commitSha'),
     configCommit: required(app, 'configCommit'),
+    environmentName: required(app, 'environmentName'),
     suite,
     topology,
     instanceType: required(app, 'instanceType'),

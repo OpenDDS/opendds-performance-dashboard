@@ -113,6 +113,8 @@ node tools/control-plane.mjs deploy \
   --nightly-repo OpenDDS/nightly \
   --nightly-ref master \
   --nightly-oidc-subject 'repo:OpenDDS/nightly:ref:refs/heads/master' \
+  --environment-name aws-bench-v1 \
+  --nightly-commit FULL_40_CHARACTER_NIGHTLY_SHA \
   --availability-zone us-east-2a \
   --budget-usd 100 \
   --budget-email performance-operator@example.com \
@@ -162,6 +164,8 @@ Configure the OpenDDS repository variables from the stack outputs:
 - `PERFORMANCE_AVAILABILITY_ZONE`
 - `PERFORMANCE_ARTIFACT_BUCKET`
 - `PERFORMANCE_BUNDLE_VERSION` (`al2023-xerces-3.2.5-v5`)
+- `PERFORMANCE_ENVIRONMENT_NAME` (for example, `aws-bench-v1`)
+- `PERFORMANCE_NIGHTLY_COMMIT` (set only when `--nightly-commit` is supplied)
 
 Configure this repository's deployment variables with
 `DashboardDeployRoleArn`, `DashboardBucketName`, and
@@ -258,7 +262,23 @@ workflow to publish the UI into the new bucket.
 
 ## Comparable result eras
 
-Run-index entries include `era`, environment hash, suite, topology, and status.
+Run-index entries include `era`, a named environment version, environment
+hash, suite, topology, and status. The name describes an intentionally frozen
+testbed contract; the hash still separates exact infrastructure/configuration
+combinations within it. Changing an input that can affect measurements should
+normally introduce the next environment name instead of silently redefining an
+existing baseline. The environment name is deliberately excluded from the
+hash: renaming metadata cannot make unlike runs comparable.
+
+The first AWS baseline is `aws-bench-v1`. It fixes Amazon Linux 2023 AMI
+`ami-06dd88604c99ec11f` in `us-east-2a`, static multicast registration by
+default, one Bench worker thread per allocated core, the suite topology and
+instance-type mappings listed above, and a full immutable nightly commit.
+Its initial nightly configuration revision is
+`6ad28a4aa83148cf99f506f7037c7d012ebacdbd`; the deployed pin is the
+`PERFORMANCE_NIGHTLY_COMMIT` GitHub variable.
+Dynamic multicast runs remain diagnostics and receive a distinct hash.
+
 The UI limits a chart selection to one environment key so recovered centipede
 results and AWS measurements are preserved without implying direct hardware or
 network comparability.

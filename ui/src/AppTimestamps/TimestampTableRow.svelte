@@ -37,7 +37,7 @@
     {/if}
   </td>
   <td class="hash">{timestamp.hash ? timestamp.hash : ''}</td>
-  <td>{timestamp.era || 'centipede'} / {timestamp.topology ? `${timestamp.topology.legCount}x${timestamp.topology.coresPerLeg}` : 'legacy'} / {timestamp.multicastRegistration || (timestamp.era === 'aws' ? 'dynamic' : 'native')}</td>
+  <td>{timestamp.environmentName ? `${timestamp.environmentName} / ` : ''}{timestamp.era || 'centipede'} / {timestamp.topology ? `${timestamp.topology.legCount}x${timestamp.topology.coresPerLeg}` : 'legacy'} / {timestamp.multicastRegistration || (timestamp.era === 'aws' ? 'dynamic' : 'native')}</td>
   <td>{timestamp.suite || ''}</td>
   <td class="error-count">
     {timestamp.errorCount ? timestamp.errorCount : ''}

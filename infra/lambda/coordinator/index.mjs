@@ -45,6 +45,9 @@ async function bodyAsJson(body) {
 }
 
 async function acquire(input) {
+  if (!/^[a-z][a-z0-9-]{0,31}$/.test(input.environmentName ?? '')) {
+    throw new Error('environmentName must be a lowercase version identifier');
+  }
   const expectedTopology = topologies[input.suite];
   if (!expectedTopology) throw new Error(`Unsupported suite: ${input.suite}`);
   if (JSON.stringify(input.topology) !== JSON.stringify(expectedTopology)) {
@@ -112,7 +115,8 @@ async function acquire(input) {
     TableName: tableName,
     Item: {
       pk: 'RUN', sk: runId, runId, date: timestamp, commit: input.commitSha,
-      configCommit: input.configCommit, suite: input.suite, topology: input.topology,
+      configCommit: input.configCommit, environmentName: input.environmentName,
+      suite: input.suite, topology: input.topology,
       multicastRegistration: input.dynamicMulticastRegistration ? 'dynamic' : 'static',
       hash, era: 'aws', status: 'QUEUED', errors: 0, estimatedCostUsd: estimatedCost,
     },
@@ -176,10 +180,10 @@ async function publish(input) {
     exclusiveStartKey = runs.LastEvaluatedKey;
   } while (exclusiveStartKey);
   const index = runItems.map(({
-    runId: key, date, commit, hash, errors, era, suite, topology, status,
+    runId: key, date, commit, hash, errors, era, environmentName, suite, topology, status,
     multicastRegistration, staticMulticastRegistration,
   }) => ({
-    key, date, commit, hash, errors, era, suite, topology, status,
+    key, date, commit, hash, errors, era, environmentName, suite, topology, status,
     multicastRegistration: multicastRegistration ??
       (era === 'aws' ? (staticMulticastRegistration ? 'static' : 'dynamic') : undefined),
   }))

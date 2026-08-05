@@ -80,6 +80,7 @@ function usage() {
     --dashboard-repo OWNER/REPO --dashboard-ref BRANCH \\
     [--nightly-repo OWNER/REPO] [--nightly-ref BRANCH]
     [--nightly-oidc-subject SUBJECT]
+    [--environment-name NAME] [--nightly-commit FULL_SHA]
     [--availability-zone AZ] [--configure-github]
     [--budget-usd USD] [--budget-email ADDRESS]
 
@@ -116,6 +117,7 @@ function configure(s, outputs) {
     PERFORMANCE_STATE_MACHINE_ARN: outputs.StateMachineArn,
     PERFORMANCE_ARTIFACT_BUCKET: outputs.ArtifactBucketName,
     PERFORMANCE_BUNDLE_VERSION: outputs.BundleVersion,
+    PERFORMANCE_ENVIRONMENT_NAME: option('environment-name', 'aws-bench-v1'),
     PERFORMANCE_AMI_ID: ami,
     PERFORMANCE_AVAILABILITY_ZONE: az,
     PERFORMANCE_VALIDATION_INSTANCE_TYPE: option('validation-instance-type', 'c7i.large'),
@@ -123,6 +125,13 @@ function configure(s, outputs) {
     PERFORMANCE_CORE_INSTANCE_TYPE: option('core-instance-type', 'c7i.2xlarge'),
     PERFORMANCE_FULL_INSTANCE_TYPE: option('full-instance-type', 'c7i.2xlarge'),
   };
+  const nightlyCommit = option('nightly-commit');
+  if (nightlyCommit) {
+    if (!/^[0-9a-f]{40}$/.test(nightlyCommit)) {
+      throw new Error('--nightly-commit must be a full lowercase Git commit SHA');
+    }
+    openDds.PERFORMANCE_NIGHTLY_COMMIT = nightlyCommit;
+  }
   const dashboard = {
     AWS_ROLE_ARN: outputs.DashboardDeployRoleArn,
     AWS_REGION: s.region,
