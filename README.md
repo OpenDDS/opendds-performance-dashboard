@@ -112,6 +112,7 @@ node tools/control-plane.mjs deploy \
   --dashboard-ref aws-performance-testing \
   --nightly-repo OpenDDS/nightly \
   --nightly-ref master \
+  --nightly-oidc-subject 'repo:OpenDDS/nightly:ref:refs/heads/master' \
   --availability-zone us-east-2a \
   --budget-usd 100 \
   --budget-email performance-operator@example.com \
@@ -188,7 +189,9 @@ npx cdk deploy OpenDdsPerformance-fork \
 The numeric values are GitHub's immutable owner and repository IDs for these
 forks. If GitHub reports the legacy OIDC subject format for a workflow token,
 use `repo:simpsont-oci/OpenDDS:*` and the corresponding branch-qualified
-dashboard subject instead.
+dashboard or nightly subject instead. The explicit `--nightly-oidc-subject`
+option supports private repositories whose workflow tokens still use GitHub's
+legacy repository-name subject.
 
 Fork OpenDDS workflows are manual-only by default. Set
 `PERFORMANCE_AUTOMATIC_RUNS=true` only after the validation suite has completed

@@ -79,6 +79,7 @@ function usage() {
     --opendds-repo OWNER/REPO --opendds-ref BRANCH \\
     --dashboard-repo OWNER/REPO --dashboard-ref BRANCH \\
     [--nightly-repo OWNER/REPO] [--nightly-ref BRANCH]
+    [--nightly-oidc-subject SUBJECT]
     [--availability-zone AZ] [--configure-github]
     [--budget-usd USD] [--budget-email ADDRESS]
 
@@ -152,7 +153,7 @@ if (!command || flag('help') || command === 'help') {
     '-c', `dashboardRef=${s.dashboardRef}`,
     '-c', `openDdsOidcSubject=${subject(s.openDdsRepo, s.openDdsRef)}`,
     '-c', `dashboardOidcSubject=${subject(s.dashboardRepo, s.dashboardRef)}`,
-    '-c', `nightlyOidcSubject=${subject(s.nightlyRepo, s.nightlyRef)}`,
+    '-c', `nightlyOidcSubject=${option('nightly-oidc-subject') ?? subject(s.nightlyRepo, s.nightlyRef)}`,
     '-c', `budgetUsd=${option('budget-usd', '100')}`,
   ];
   const budgetEmail = option('budget-email');
