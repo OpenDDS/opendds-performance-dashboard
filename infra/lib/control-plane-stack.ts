@@ -193,6 +193,16 @@ export class ControlPlaneStack extends cdk.Stack {
     stateMachine.grantStartExecution(triggerRole);
     artifactBucket.grantRead(triggerRole, `builds/${bundleVersion}/*`);
     triggerRole.addToPolicy(new iam.PolicyStatement({actions: ['s3:PutObject'], resources: [artifactBucket.arnForObjects(`builds/${bundleVersion}/*`)]}));
+    const configPublisherRole = new iam.Role(this, 'ConfigPublisherRole', {
+      assumedBy: new iam.WebIdentityPrincipal(oidc.openIdConnectProviderArn, {
+        StringEquals: {'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'},
+        StringLike: {'token.actions.githubusercontent.com:sub': props.config.nightlyOidcSubject},
+      }),
+    });
+    configPublisherRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['s3:GetObject', 's3:PutObject'],
+      resources: [artifactBucket.arnForObjects('configs/*')],
+    }));
     const dashboardDeployRole = new iam.Role(this, 'DashboardDeployRole', {assumedBy: new iam.WebIdentityPrincipal(oidc.openIdConnectProviderArn, {StringEquals: {'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'}, StringLike: {'token.actions.githubusercontent.com:sub': props.config.dashboardOidcSubject}})});
     publicBucket.grantReadWrite(dashboardDeployRole);
     dashboardDeployRole.addToPolicy(new iam.PolicyStatement({actions: ['cloudfront:CreateInvalidation'], resources: [distribution.distributionArn]}));
@@ -238,6 +248,7 @@ export class ControlPlaneStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'GitHubRoleArn', {value: triggerRole.roleArn});
     new cdk.CfnOutput(this, 'ArtifactBucketName', {value: artifactBucket.bucketName});
     new cdk.CfnOutput(this, 'BundleVersion', {value: bundleVersion});
+    new cdk.CfnOutput(this, 'ConfigPublisherRoleArn', {value: configPublisherRole.roleArn});
     new cdk.CfnOutput(this, 'DashboardDeployRoleArn', {value: dashboardDeployRole.roleArn});
     new cdk.CfnOutput(this, 'DashboardBucketName', {value: publicBucket.bucketName});
     new cdk.CfnOutput(this, 'CloudFrontDistributionId', {value: distribution.distributionId});

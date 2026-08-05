@@ -7,6 +7,7 @@ export interface ControlPlaneConfig {
   readonly dashboardRef: string;
   readonly openDdsOidcSubject: string;
   readonly dashboardOidcSubject: string;
+  readonly nightlyOidcSubject: string;
   readonly budgetUsd: number;
   readonly budgetEmail?: string;
 }
@@ -18,6 +19,7 @@ const defaults: ControlPlaneConfig = {
   dashboardRef: 'master',
   openDdsOidcSubject: 'repo:OpenDDS/OpenDDS:*',
   dashboardOidcSubject: 'repo:OpenDDS/opendds-performance-dashboard:ref:refs/heads/master',
+  nightlyOidcSubject: 'repo:OpenDDS/nightly:ref:refs/heads/master',
   budgetUsd: 100,
 };
 
@@ -64,6 +66,7 @@ export function loadControlPlaneConfig(app: cdk.App): ControlPlaneConfig {
     dashboardRef: validateRef(String(context(app, 'dashboardRef'))),
     openDdsOidcSubject: validateSubject('openDdsOidcSubject', String(context(app, 'openDdsOidcSubject'))),
     dashboardOidcSubject: validateSubject('dashboardOidcSubject', String(context(app, 'dashboardOidcSubject'))),
+    nightlyOidcSubject: validateSubject('nightlyOidcSubject', String(context(app, 'nightlyOidcSubject'))),
     budgetUsd,
     budgetEmail,
   };

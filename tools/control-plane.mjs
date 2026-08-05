@@ -78,7 +78,8 @@ function usage() {
   node tools/control-plane.mjs deploy --stage STAGE --region REGION \\
     --opendds-repo OWNER/REPO --opendds-ref BRANCH \\
     --dashboard-repo OWNER/REPO --dashboard-ref BRANCH \\
-    [--nightly-repo OWNER/REPO] [--availability-zone AZ] [--configure-github]
+    [--nightly-repo OWNER/REPO] [--nightly-ref BRANCH]
+    [--availability-zone AZ] [--configure-github]
     [--budget-usd USD] [--budget-email ADDRESS]
 
   node tools/control-plane.mjs configure-github <same options>
@@ -99,7 +100,8 @@ function settings() {
   const dashboardRepo = required('dashboard-repo');
   const dashboardRef = required('dashboard-ref');
   const nightlyRepo = option('nightly-repo', 'OpenDDS/nightly');
-  return {stage, region, openDdsRepo, openDdsRef, dashboardRepo, dashboardRef, nightlyRepo};
+  const nightlyRef = option('nightly-ref', 'master');
+  return {stage, region, openDdsRepo, openDdsRef, dashboardRepo, dashboardRef, nightlyRepo, nightlyRef};
 }
 
 function configure(s, outputs) {
@@ -126,8 +128,14 @@ function configure(s, outputs) {
     DASHBOARD_BUCKET: outputs.DashboardBucketName,
     CLOUDFRONT_DISTRIBUTION_ID: outputs.CloudFrontDistributionId,
   };
+  const nightly = {
+    PERFORMANCE_CONFIG_AWS_ROLE_ARN: outputs.ConfigPublisherRoleArn,
+    PERFORMANCE_CONFIG_AWS_REGION: s.region,
+    PERFORMANCE_CONFIG_ARTIFACT_BUCKET: outputs.ArtifactBucketName,
+  };
   for (const [name, value] of Object.entries(openDds)) setVariable(s.openDdsRepo, name, value);
   for (const [name, value] of Object.entries(dashboard)) setVariable(s.dashboardRepo, name, value);
+  for (const [name, value] of Object.entries(nightly)) setVariable(s.nightlyRepo, name, value);
 }
 
 if (!command || flag('help') || command === 'help') {
@@ -144,6 +152,7 @@ if (!command || flag('help') || command === 'help') {
     '-c', `dashboardRef=${s.dashboardRef}`,
     '-c', `openDdsOidcSubject=${subject(s.openDdsRepo, s.openDdsRef)}`,
     '-c', `dashboardOidcSubject=${subject(s.dashboardRepo, s.dashboardRef)}`,
+    '-c', `nightlyOidcSubject=${subject(s.nightlyRepo, s.nightlyRef)}`,
     '-c', `budgetUsd=${option('budget-usd', '100')}`,
   ];
   const budgetEmail = option('budget-email');

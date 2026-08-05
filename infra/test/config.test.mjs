@@ -71,10 +71,12 @@ test('fork repository URLs and immutable OIDC subjects are accepted', () => {
     dashboardRef: 'aws-performance-testing',
     openDdsOidcSubject: 'repo:simpsont-oci@32278075/OpenDDS@1307039839:*',
     dashboardOidcSubject: 'repo:simpsont-oci@32278075/opendds-performance-dashboard@1307044731:ref:refs/heads/aws-performance-testing',
+    nightlyOidcSubject: 'repo:OpenDDS@1/nightly@2:ref:refs/heads/master',
   }});
   const config = loadControlPlaneConfig(app);
   assert.equal(config.nightlyRepoUrl, 'https://github.com/OpenDDS/nightly.git');
   assert.equal(config.dashboardRef, 'aws-performance-testing');
+  assert.equal(config.nightlyOidcSubject, 'repo:OpenDDS@1/nightly@2:ref:refs/heads/master');
 });
 
 test('repository contexts reject shell metacharacters', () => {

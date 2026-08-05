@@ -111,6 +111,7 @@ node tools/control-plane.mjs deploy \
   --dashboard-repo simpsont-oci/opendds-performance-dashboard \
   --dashboard-ref aws-performance-testing \
   --nightly-repo OpenDDS/nightly \
+  --nightly-ref master \
   --availability-zone us-east-2a \
   --budget-usd 100 \
   --budget-email performance-operator@example.com \
@@ -194,9 +195,12 @@ Fork OpenDDS workflows are manual-only by default. Set
 and cleaned up successfully. `PERFORMANCE_NIGHTLY_REPOSITORY_URL` and
 `PERFORMANCE_NIGHTLY_REF` are optional and default to the upstream nightly
 repository's `master` branch. When nightly is private, set
-`PERFORMANCE_NIGHTLY_COMMIT` and preload
-`configs/<commit>/config.tar.gz` in the private artifact bucket; CodeBuild will
-reuse that immutable snapshot without requiring a GitHub token.
+`PERFORMANCE_NIGHTLY_COMMIT` to a revision already published by nightly's
+`Publish Bench Config` workflow. The workflow stores
+`configs/<commit>/config.tar.gz` in the private artifact bucket, and CodeBuild
+reuses that immutable snapshot without requiring a GitHub token. Promotion is
+deliberately separate from publication so publishing a config does not change
+the comparable performance environment.
 
 AWS runs statically register multicast membership by default so Transit
 Gateway join convergence doesn't become part of OpenDDS discovery timing.

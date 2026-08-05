@@ -41,3 +41,14 @@ test('run-stack teardown does not require a nightly config checkout', () => {
   );
   assert.match(source, /if \[ "\$CDK_ACTION" = deploy \]; then if aws s3api head-object/);
 });
+
+test('nightly publisher is restricted to immutable config objects', () => {
+  const source = require('node:fs').readFileSync(
+    require.resolve('../lib/control-plane-stack.ts'),
+    'utf8',
+  );
+  assert.match(source, /ConfigPublisherRole/);
+  assert.match(source, /actions: \['s3:GetObject', 's3:PutObject'\]/);
+  assert.match(source, /arnForObjects\('configs\/\*'\)/);
+  assert.doesNotMatch(source, /ConfigPublisherRole[\s\S]{0,500}s3:DeleteObject/);
+});
